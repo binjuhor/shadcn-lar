@@ -117,6 +117,8 @@ For the deployment workflow to work, configure these GitHub repository secrets:
 - `WORK_DIR` - Application directory path on server
 - `DOCKER_DIR` - Docker compose directory path on server
 
+**Note**: Ensure your server is set up to allow SSH access using the provided private key. Public key should be added to the server's `~/.ssh/authorized_keys`. Folder permissions should allow the SSH user to read/write as needed.`.ssh` folder should have `700` permissions and `authorized_keys` file should have `600` permissions.
+
 ### Local Development Workflow
 
 1. **Before Committing:**
