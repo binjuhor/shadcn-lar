@@ -38,6 +38,34 @@
         --sidebar-ring: 217.2 91.2% 59.8%;
     }
 
+    /* Target the entire scrollbar */
+    ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+
+    /* Target the scrollbar track (the background of the scrollbar) */
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 5px;
+    }
+
+    /* Target the scrollbar thumb (the draggable part) */
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 5px;
+    }
+
+    /* Style the thumb on hover */
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Target the corner where scrollbars meet (if both exist) */
+    ::-webkit-scrollbar-corner {
+        background: #f1f1f1;
+    }
+
     * {
         @apply border-border;
     }
