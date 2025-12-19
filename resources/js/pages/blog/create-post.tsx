@@ -1,8 +1,7 @@
 import {AuthenticatedLayout} from "@/layouts"
 import {
   ChevronLeft,
-  PlusCircle,
-  Upload,
+  CalendarIcon,
   X,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -25,85 +24,142 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import { Main } from "@/components/layout"
 import { Content } from "@tiptap/react"
 import { MinimalTiptapEditor } from "@/components/ui/minimal-tiptap"
 import { useState } from "react"
 import { BlogCategory, BlogTag, BlogPostFormData } from "@/types/blog"
+import { router } from "@inertiajs/react"
+import { PageProps } from "@/types"
+import { useToast } from "@/hooks/use-toast"
+import { MediaUploader } from "@/components/MediaLibrary"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 
-const mockCategories: BlogCategory[] = [
-  {
-    id: 1,
-    name: "Development",
-    slug: "development",
-    description: "Web development tutorials and guides",
-    created_at: "2024-01-01 00:00:00",
-    updated_at: "2024-01-01 00:00:00",
-  },
-  {
-    id: 2,
-    name: "Design",
-    slug: "design",
-    description: "UI/UX design and visual design articles",
-    created_at: "2024-01-01 00:00:00",
-    updated_at: "2024-01-01 00:00:00",
-  },
-  {
-    id: 3,
-    name: "Backend",
-    slug: "backend",
-    description: "Server-side development and architecture",
-    created_at: "2024-01-01 00:00:00",
-    updated_at: "2024-01-01 00:00:00",
-  },
-]
+interface CreateBlogPostPageProps extends PageProps {
+  categories: BlogCategory[]
+  tags: BlogTag[]
+}
 
-const mockTags: BlogTag[] = [
-  { id: 1, name: "React", slug: "react", created_at: "2024-01-01 00:00:00", updated_at: "2024-01-01 00:00:00" },
-  { id: 2, name: "TypeScript", slug: "typescript", created_at: "2024-01-01 00:00:00", updated_at: "2024-01-01 00:00:00" },
-  { id: 3, name: "CSS", slug: "css", created_at: "2024-01-01 00:00:00", updated_at: "2024-01-01 00:00:00" },
-  { id: 4, name: "JavaScript", slug: "javascript", created_at: "2024-01-01 00:00:00", updated_at: "2024-01-01 00:00:00" },
-  { id: 5, name: "Node.js", slug: "nodejs", created_at: "2024-01-01 00:00:00", updated_at: "2024-01-01 00:00:00" },
-  { id: 6, name: "Tutorial", slug: "tutorial", created_at: "2024-01-01 00:00:00", updated_at: "2024-01-01 00:00:00" },
-]
-
-export default function CreateBlogPost() {
-  const [content, setContent] = useState<Content>("")
-  const [selectedTags, setSelectedTags] = useState<number[]>([])
-  const [formData, setFormData] = useState<BlogPostFormData>({
+export default function CreateBlogPost({ categories, tags }: CreateBlogPostPageProps) {
+  const [data, setData] = useState<BlogPostFormData>({
     title: "",
     content: "",
     excerpt: "",
-    thumbnail: "",
+    featured_image: "",
     status: "draft",
-    featured: false,
+    is_featured: false,
     category_id: undefined,
     tag_ids: [],
-    published_at: "",
+    published_at: undefined,
+    meta_title: "",
+    meta_description: "",
   })
 
-  const handleInputChange = (field: keyof BlogPostFormData, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }))
+  const [content, setContent] = useState<Content>("")
+  const [featuredImageFiles, setFeaturedImageFiles] = useState<File[]>([])
+  const [publishedDate, setPublishedDate] = useState<Date | undefined>(undefined)
+  const [publishedTime, setPublishedTime] = useState<string>("12:00")
+  const [processing, setProcessing] = useState(false)
+  const { toast} = useToast()
+
+  const handleFeaturedImageChange = (files: File[]) => {
+    setFeaturedImageFiles(files)
   }
 
   const handleTagToggle = (tagId: number) => {
-    const updatedTags = selectedTags.includes(tagId)
-      ? selectedTags.filter(id => id !== tagId)
-      : [...selectedTags, tagId]
-    
-    setSelectedTags(updatedTags)
-    handleInputChange('tag_ids', updatedTags)
+    const updatedTags = data.tag_ids.includes(tagId)
+      ? data.tag_ids.filter(id => id !== tagId)
+      : [...data.tag_ids, tagId]
+
+    setData(prev => ({ ...prev, tag_ids: updatedTags }))
   }
 
   const handleContentChange = (value: Content) => {
     setContent(value)
-    handleInputChange('content', value)
+    setData(prev => ({ ...prev, content: value as string }))
   }
 
-  const selectedTagObjects = mockTags.filter(tag => selectedTags.includes(tag.id))
+  const handleSubmit = (status?: 'draft' | 'published') => {
+    setProcessing(true)
+
+    const formData = new FormData()
+
+    // Add all form fields
+    formData.append('title', data.title)
+    formData.append('content', data.content)
+    if (data.excerpt) {
+      formData.append('excerpt', data.excerpt)
+    }
+    formData.append('status', status || data.status)
+    formData.append('is_featured', data.is_featured ? '1' : '0')
+
+    if (data.category_id) {
+      formData.append('category_id', data.category_id.toString())
+    }
+
+    // Add tags
+    data.tag_ids.forEach((tagId, index) => {
+      formData.append(`tag_ids[${index}]`, tagId.toString())
+    })
+
+    // Add published_at
+    if (publishedDate && publishedTime) {
+      const [hours, minutes] = publishedTime.split(':')
+      const dateTime = new Date(publishedDate)
+      dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+      formData.append('published_at', dateTime.toISOString())
+    } else if (status === 'published') {
+      formData.append('published_at', new Date().toISOString())
+    }
+
+    // Add meta fields
+    if (data.meta_title) {
+      formData.append('meta_title', data.meta_title)
+    }
+    if (data.meta_description) {
+      formData.append('meta_description', data.meta_description)
+    }
+
+    // Add featured image if selected
+    if (featuredImageFiles.length > 0) {
+      formData.append('featured_image', featuredImageFiles[0])
+    }
+
+    router.post(route('dashboard.posts.store'), formData, {
+      forceFormData: true,
+      onSuccess: () => {
+        setProcessing(false)
+        toast({
+          title: status === 'published' ? "Post published!" : "Draft saved!",
+          description: status === 'published'
+            ? "Your blog post has been published successfully."
+            : "Your blog post has been saved as a draft.",
+        })
+        // Redirect to posts list after a short delay
+        setTimeout(() => {
+          router.get(route('dashboard.posts.index'))
+        }, 1000)
+      },
+      onError: (errors) => {
+        setProcessing(false)
+        console.error('Validation errors:', errors)
+        toast({
+          variant: "destructive",
+          title: "Error creating post",
+          description: "Please check your form and try again.",
+        })
+      }
+    })
+  }
+
+  const selectedTagObjects = tags.filter(tag => data.tag_ids.includes(tag.id))
 
   return (
     <>
@@ -112,7 +168,12 @@ export default function CreateBlogPost() {
           <div className="grid flex-1 items-start gap-4 md:gap-8">
             <div className="grid flex-1 auto-rows-max gap-4">
               <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" className="h-7 w-7">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => window.history.back()}
+                >
                   <ChevronLeft className="h-4 w-4" />
                   <span className="sr-only">Back</span>
                 </Button>
@@ -120,13 +181,24 @@ export default function CreateBlogPost() {
                   Create Blog Post
                 </h1>
                 <div className="hidden items-center gap-2 md:ml-auto md:flex">
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSubmit('draft')}
+                    disabled={processing}
+                  >
                     Save Draft
                   </Button>
-                  <Button size="sm">Publish Post</Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleSubmit()}
+                    disabled={processing}
+                  >
+                    {processing ? 'Creating...' : 'Create Post'}
+                  </Button>
                 </div>
               </div>
-              
+
               <div className="grid gap-4 md:grid-cols-[1fr_350px] lg:gap-8">
                 <div className="grid auto-rows-max items-start gap-4 lg:gap-8">
                   <Card>
@@ -145,22 +217,22 @@ export default function CreateBlogPost() {
                             type="text"
                             className="w-full"
                             placeholder="Enter post title..."
-                            value={formData.title}
-                            onChange={(e) => handleInputChange('title', e.target.value)}
+                            value={data.title}
+                            onChange={(e) => setData(prev => ({ ...prev, title: e.target.value }))}
                           />
                         </div>
-                        
+
                         <div className="grid gap-3">
                           <Label htmlFor="excerpt">Excerpt</Label>
                           <Textarea
                             id="excerpt"
                             placeholder="Enter a brief summary of your post..."
                             className="min-h-20"
-                            value={formData.excerpt}
-                            onChange={(e) => handleInputChange('excerpt', e.target.value)}
+                            value={data.excerpt}
+                            onChange={(e) => setData(prev => ({ ...prev, excerpt: e.target.value }))}
                           />
                         </div>
-                        
+
                         <div className="grid gap-3">
                           <Label htmlFor="content">Content</Label>
                           <MinimalTiptapEditor
@@ -190,9 +262,9 @@ export default function CreateBlogPost() {
                       <div className="grid gap-3">
                         <Label htmlFor="status">Status</Label>
                         <Select
-                          value={formData.status}
+                          value={data.status}
                           onValueChange={(value: 'draft' | 'published' | 'archived') =>
-                            handleInputChange('status', value)
+                            setData(prev => ({ ...prev, status: value }))
                           }
                         >
                           <SelectTrigger id="status">
@@ -209,24 +281,51 @@ export default function CreateBlogPost() {
                       <div className="flex items-center space-x-2">
                         <Switch
                           id="featured"
-                          checked={formData.featured}
-                          onCheckedChange={(checked) => handleInputChange('featured', checked)}
+                          checked={data.is_featured}
+                          onCheckedChange={(checked) => setData(prev => ({ ...prev, is_featured: checked }))}
                         />
                         <Label htmlFor="featured" className="text-sm font-medium">
                           Featured Post
                         </Label>
                       </div>
 
-                      {formData.status === 'published' && (
-                        <div className="grid gap-3">
-                          <Label htmlFor="published_at">Publication Date</Label>
-                          <Input
-                            id="published_at"
-                            type="datetime-local"
-                            value={formData.published_at}
-                            onChange={(e) => handleInputChange('published_at', e.target.value)}
-                          />
-                        </div>
+                      {data.status === 'published' && (
+                        <>
+                          <div className="grid gap-3">
+                            <Label>Publication Date</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !publishedDate && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {publishedDate ? format(publishedDate, "PPP") : <span>Pick a date</span>}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={publishedDate}
+                                  onSelect={setPublishedDate}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div className="grid gap-3">
+                            <Label htmlFor="published_time">Publication Time</Label>
+                            <Input
+                              id="published_time"
+                              type="time"
+                              value={publishedTime}
+                              onChange={(e) => setPublishedTime(e.target.value)}
+                            />
+                          </div>
+                        </>
                       )}
                     </CardContent>
                   </Card>
@@ -239,40 +338,16 @@ export default function CreateBlogPost() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid gap-2">
-                        {formData.thumbnail ? (
-                          <div className="relative">
-                            <img
-                              alt="Post thumbnail"
-                              className="aspect-video w-full rounded-md object-cover"
-                              src={formData.thumbnail}
-                            />
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              className="absolute top-2 right-2"
-                              onClick={() => handleInputChange('thumbnail', '')}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex aspect-video w-full items-center justify-center rounded-md border border-dashed cursor-pointer hover:bg-muted/50 transition-colors">
-                            <div className="flex flex-col items-center gap-2">
-                              <Upload className="h-8 w-8 text-muted-foreground" />
-                              <p className="text-sm text-muted-foreground">
-                                Click to upload thumbnail
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                PNG, JPG up to 2MB
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      <MediaUploader
+                        name="featured_image"
+                        multiple={false}
+                        maxFiles={1}
+                        acceptedFileTypes={['image/jpeg', 'image/png', 'image/webp', 'image/jpg']}
+                        maxFileSize={5}
+                        onChange={handleFeaturedImageChange}
+                      />
                     </CardContent>
                   </Card>
-
                   <Card>
                     <CardHeader>
                       <CardTitle>Category</CardTitle>
@@ -282,14 +357,14 @@ export default function CreateBlogPost() {
                     </CardHeader>
                     <CardContent>
                       <Select
-                        value={formData.category_id?.toString()}
-                        onValueChange={(value) => handleInputChange('category_id', parseInt(value))}
+                        value={data.category_id?.toString() || ""}
+                        onValueChange={(value) => setData(prev => ({ ...prev, category_id: parseInt(value) }))}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {mockCategories.map((category) => (
+                          {categories.map((category) => (
                             <SelectItem key={category.id} value={category.id.toString()}>
                               {category.name}
                             </SelectItem>
@@ -309,22 +384,22 @@ export default function CreateBlogPost() {
                     <CardContent>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-2">
-                          {mockTags.map((tag) => (
+                          {tags.map((tag) => (
                             <Button
                               key={tag.id}
-                              variant={selectedTags.includes(tag.id) ? "default" : "outline"}
+                              variant={data.tag_ids.includes(tag.id) ? "default" : "outline"}
                               size="sm"
                               onClick={() => handleTagToggle(tag.id)}
                               className="justify-start"
                             >
-                              {selectedTags.includes(tag.id) && (
+                              {data.tag_ids.includes(tag.id) && (
                                 <X className="mr-1 h-3 w-3" />
                               )}
                               {tag.name}
                             </Button>
                           ))}
                         </div>
-                        
+
                         {selectedTagObjects.length > 0 && (
                           <div>
                             <Label className="text-sm font-medium mb-2 block">
@@ -348,12 +423,23 @@ export default function CreateBlogPost() {
                   </Card>
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-center gap-2 md:hidden">
-                <Button variant="outline" size="sm">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSubmit('draft')}
+                  disabled={processing}
+                >
                   Save Draft
                 </Button>
-                <Button size="sm">Publish Post</Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleSubmit()}
+                  disabled={processing}
+                >
+                  {processing ? 'Creating...' : 'Create Post'}
+                </Button>
               </div>
             </div>
           </div>

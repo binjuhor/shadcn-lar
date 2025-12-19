@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import {
   Sidebar,
   SidebarContent,
@@ -9,15 +10,23 @@ import { NavGroup } from '@/components/layout/nav-group'
 import { NavUser } from '@/components/layout/nav-user'
 import { TeamSwitcher } from '@/components/layout/team-switcher'
 import { sidebarData } from './data/sidebar-data'
+import { usePermission } from '@/hooks/use-permission'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { filterNavGroups } = usePermission()
+
+  const filteredNavGroups = useMemo(
+    () => filterNavGroups(sidebarData.navGroups),
+    [filterNavGroups]
+  )
+
   return (
     <Sidebar collapsible='icon' variant='floating' {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={sidebarData.teams} />
       </SidebarHeader>
       <SidebarContent>
-        {sidebarData.navGroups.map((props) => (
+        {filteredNavGroups.map((props) => (
           <NavGroup key={props.title} {...props} />
         ))}
       </SidebarContent>

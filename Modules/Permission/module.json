@@ -1,0 +1,11 @@
+{
+    "name": "Permission",
+    "alias": "permission",
+    "description": "Role and permission management module",
+    "keywords": ["roles", "permissions", "rbac", "access control"],
+    "priority": 0,
+    "providers": [
+        "Modules\\Permission\\Providers\\PermissionServiceProvider"
+    ],
+    "files": []
+}

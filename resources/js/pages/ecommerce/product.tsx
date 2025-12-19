@@ -1,384 +1,254 @@
 import {AuthenticatedLayout} from "@/layouts"
-import {
-  ChevronLeft,
-  PlusCircle,
-  Upload,
-} from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { ChevronLeft, Calendar, Clock, User, Tag, Eye, Edit, Package, DollarSign } from "lucide-react"
 import {Badge} from "@/components/ui/badge"
 import {Button} from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/components/ui/toggle-group"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Main } from "@/components/layout"
-import { Content } from "@tiptap/react"
-import { MinimalTiptapEditor } from "@/components/ui/minimal-tiptap";
-import { useState } from "react"
+import type { Product } from "@/types/ecommerce"
+import { router } from "@inertiajs/react"
+import { PageProps } from "@/types"
 
-export default function Product() {
-  const [value, setValue] = useState<Content>("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nisl nec ultricies ultricies, nunc nisl ultricies nunc, nec ultricies nunc nisl nec nunc.")
+interface ProductPageProps extends PageProps {
+  product: Product
+}
+
+export default function ProductShow({ product }: ProductPageProps) {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  }
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(price)
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "active":
+        return <Badge variant="outline" className="text-green-600 border-green-600">Active</Badge>
+      case "draft":
+        return <Badge variant="secondary">Draft</Badge>
+      case "archived":
+        return <Badge variant="outline">Archived</Badge>
+      default:
+        return <Badge>{status}</Badge>
+    }
+  }
+
+  const getStockBadge = () => {
+    if (product.is_out_of_stock) {
+      return <Badge variant="destructive">Out of Stock</Badge>
+    }
+    if (product.is_low_stock) {
+      return <Badge variant="outline" className="text-orange-600 border-orange-600">Low Stock</Badge>
+    }
+    return <Badge variant="outline" className="text-green-600 border-green-600">In Stock</Badge>
+  }
 
   return (
     <>
-      <AuthenticatedLayout title="Orders">
+      <AuthenticatedLayout title={product.name}>
         <Main>
           <div className="grid flex-1 items-start gap-4 md:gap-8">
             <div className="grid flex-1 auto-rows-max gap-4">
               <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" className="h-7 w-7">
+                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => window.history.back()}>
                   <ChevronLeft className="h-4 w-4" />
                   <span className="sr-only">Back</span>
                 </Button>
                 <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
-                  Pro Controller
+                  Product Details
                 </h1>
-                <Badge variant="outline" className="ml-auto sm:ml-0">
-                  In stock
-                </Badge>
+                {getStatusBadge(product.status)}
+                {product.is_featured && (
+                  <Badge variant="secondary" className="ml-2">
+                    Featured
+                  </Badge>
+                )}
                 <div className="hidden items-center gap-2 md:ml-auto md:flex">
                   <Button variant="outline" size="sm">
-                    Discard
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
                   </Button>
-                  <Button size="sm">Save Product</Button>
+                  <Button size="sm" onClick={() => router.get(route('dashboard.ecommerce.products.edit', product.slug))}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Product
+                  </Button>
                 </div>
               </div>
-              <div className="grid gap-4 md:grid-cols-[1fr_250px] lg:grid-cols-3 lg:gap-8">
-                <div className="grid auto-rows-max items-start gap-4 lg:col-span-2 lg:gap-8">
-                  <Card x-chunk="dashboard-07-chunk-0">
+
+              <div className="grid gap-4 md:grid-cols-[1fr_300px] lg:gap-8">
+                <div className="grid auto-rows-max items-start gap-4">
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Product Details</CardTitle>
-                      <CardDescription>
-                        Lipsum dolor sit amet, consectetur adipiscing elit
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-6">
-                        <div className="grid gap-3">
-                          <Label htmlFor="name">Name</Label>
-                          <Input
-                            id="name"
-                            type="text"
-                            className="w-full"
-                            defaultValue="Gamer Gear Pro Controller"
+                      <div className="space-y-4">
+                        {product.featured_image_url && (
+                          <img
+                            src={product.featured_image_url}
+                            alt={product.name}
+                            className="w-full h-48 object-cover rounded-lg"
                           />
-                        </div>
-                        <div className="grid gap-3">
-                          <Label htmlFor="description">Description</Label>
-                          <MinimalTiptapEditor
-                            value={value}
-                            onChange={setValue}
-                            className="w-full"
-                            editorContentClassName="p-5"
-                            output="html"
-                            placeholder="Enter your description..."
-                            autofocus={false}
-                            editable={true}
-                            editorClassName="focus:outline-none"
-                          />
+                        )}
+                        <div>
+                          <CardTitle className="text-2xl leading-tight">
+                            {product.name}
+                          </CardTitle>
+                          <CardDescription className="mt-2 text-base">
+                            {product.description}
+                          </CardDescription>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                  <Card x-chunk="dashboard-07-chunk-1">
-                    <CardHeader>
-                      <CardTitle>Stock</CardTitle>
-                      <CardDescription>
-                        Lipsum dolor sit amet, consectetur adipiscing elit
-                      </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[100px]">SKU</TableHead>
-                            <TableHead>Stock</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead className="w-[100px]">Size</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          <TableRow>
-                            <TableCell className="font-semibold">
-                              GGPC-001
-                            </TableCell>
-                            <TableCell>
-                              <Label htmlFor="stock-1" className="sr-only">
-                                Stock
-                              </Label>
-                              <Input
-                                id="stock-1"
-                                type="number"
-                                defaultValue="100"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Label htmlFor="price-1" className="sr-only">
-                                Price
-                              </Label>
-                              <Input
-                                id="price-1"
-                                type="number"
-                                defaultValue="99.99"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <ToggleGroup
-                                type="single"
-                                defaultValue="s"
-                                variant="outline"
-                              >
-                                <ToggleGroupItem value="s">S</ToggleGroupItem>
-                                <ToggleGroupItem value="m">M</ToggleGroupItem>
-                                <ToggleGroupItem value="l">L</ToggleGroupItem>
-                              </ToggleGroup>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell className="font-semibold">
-                              GGPC-002
-                            </TableCell>
-                            <TableCell>
-                              <Label htmlFor="stock-2" className="sr-only">
-                                Stock
-                              </Label>
-                              <Input
-                                id="stock-2"
-                                type="number"
-                                defaultValue="143"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Label htmlFor="price-2" className="sr-only">
-                                Price
-                              </Label>
-                              <Input
-                                id="price-2"
-                                type="number"
-                                defaultValue="99.99"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <ToggleGroup
-                                type="single"
-                                defaultValue="m"
-                                variant="outline"
-                              >
-                                <ToggleGroupItem value="s">S</ToggleGroupItem>
-                                <ToggleGroupItem value="m">M</ToggleGroupItem>
-                                <ToggleGroupItem value="l">L</ToggleGroupItem>
-                              </ToggleGroup>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell className="font-semibold">
-                              GGPC-003
-                            </TableCell>
-                            <TableCell>
-                              <Label htmlFor="stock-3" className="sr-only">
-                                Stock
-                              </Label>
-                              <Input
-                                id="stock-3"
-                                type="number"
-                                defaultValue="32"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Label htmlFor="price-3" className="sr-only">
-                                Stock
-                              </Label>
-                              <Input
-                                id="price-3"
-                                type="number"
-                                defaultValue="99.99"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <ToggleGroup
-                                type="single"
-                                defaultValue="s"
-                                variant="outline"
-                              >
-                                <ToggleGroupItem value="s">S</ToggleGroupItem>
-                                <ToggleGroupItem value="m">M</ToggleGroupItem>
-                                <ToggleGroupItem value="l">L</ToggleGroupItem>
-                              </ToggleGroup>
-                            </TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
+                      <div
+                        className="prose prose-sm max-w-none dark:prose-invert"
+                        dangerouslySetInnerHTML={{ __html: product.content || '' }}
+                      />
                     </CardContent>
-                    <CardFooter className="justify-center border-t p-4">
-                      <Button size="sm" variant="ghost" className="gap-1">
-                        <PlusCircle className="h-3.5 w-3.5" />
-                        Add Variant
-                      </Button>
-                    </CardFooter>
                   </Card>
-                  <Card x-chunk="dashboard-07-chunk-2">
+
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Product Category</CardTitle>
+                      <CardTitle className="text-lg">Pricing & Inventory</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-6 sm:grid-cols-3">
-                        <div className="grid gap-3">
-                          <Label htmlFor="category">Category</Label>
-                          <Select>
-                            <SelectTrigger
-                              id="category"
-                              aria-label="Select category"
-                            >
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="clothing">Clothing</SelectItem>
-                              <SelectItem value="electronics">
-                                Electronics
-                              </SelectItem>
-                              <SelectItem value="accessories">
-                                Accessories
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-sm text-muted-foreground">Price</div>
+                          <div className="text-2xl font-bold">{formatPrice(product.price)}</div>
                         </div>
-                        <div className="grid gap-3">
-                          <Label htmlFor="subcategory">
-                            Subcategory (optional)
-                          </Label>
-                          <Select>
-                            <SelectTrigger
-                              id="subcategory"
-                              aria-label="Select subcategory"
-                            >
-                              <SelectValue placeholder="Select subcategory" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="t-shirts">T-Shirts</SelectItem>
-                              <SelectItem value="hoodies">Hoodies</SelectItem>
-                              <SelectItem value="sweatshirts">
-                                Sweatshirts
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                        {product.is_on_sale && product.sale_price && (
+                          <div>
+                            <div className="text-sm text-muted-foreground">Sale Price</div>
+                            <div className="text-2xl font-bold text-green-600">{formatPrice(product.sale_price)}</div>
+                            <Badge variant="destructive" className="mt-1">-{product.discount_percentage}%</Badge>
+                          </div>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-sm text-muted-foreground">SKU</div>
+                          <div className="font-mono">{product.sku || 'N/A'}</div>
                         </div>
+                        <div>
+                          <div className="text-sm text-muted-foreground">Stock Status</div>
+                          <div className="mt-1">{getStockBadge()}</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-sm text-muted-foreground">Stock Quantity</div>
+                          <div className="font-medium">{product.stock_quantity} units</div>
+                        </div>
+                        {product.low_stock_threshold && (
+                          <div>
+                            <div className="text-sm text-muted-foreground">Low Stock Threshold</div>
+                            <div className="font-medium">{product.low_stock_threshold} units</div>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
                 </div>
-                <div className="grid auto-rows-max items-start gap-4 lg:gap-8">
-                  <Card x-chunk="dashboard-07-chunk-3">
+
+                <div className="grid auto-rows-max items-start gap-4">
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Product Status</CardTitle>
+                      <CardTitle className="text-lg">Product Information</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-6">
-                        <div className="grid gap-3">
-                          <Label htmlFor="status">Status</Label>
-                          <Select>
-                            <SelectTrigger id="status" aria-label="Select status">
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="draft">Draft</SelectItem>
-                              <SelectItem value="published">Active</SelectItem>
-                              <SelectItem value="archived">Archived</SelectItem>
-                            </SelectContent>
-                          </Select>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <User className="h-4 w-4" />
+                        <div className="flex items-center gap-2">
+                          <img
+                            src="/placeholder.svg"
+                            alt={product.user.name}
+                            className="w-5 h-5 rounded-full"
+                          />
+                          <span>{product.user.name}</span>
                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span>Created {formatDate(product.created_at)}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        <span>Updated {formatDate(product.updated_at)}</span>
                       </div>
                     </CardContent>
                   </Card>
-                  <Card
-                    className="overflow-hidden" x-chunk="dashboard-07-chunk-4"
-                  >
+
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Product Images</CardTitle>
-                      <CardDescription>
-                        Lipsum dolor sit amet, consectetur adipiscing elit
-                      </CardDescription>
+                      <CardTitle className="text-lg">Category</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid gap-2">
-                        <img
-                          alt="Product image"
-                          className="aspect-square w-full rounded-md object-cover"
-                          height="300"
-                          src="/placeholder.svg"
-                          width="300"
-                        />
-                        <div className="grid grid-cols-3 gap-2">
-                          <button>
-                            <img
-                              alt="Product image"
-                              className="aspect-square w-full rounded-md object-cover"
-                              height="84"
-                              src="/placeholder.svg"
-                              width="84"
-                            />
-                          </button>
-                          <button>
-                            <img
-                              alt="Product image"
-                              className="aspect-square w-full rounded-md object-cover"
-                              height="84"
-                              src="/placeholder.svg"
-                              width="84"
-                            />
-                          </button>
-                          <button className="flex aspect-square w-full items-center justify-center rounded-md border border-dashed">
-                            <Upload className="h-4 w-4 text-muted-foreground" />
-                            <span className="sr-only">Upload</span>
-                          </button>
-                        </div>
-                      </div>
+                      {product.category ? (
+                        <Badge variant="outline" className="text-sm">
+                          {product.category.name}
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">No category</span>
+                      )}
                     </CardContent>
                   </Card>
-                  <Card x-chunk="dashboard-07-chunk-5">
+
+                  {product.tags && product.tags.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Tag className="h-4 w-4" />
+                          Tags
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                          {product.tags.map((tag) => (
+                            <Badge key={tag.id} variant="secondary" className="text-xs">
+                              {tag.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Archive Product</CardTitle>
-                      <CardDescription>
-                        Lipsum dolor sit amet, consectetur adipiscing elit.
-                      </CardDescription>
+                      <CardTitle className="text-lg">Statistics</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div></div>
-                      <Button size="sm" variant="secondary">
-                        Archive Product
-                      </Button>
+                    <CardContent className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Views</span>
+                        <span className="font-medium">{product.views_count || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Sales</span>
+                        <span className="font-medium">{product.sales_count || 0}</span>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
               </div>
+
               <div className="flex items-center justify-center gap-2 md:hidden">
                 <Button variant="outline" size="sm">
-                  Discard
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview
                 </Button>
-                <Button size="sm">Save Product</Button>
+                <Button size="sm" onClick={() => router.get(route('dashboard.ecommerce.products.edit', product.slug))}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Product
+                </Button>
               </div>
             </div>
           </div>

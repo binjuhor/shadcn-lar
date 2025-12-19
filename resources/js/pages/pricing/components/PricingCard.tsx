@@ -81,15 +81,14 @@ export const PricingCard = ({
 
       {/* Call to Action Button */}
       <Button
-        variant="expandIcon"
-        Icon={ArrowRight}
-        iconPlacement="right"
+        variant="default"
         className={cn(
           "h-fit w-full rounded-lg",
           isHighlighted && "bg-accent text-foreground hover:bg-accent/95",
         )}
       >
         {tier.cta}
+        <ArrowRight className="ml-2 h-4 w-4" />
       </Button>
     </div>
   );

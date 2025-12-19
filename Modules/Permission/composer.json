@@ -1,0 +1,19 @@
+{
+    "name": "modules/permission",
+    "description": "Role and permission management module",
+    "type": "library",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Modules\\Permission\\": "",
+            "Modules\\Permission\\Database\\Factories\\": "database/factories/",
+            "Modules\\Permission\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {}
+        }
+    }
+}

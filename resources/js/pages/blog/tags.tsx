@@ -4,6 +4,7 @@ import {
   PlusCircle,
   Edit,
   Trash2,
+  Loader2,
 } from "lucide-react"
 
 import {Badge} from "@/components/ui/badge"
@@ -35,6 +36,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import {
   Table,
   TableBody,
@@ -46,72 +49,168 @@ import {
 import { Main } from "@/components/layout"
 import { useState } from "react"
 import { BlogTag, BlogTagFormData } from "@/types/blog"
+import { PageProps } from "@/types"
+import { router } from "@inertiajs/react"
+import { useToast } from "@/hooks/use-toast"
+import { axios } from "@/lib/axios"
+import { getErrorMessage } from "@/lib/errors"
 
-const mockTags: BlogTag[] = [
-  { id: 1, name: "React", slug: "react", created_at: "2024-01-01 00:00:00", updated_at: "2024-01-01 00:00:00" },
-  { id: 2, name: "TypeScript", slug: "typescript", created_at: "2024-01-02 00:00:00", updated_at: "2024-01-02 00:00:00" },
-  { id: 3, name: "CSS", slug: "css", created_at: "2024-01-03 00:00:00", updated_at: "2024-01-03 00:00:00" },
-  { id: 4, name: "JavaScript", slug: "javascript", created_at: "2024-01-04 00:00:00", updated_at: "2024-01-04 00:00:00" },
-  { id: 5, name: "Node.js", slug: "nodejs", created_at: "2024-01-05 00:00:00", updated_at: "2024-01-05 00:00:00" },
-  { id: 6, name: "Tutorial", slug: "tutorial", created_at: "2024-01-06 00:00:00", updated_at: "2024-01-06 00:00:00" },
-  { id: 7, name: "Web Design", slug: "web-design", created_at: "2024-01-07 00:00:00", updated_at: "2024-01-07 00:00:00" },
-  { id: 8, name: "Backend", slug: "backend", created_at: "2024-01-08 00:00:00", updated_at: "2024-01-08 00:00:00" },
-]
+interface BlogTagsPageProps extends PageProps {
+  tags: BlogTag[]
+}
 
-export default function BlogTags() {
-  const [tags, setTags] = useState<BlogTag[]>(mockTags)
+const initialFormData: BlogTagFormData = {
+  name: "",
+  slug: "",
+  description: "",
+  color: "",
+  is_active: true,
+}
+
+export default function BlogTags({ tags }: BlogTagsPageProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editingTag, setEditingTag] = useState<BlogTag | null>(null)
-  const [formData, setFormData] = useState<BlogTagFormData>({
-    name: "",
-  })
+  const [formData, setFormData] = useState<BlogTagFormData>(initialFormData)
+  const [isLoading, setIsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const { toast } = useToast()
+
+  // Helper function to generate slug from name
+  const generateSlug = (text: string) => {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+  }
 
   const filteredTags = tags.filter(tag =>
     tag.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleCreateTag = () => {
-    const newTag: BlogTag = {
-      id: Math.max(...tags.map(t => t.id)) + 1,
-      name: formData.name,
-      slug: formData.name.toLowerCase().replace(/\s+/g, '-'),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+  const handleCreateTag = async () => {
+    if (!formData.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Tag name is required",
+        variant: "destructive",
+      })
+      return
     }
-    setTags([...tags, newTag])
-    setFormData({ name: "" })
-    setIsCreateOpen(false)
+
+    setIsLoading(true)
+    try {
+      // Clean empty strings to undefined for optional fields
+      const cleanedData = {
+        name: formData.name.trim(),
+        slug: formData.slug?.trim() || undefined,
+        description: formData.description?.trim() || undefined,
+        color: formData.color?.trim() || undefined,
+        is_active: formData.is_active,
+      }
+
+      await axios.post('/dashboard/tags', cleanedData)
+
+      toast({
+        title: "Success",
+        description: "Tag created successfully",
+      })
+
+      setFormData(initialFormData)
+      setIsCreateOpen(false)
+      router.reload()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: getErrorMessage(error),
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleEditTag = (tag: BlogTag) => {
     setEditingTag(tag)
-    setFormData({ name: tag.name })
+    setFormData({
+      name: tag.name,
+      slug: tag.slug,
+      description: tag.description || "",
+      color: tag.color || "",
+      is_active: tag.is_active,
+    })
     setIsEditOpen(true)
   }
 
-  const handleUpdateTag = () => {
-    if (!editingTag) return
-    
-    const updatedTags = tags.map(tag =>
-      tag.id === editingTag.id
-        ? {
-            ...tag,
-            name: formData.name,
-            slug: formData.name.toLowerCase().replace(/\s+/g, '-'),
-            updated_at: new Date().toISOString(),
-          }
-        : tag
-    )
-    setTags(updatedTags)
-    setFormData({ name: "" })
-    setEditingTag(null)
-    setIsEditOpen(false)
+  const handleUpdateTag = async () => {
+    if (!editingTag || !formData.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Tag name is required",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      // Clean empty strings to null for optional fields
+      const cleanedData = {
+        name: formData.name.trim(),
+        slug: formData.slug?.trim() || undefined,
+        description: formData.description?.trim() || undefined,
+        color: formData.color?.trim() || undefined,
+        is_active: formData.is_active,
+      }
+
+      await axios.put(`/dashboard/tags/${editingTag.slug}`, cleanedData)
+
+      toast({
+        title: "Success",
+        description: "Tag updated successfully",
+      })
+
+      setFormData(initialFormData)
+      setEditingTag(null)
+      setIsEditOpen(false)
+      router.reload()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: getErrorMessage(error),
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleDeleteTag = (tagId: number) => {
-    setTags(tags.filter(tag => tag.id !== tagId))
+  const handleDeleteTag = async (tag: BlogTag) => {
+    if (!confirm("Are you sure you want to delete this tag?")) {
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await axios.delete(`/dashboard/tags/${tag.slug}`)
+
+      toast({
+        title: "Success",
+        description: "Tag deleted successfully",
+      })
+
+      router.reload()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: getErrorMessage(error),
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -120,18 +219,6 @@ export default function BlogTags() {
       month: "short",
       day: "numeric",
     })
-  }
-
-  const getRandomColor = () => {
-    const colors = [
-      "bg-blue-100 text-blue-800",
-      "bg-green-100 text-green-800",
-      "bg-yellow-100 text-yellow-800",
-      "bg-purple-100 text-purple-800",
-      "bg-pink-100 text-pink-800",
-      "bg-indigo-100 text-indigo-800",
-    ]
-    return colors[Math.floor(Math.random() * colors.length)]
   }
 
   return (
@@ -166,7 +253,7 @@ export default function BlogTags() {
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="create-name">Name</Label>
+                        <Label htmlFor="create-name">Name *</Label>
                         <Input
                           id="create-name"
                           value={formData.name}
@@ -174,20 +261,77 @@ export default function BlogTags() {
                           placeholder="Tag name"
                         />
                       </div>
+                      <div className="grid gap-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="create-slug">Slug (URL)</Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(formData.name) }))}
+                            className="h-7 text-xs"
+                          >
+                            Auto-generate
+                          </Button>
+                        </div>
+                        <Input
+                          id="create-slug"
+                          type="text"
+                          className="w-full font-mono text-sm"
+                          placeholder="tag-url-slug"
+                          value={formData.slug}
+                          onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          URL: /tags/{formData.slug || 'your-tag-slug'}
+                        </p>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="create-description">Description</Label>
+                        <Textarea
+                          id="create-description"
+                          value={formData.description}
+                          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Brief description of the tag"
+                          rows={3}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="create-color">Color</Label>
+                        <Input
+                          id="create-color"
+                          type="color"
+                          value={formData.color}
+                          onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="create-active">Active</Label>
+                        <Switch
+                          id="create-active"
+                          checked={formData.is_active}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
+                        />
+                      </div>
                     </div>
                     <DialogFooter>
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setIsCreateOpen(false)}
+                        onClick={() => {
+                          setIsCreateOpen(false)
+                          setFormData(initialFormData)
+                        }}
+                        disabled={isLoading}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
                         onClick={handleCreateTag}
-                        disabled={!formData.name.trim()}
+                        disabled={!formData.name.trim() || isLoading}
                       >
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Create Tag
                       </Button>
                     </DialogFooter>
@@ -211,8 +355,13 @@ export default function BlogTags() {
                         key={tag.id}
                         variant="secondary"
                         className="cursor-pointer hover:bg-secondary/80"
+                        style={tag.color ? { backgroundColor: tag.color + '20', borderColor: tag.color } : {}}
                       >
-                        {tag.name}
+                        <span className="mr-1">{tag.name}</span>
+                        (<span className="text-xs opacity-70">
+                        {tag.usage_count && tag.usage_count > 0 && (
+                          <>{tag.usage_count}</>
+                        )}</span>)
                       </Badge>
                     ))}
                     {filteredTags.length > 20 && (
@@ -221,14 +370,15 @@ export default function BlogTags() {
                       </Badge>
                     )}
                   </div>
-                  
+
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead>Slug</TableHead>
+                        <TableHead className="hidden md:table-cell">Usage</TableHead>
+                        <TableHead className="hidden md:table-cell">Status</TableHead>
                         <TableHead className="hidden md:table-cell">Created</TableHead>
-                        <TableHead className="hidden md:table-cell">Updated</TableHead>
                         <TableHead>
                           <span className="sr-only">Actions</span>
                         </TableHead>
@@ -238,16 +388,26 @@ export default function BlogTags() {
                       {filteredTags.map((tag) => (
                         <TableRow key={tag.id}>
                           <TableCell className="font-medium">
-                            <Badge variant="secondary">{tag.name}</Badge>
+                            <Badge
+                              variant="secondary"
+                              style={tag.color ? { backgroundColor: tag.color + '20', borderColor: tag.color } : {}}
+                            >
+                              {tag.name}
+                            </Badge>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {tag.slug}
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
-                            {formatDate(tag.created_at)}
+                            {tag.usage_count || 0} posts
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
-                            {formatDate(tag.updated_at)}
+                            <Badge variant={tag.is_active ? "default" : "secondary"}>
+                              {tag.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {formatDate(tag.created_at)}
                           </TableCell>
                           <TableCell>
                             <DropdownMenu>
@@ -271,7 +431,7 @@ export default function BlogTags() {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   className="text-red-600"
-                                  onClick={() => handleDeleteTag(tag.id)}
+                                  onClick={() => handleDeleteTag(tag)}
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
                                   Delete
@@ -302,7 +462,7 @@ export default function BlogTags() {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-name">Name</Label>
+                    <Label htmlFor="edit-name">Name *</Label>
                     <Input
                       id="edit-name"
                       value={formData.name}
@@ -310,20 +470,78 @@ export default function BlogTags() {
                       placeholder="Tag name"
                     />
                   </div>
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="edit-slug">Slug (URL)</Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(formData.name) }))}
+                        className="h-7 text-xs"
+                      >
+                        Auto-generate
+                      </Button>
+                    </div>
+                    <Input
+                      id="edit-slug"
+                      type="text"
+                      className="w-full font-mono text-sm"
+                      placeholder="tag-url-slug"
+                      value={formData.slug}
+                      onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      URL: /tags/{formData.slug || 'your-tag-slug'}
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-description">Description</Label>
+                    <Textarea
+                      id="edit-description"
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Brief description of the tag"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-color">Color</Label>
+                    <Input
+                      id="edit-color"
+                      type="color"
+                      value={formData.color}
+                      onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="edit-active">Active</Label>
+                    <Switch
+                      id="edit-active"
+                      checked={formData.is_active}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
+                    />
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setIsEditOpen(false)}
+                    onClick={() => {
+                      setIsEditOpen(false)
+                      setEditingTag(null)
+                      setFormData(initialFormData)
+                    }}
+                    disabled={isLoading}
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
                     onClick={handleUpdateTag}
-                    disabled={!formData.name.trim()}
+                    disabled={!formData.name.trim() || isLoading}
                   >
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Update Tag
                   </Button>
                 </DialogFooter>

@@ -28,6 +28,8 @@ import {
   IconCategory,
   IconTags,
   IconEdit,
+  IconShield,
+  IconKey,
 } from '@tabler/icons-react'
 import {
   AudioWaveform,
@@ -99,10 +101,28 @@ export const sidebarData: SidebarData = {
           url: '/dashboard/charts',
           icon: IconChartBar,
         },
+      ],
+    },
+    {
+      title: 'Access Control',
+      items: [
+        {
+          title: 'Roles',
+          url: '/dashboard/roles',
+          icon: IconShield,
+          permission: 'roles.view',
+        },
+        {
+          title: 'Permissions',
+          url: '/dashboard/permissions',
+          icon: IconKey,
+          permission: 'permissions.view',
+        },
         {
           title: 'Users',
           url: '/dashboard/users',
           icon: IconUsers,
+          permission: 'users.view',
         },
       ],
     },
@@ -110,19 +130,34 @@ export const sidebarData: SidebarData = {
       title: 'Ecommerce',
       items: [
         {
-          title: 'Orders',
-          url: '/dashboard/orders',
-          icon: IconShoppingBag,
-        },
-        {
           title: 'Products',
-          url: '/dashboard/products',
+          url: '/dashboard/ecommerce/products',
           icon: IconShoppingBagDiscount,
+          permission: 'products.view',
         },
         {
-          title: 'Product',
-          url: '/dashboard/products/edit',
+          title: 'Add Product',
+          url: '/dashboard/ecommerce/products/create',
           icon: IconShoe,
+          permission: 'products.create',
+        },
+        {
+          title: 'Categories',
+          url: '/dashboard/ecommerce/product-categories',
+          icon: IconCategory,
+          permission: 'product-categories.view',
+        },
+        {
+          title: 'Tags',
+          url: '/dashboard/ecommerce/product-tags',
+          icon: IconTags,
+          permission: 'product-tags.view',
+        },
+        {
+          title: 'Orders',
+          url: '/dashboard/ecommerce/orders',
+          icon: IconShoppingBag,
+          permission: 'orders.view',
         },
       ],
     },
@@ -131,23 +166,27 @@ export const sidebarData: SidebarData = {
       items: [
         {
           title: 'Posts',
-          url: '/dashboard/blog/posts',
+          url: '/dashboard/posts',
           icon: IconArticle,
+          permission: 'posts.view',
         },
         {
           title: 'Add Post',
-          url: '/dashboard/blog/posts/create',
+          url: '/dashboard/posts/create',
           icon: IconEdit,
+          permission: 'posts.create',
         },
         {
           title: 'Categories',
-          url: '/dashboard/blog/categories',
+          url: '/dashboard/categories',
           icon: IconCategory,
+          permission: 'categories.view',
         },
         {
           title: 'Tags',
-          url: '/dashboard/blog/tags',
+          url: '/dashboard/tags',
           icon: IconTags,
+          permission: 'tags.view',
         },
       ],
     },

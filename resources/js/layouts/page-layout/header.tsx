@@ -24,12 +24,11 @@ export const Header = ({ title } : any) => {
           href="https://github.com/binjuhor/shadcn-admin"
         >
           <Button
-            variant={"expandIcon"}
-            Icon={ArrowRight}
-            iconPlacement="right"
+            variant="default"
             className="h-fit rounded-full bg-[#222] font-semibold text-white hover:bg-[#222]/90"
           >
             Github
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </a>
         <ThemeToggle />
