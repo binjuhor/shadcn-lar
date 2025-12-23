@@ -1,19 +1,14 @@
-import { IconMailPlus, IconUserPlus } from '@tabler/icons-react'
+import { IconUserPlus } from '@tabler/icons-react'
+import { router } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
-import { useUsers } from '../context/users-context'
 
 export function UsersPrimaryButtons() {
-  const { setOpen } = useUsers()
   return (
-    <div className='flex gap-2'>
+    <div className="flex gap-2">
       <Button
-        variant='outline'
-        className='space-x-1'
-        onClick={() => setOpen('invite')}
+        className="space-x-1"
+        onClick={() => router.get(route('dashboard.users.create'))}
       >
-        <span>Invite User</span> <IconMailPlus size={18} />
-      </Button>
-      <Button className='space-x-1' onClick={() => setOpen('add')}>
         <span>Add User</span> <IconUserPlus size={18} />
       </Button>
     </div>

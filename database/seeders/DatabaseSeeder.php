@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Modules\Blog\Database\Seeders\BlogDatabaseSeeder;
+use Modules\Ecommerce\Database\Seeders\EcommerceDatabaseSeeder;
+use Modules\Notification\Database\Seeders\NotificationDatabaseSeeder;
+use Modules\Permission\Database\Seeders\PermissionDatabaseSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,13 +15,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Seed permissions and roles first (creates Super Admin user)
+        $this->call(PermissionDatabaseSeeder::class);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'shadcn@gmail.com',
-            'email_verified_at' => now(),
-            'password' => bcrypt('password'), // password
-        ]);
+        // Seed module data
+        $this->call(BlogDatabaseSeeder::class);
+        $this->call(EcommerceDatabaseSeeder::class);
+        $this->call(NotificationDatabaseSeeder::class);
+
+        // Seed invoices
+        $this->call(InvoiceSeeder::class);
     }
 }

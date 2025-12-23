@@ -34,7 +34,13 @@ class RoleController extends Controller
         $roles = $query->orderBy('name')->paginate(10)->withQueryString();
 
         return Inertia::render('roles/index', [
-            'roles' => RoleResource::collection($roles),
+            'roles' => [
+                'data' => RoleResource::collection($roles->items())->resolve(),
+                'current_page' => $roles->currentPage(),
+                'last_page' => $roles->lastPage(),
+                'per_page' => $roles->perPage(),
+                'total' => $roles->total(),
+            ],
             'filters' => $request->only(['search']),
         ]);
     }
@@ -44,7 +50,7 @@ class RoleController extends Controller
         $permissions = Permission::orderBy('name')->get();
 
         return Inertia::render('roles/create', [
-            'permissions' => PermissionResource::collection($permissions),
+            'permissions' => PermissionResource::collection($permissions)->resolve(),
             'groupedPermissions' => $this->groupPermissions($permissions),
         ]);
     }
@@ -68,7 +74,7 @@ class RoleController extends Controller
         $role->load('permissions');
 
         return Inertia::render('roles/show', [
-            'role' => new RoleResource($role),
+            'role' => (new RoleResource($role))->resolve(),
         ]);
     }
 
@@ -78,8 +84,8 @@ class RoleController extends Controller
         $permissions = Permission::orderBy('name')->get();
 
         return Inertia::render('roles/edit', [
-            'role' => new RoleResource($role),
-            'permissions' => PermissionResource::collection($permissions),
+            'role' => (new RoleResource($role))->resolve(),
+            'permissions' => PermissionResource::collection($permissions)->resolve(),
             'groupedPermissions' => $this->groupPermissions($permissions),
             'rolePermissions' => $role->permissions->pluck('name')->toArray(),
         ]);

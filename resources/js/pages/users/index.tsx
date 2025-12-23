@@ -1,36 +1,70 @@
-import {AuthenticatedLayout} from "@/layouts"
-import {Main} from '@/components/layout/main'
-import {columns} from './components/users-columns'
-import {UsersDialogs} from './components/users-dialogs'
-import {UsersPrimaryButtons} from './components/users-primary-buttons'
-import {UsersTable} from './components/users-table'
+import { AuthenticatedLayout } from '@/layouts'
+import { Main } from '@/components/layout/main'
+import { PageProps, Role } from '@/types'
+import { columns } from './components/users-columns'
+import { UsersDialogs } from './components/users-dialogs'
+import { UsersPrimaryButtons } from './components/users-primary-buttons'
+import { UsersTable } from './components/users-table'
 import UsersProvider from './context/users-context'
-import {userListSchema} from './data/schema'
-import {users} from './data/users'
+import { PaginatedUsers } from './data/schema'
 
-export default function Users() {
-  // Parse user list
-  const userList = userListSchema.parse(users)
+interface UsersPageProps extends PageProps {
+  users: PaginatedUsers
+  roles: Role[]
+  filters?: {
+    search?: string
+    role?: string
+  }
+}
+
+// Default pagination values for safety
+const defaultPagination: PaginatedUsers = {
+  data: [],
+  current_page: 1,
+  last_page: 1,
+  per_page: 10,
+  total: 0,
+}
+
+export default function Users({
+  users = defaultPagination,
+  roles = [],
+  filters = {},
+}: UsersPageProps) {
+  // Ensure users has proper structure
+  const safeUsers: PaginatedUsers = {
+    data: users?.data ?? [],
+    current_page: users?.current_page ?? 1,
+    last_page: users?.last_page ?? 1,
+    per_page: users?.per_page ?? 10,
+    total: users?.total ?? 0,
+  }
 
   return (
     <UsersProvider>
-      <AuthenticatedLayout title={"Users"}>
+      <AuthenticatedLayout title="Users">
         <Main>
-          <div className='mb-2 flex items-center justify-between space-y-2 flex-wrap'>
+          <div className="mb-2 flex items-center justify-between space-y-2 flex-wrap">
             <div>
-              <h2 className='text-2xl font-bold tracking-tight'>User List</h2>
-              <p className='text-muted-foreground'>
+              <h2 className="text-2xl font-bold tracking-tight">User List</h2>
+              <p className="text-muted-foreground">
                 Manage your users and their roles here.
               </p>
             </div>
-            <UsersPrimaryButtons/>
+            <UsersPrimaryButtons />
           </div>
-          <div className='-mx-4 flex-1 overflow-auto px-4 py-1 lg:flex-row lg:space-x-12 lg:space-y-0'>
-            <UsersTable data={userList} columns={columns}/>
+          <div className="-mx-4 flex-1 overflow-auto px-4 py-1 lg:flex-row lg:space-x-12 lg:space-y-0">
+            <UsersTable
+              data={safeUsers.data}
+              columns={columns}
+              pagination={safeUsers}
+              roles={roles ?? []}
+              filters={filters ?? {}}
+            />
           </div>
         </Main>
 
-        <UsersDialogs/>
+        <UsersDialogs />
       </AuthenticatedLayout>
     </UsersProvider>
   )

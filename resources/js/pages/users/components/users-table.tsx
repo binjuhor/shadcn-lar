@@ -7,10 +7,7 @@ import {
   VisibilityState,
   flexRender,
   getCoreRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
@@ -22,7 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { User } from '../data/schema'
+import { Role } from '@/types'
+import { PaginatedUsers, User } from '../data/schema'
 import { DataTablePagination } from './data-table-pagination'
 import { DataTableToolbar } from './data-table-toolbar'
 
@@ -36,9 +34,21 @@ declare module '@tanstack/react-table' {
 interface DataTableProps {
   columns: ColumnDef<User>[]
   data: User[]
+  pagination: PaginatedUsers
+  roles: Role[]
+  filters?: {
+    search?: string
+    role?: string
+  }
 }
 
-export function UsersTable({ columns, data }: DataTableProps) {
+export function UsersTable({
+  columns,
+  data,
+  pagination,
+  roles,
+  filters = {},
+}: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -60,20 +70,20 @@ export function UsersTable({ columns, data }: DataTableProps) {
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
+    // Use manual pagination since backend handles it
+    manualPagination: true,
+    pageCount: pagination.last_page,
   })
 
   return (
-    <div className='space-y-4'>
-      <DataTableToolbar table={table} />
-      <div className='rounded-md border'>
+    <div className="space-y-4">
+      <DataTableToolbar table={table} roles={roles} filters={filters} />
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className='group/row'>
+              <TableRow key={headerGroup.id} className="group/row">
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead
@@ -99,7 +109,7 @@ export function UsersTable({ columns, data }: DataTableProps) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className='group/row'
+                  className="group/row"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
@@ -118,7 +128,7 @@ export function UsersTable({ columns, data }: DataTableProps) {
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className='h-24 text-center'
+                  className="h-24 text-center"
                 >
                   No results.
                 </TableCell>
@@ -127,7 +137,7 @@ export function UsersTable({ columns, data }: DataTableProps) {
           </TableBody>
         </Table>
       </div>
-      <DataTablePagination table={table} />
+      <DataTablePagination table={table} pagination={pagination} filters={filters} />
     </div>
   )
 }

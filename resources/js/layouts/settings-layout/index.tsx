@@ -1,26 +1,15 @@
-import {AppSidebar} from "@/components/layout/app-sidebar"
-import {Header} from '@/components/layout/header'
-import {TopNav} from '@/components/layout/top-nav'
-import {ProfileDropdown} from '@/components/profile-dropdown'
-import {Search} from '@/components/search'
-import {Head} from '@inertiajs/react'
-
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
-
-import {ThemeSwitch} from "@/components/theme-switch"
-import {Separator} from "@/components/ui/separator";
-import SidebarNav from "@/pages/settings/components/sidebar-nav";
-import {Main} from "@/components/layout";
-import {
-  IconBrowserCheck,
-  IconNotification,
-  IconPalette,
-  IconTool,
-  IconUser
-} from "@tabler/icons-react";
+import { AppSidebar } from '@/components/layout/app-sidebar'
+import { Header } from '@/components/layout/header'
+import { TopNav } from '@/components/layout/top-nav'
+import { ProfileDropdown } from '@/components/profile-dropdown'
+import { Search } from '@/components/search'
+import { Head } from '@inertiajs/react'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { ThemeSwitch } from '@/components/theme-switch'
+import { Separator } from '@/components/ui/separator'
+import SidebarNav from '@/pages/settings/components/sidebar-nav'
+import { Main } from '@/components/layout'
+import { settingsNavItems } from '@/pages/settings/data/nav-items'
 
 const topNav = [
   {
@@ -49,19 +38,19 @@ const topNav = [
   },
 ]
 
-export function SettingLayout({children, title}: any) {
+export function SettingLayout({ children, title }: { children: React.ReactNode; title?: string }) {
   return (
     <>
-      <Head title={title ?? "Settings"}/>
+      <Head title={title ?? 'Settings'} />
       <SidebarProvider>
-        <AppSidebar/>
+        <AppSidebar />
         <SidebarInset>
           <Header>
-            <TopNav links={topNav}/>
+            <TopNav links={topNav} />
             <div className='ml-auto flex items-center space-x-4'>
-              <Search/>
-              <ThemeSwitch/>
-              <ProfileDropdown/>
+              <Search />
+              <ThemeSwitch />
+              <ProfileDropdown />
             </div>
           </Header>
 
@@ -74,11 +63,10 @@ export function SettingLayout({children, title}: any) {
                 Manage your account settings and set e-mail preferences.
               </p>
             </div>
-            <Separator className='my-4 lg:my-6'/>
-            <div
-              className='flex flex-1 flex-col space-y-2 md:space-y-2 overflow-hidden lg:flex-row lg:space-x-12 lg:space-y-0'>
+            <Separator className='my-4 lg:my-6' />
+            <div className='flex flex-1 flex-col space-y-2 md:space-y-2 overflow-hidden lg:flex-row lg:space-x-12 lg:space-y-0'>
               <aside className='top-0 lg:sticky lg:w-1/5'>
-                <SidebarNav items={sidebarNavItems}/>
+                <SidebarNav items={settingsNavItems} />
               </aside>
               <div className='flex w-full p-1 pr-4 overflow-y-hidden'>
                 {children}
@@ -90,31 +78,3 @@ export function SettingLayout({children, title}: any) {
     </>
   )
 }
-
-const sidebarNavItems = [
-  {
-    title: 'Profile',
-    icon: <IconUser size={18}/>,
-    href: '/dashboard/settings',
-  },
-  {
-    title: 'Account',
-    icon: <IconTool size={18}/>,
-    href: '/dashboard/settings/account',
-  },
-  {
-    title: 'Appearance',
-    icon: <IconPalette size={18}/>,
-    href: '/dashboard/settings/appearance',
-  },
-  {
-    title: 'Notifications',
-    icon: <IconNotification size={18}/>,
-    href: '/dashboard/settings/notifications',
-  },
-  {
-    title: 'Display',
-    icon: <IconBrowserCheck size={18}/>,
-    href: '/dashboard/settings/display',
-  },
-]

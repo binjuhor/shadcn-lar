@@ -1,7 +1,6 @@
-import { z } from 'zod'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link } from '@inertiajs/react'
+import { Link, router } from '@inertiajs/react'
 import { cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -23,46 +22,21 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { profileFormSchema, type ProfileFormValues } from '../data/schema'
 
-const profileFormSchema = z.object({
-  username: z
-    .string()
-    .min(2, {
-      message: 'Username must be at least 2 characters.',
-    })
-    .max(30, {
-      message: 'Username must not be longer than 30 characters.',
-    }),
-  email: z
-    .string({
-      required_error: 'Please select an email to display.',
-    })
-    .email(),
-  bio: z.string().max(160).min(4),
-  urls: z
-    .array(
-      z.object({
-        value: z.string().url({ message: 'Please enter a valid URL.' }),
-      })
-    )
-    .optional(),
-})
-
-type ProfileFormValues = z.infer<typeof profileFormSchema>
-
-// This can come from your database or API.
-const defaultValues: Partial<ProfileFormValues> = {
-  bio: 'I own a computer.',
-  urls: [
-    { value: 'https://shadcn.com' },
-    { value: 'http://twitter.com/shadcn' },
-  ],
+interface Props {
+  settings?: Partial<ProfileFormValues>
 }
 
-export default function ProfileForm() {
+export default function ProfileForm({ settings }: Props) {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues,
+    defaultValues: {
+      username: settings?.username ?? '',
+      email: settings?.email ?? '',
+      bio: settings?.bio ?? '',
+      urls: settings?.urls ?? [{ value: '' }],
+    },
     mode: 'onChange',
   })
 
@@ -72,13 +46,18 @@ export default function ProfileForm() {
   })
 
   function onSubmit(data: ProfileFormValues) {
-    toast({
-      title: 'You submitted the following values:',
-      description: (
-        <pre className='mt-2 w-[340px] rounded-md bg-slate-950 p-4'>
-          <code className='text-white'>{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
+    router.patch('/dashboard/settings/profile', data, {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast({ title: 'Profile updated successfully.' })
+      },
+      onError: (errors) => {
+        toast({
+          title: 'Error updating profile',
+          description: Object.values(errors).flat().join(', '),
+          variant: 'destructive',
+        })
+      },
     })
   }
 

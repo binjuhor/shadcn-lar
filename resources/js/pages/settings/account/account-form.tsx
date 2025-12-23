@@ -1,8 +1,8 @@
-import { z } from 'zod'
 import { format } from 'date-fns'
 import { useForm } from 'react-hook-form'
 import { CalendarIcon, CaretSortIcon, CheckIcon } from '@radix-ui/react-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { router } from '@inertiajs/react'
 import { cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -30,57 +30,39 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { accountFormSchema, languages, type AccountFormValues } from '../data/schema'
 
-const languages = [
-  { label: 'English', value: 'en' },
-  { label: 'French', value: 'fr' },
-  { label: 'German', value: 'de' },
-  { label: 'Spanish', value: 'es' },
-  { label: 'Portuguese', value: 'pt' },
-  { label: 'Russian', value: 'ru' },
-  { label: 'Japanese', value: 'ja' },
-  { label: 'Korean', value: 'ko' },
-  { label: 'Chinese', value: 'zh' },
-] as const
-
-const accountFormSchema = z.object({
-  name: z
-    .string()
-    .min(2, {
-      message: 'Name must be at least 2 characters.',
-    })
-    .max(30, {
-      message: 'Name must not be longer than 30 characters.',
-    }),
-  dob: z.date({
-    required_error: 'A date of birth is required.',
-  }),
-  language: z.string({
-    required_error: 'Please select a language.',
-  }),
-})
-
-type AccountFormValues = z.infer<typeof accountFormSchema>
-
-// This can come from your database or API.
-const defaultValues: Partial<AccountFormValues> = {
-  name: '',
+interface Props {
+  settings?: {
+    name?: string
+    dob?: string
+    language?: string
+  }
 }
 
-export function AccountForm() {
+export function AccountForm({ settings }: Props) {
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
-    defaultValues,
+    defaultValues: {
+      name: settings?.name ?? '',
+      dob: settings?.dob ? new Date(settings.dob) : undefined,
+      language: settings?.language ?? 'en',
+    },
   })
 
   function onSubmit(data: AccountFormValues) {
-    toast({
-      title: 'You submitted the following values:',
-      description: (
-        <pre className='mt-2 w-[340px] rounded-md bg-slate-950 p-4'>
-          <code className='text-white'>{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
+    router.patch('/dashboard/settings/account', data, {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast({ title: 'Account updated successfully.' })
+      },
+      onError: (errors) => {
+        toast({
+          title: 'Error updating account',
+          description: Object.values(errors).flat().join(', '),
+          variant: 'destructive',
+        })
+      },
     })
   }
 

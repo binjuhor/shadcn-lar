@@ -14,7 +14,7 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'email_verified_at' => $this->email_verified_at?->toISOString(),
-            'roles' => RoleResource::collection($this->whenLoaded('roles')),
+            'roles' => $this->whenLoaded('roles', fn() => RoleResource::collection($this->roles)->resolve()),
             'role_names' => $this->when(
                 $this->relationLoaded('roles'),
                 fn () => $this->roles->pluck('name')->toArray()

@@ -1,7 +1,6 @@
-import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link } from "@inertiajs/react"
+import { Link, router } from '@inertiajs/react'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -16,42 +15,38 @@ import {
 } from '@/components/ui/form'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
+import { notificationsFormSchema, type NotificationsFormValues } from '../data/schema'
 
-const notificationsFormSchema = z.object({
-  type: z.enum(['all', 'mentions', 'none'], {
-    required_error: 'You need to select a notification type.',
-  }),
-  mobile: z.boolean().default(false).optional(),
-  communication_emails: z.boolean().default(false).optional(),
-  social_emails: z.boolean().default(false).optional(),
-  marketing_emails: z.boolean().default(false).optional(),
-  security_emails: z.boolean(),
-})
-
-type NotificationsFormValues = z.infer<typeof notificationsFormSchema>
-
-// This can come from your database or API.
-const defaultValues: Partial<NotificationsFormValues> = {
-  communication_emails: false,
-  marketing_emails: false,
-  social_emails: true,
-  security_emails: true,
+interface Props {
+  settings?: Partial<NotificationsFormValues>
 }
 
-export function NotificationsForm() {
+export function NotificationsForm({ settings }: Props) {
   const form = useForm<NotificationsFormValues>({
     resolver: zodResolver(notificationsFormSchema),
-    defaultValues,
+    defaultValues: {
+      type: settings?.type ?? 'all',
+      mobile: settings?.mobile ?? false,
+      communication_emails: settings?.communication_emails ?? false,
+      social_emails: settings?.social_emails ?? true,
+      marketing_emails: settings?.marketing_emails ?? false,
+      security_emails: settings?.security_emails ?? true,
+    },
   })
 
   function onSubmit(data: NotificationsFormValues) {
-    toast({
-      title: 'You submitted the following values:',
-      description: (
-        <pre className='mt-2 w-[340px] rounded-md bg-slate-950 p-4'>
-          <code className='text-white'>{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
+    router.patch('/dashboard/settings/notifications', data, {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast({ title: 'Notification preferences updated successfully.' })
+      },
+      onError: (errors) => {
+        toast({
+          title: 'Error updating notifications',
+          description: Object.values(errors).flat().join(', '),
+          variant: 'destructive',
+        })
+      },
     })
   }
 

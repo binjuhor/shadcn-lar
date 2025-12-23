@@ -82,7 +82,7 @@ class PermissionSeeder extends Seeder
     private function createTestSuperAdmin(): void
     {
         $user = User::firstOrCreate(
-            ['email' => 'admin@example.com'],
+            ['email' => 'shadcn@gmail.com'],
             [
                 'name' => 'Super Admin',
                 'password' => bcrypt('password'),
@@ -92,7 +92,7 @@ class PermissionSeeder extends Seeder
 
         if (! $user->hasRole('Super Admin')) {
             $user->assignRole('Super Admin');
-            $this->command->info('Assigned Super Admin role to admin@example.com');
+            $this->command->info('Assigned Super Admin role to shadcn@gmail.com');
         }
     }
 }

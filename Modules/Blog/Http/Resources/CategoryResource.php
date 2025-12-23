@@ -18,8 +18,8 @@ class CategoryResource extends JsonResource
             'icon' => $this->icon,
             'isActive' => $this->is_active,
             'sortOrder' => $this->sort_order,
-            'parent' => CategoryResource::make($this->whenLoaded('parent')),
-            'children' => CategoryResource::collection($this->whenLoaded('children')),
+            'parent' => $this->whenLoaded('parent', fn() => CategoryResource::make($this->parent)->resolve()),
+            'children' => $this->whenLoaded('children', fn() => CategoryResource::collection($this->children)->resolve()),
             'postsCount' => $this->when(
                 $this->relationLoaded('posts'),
                 fn() => $this->posts->count()

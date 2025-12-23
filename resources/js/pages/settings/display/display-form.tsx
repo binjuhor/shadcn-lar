@@ -1,6 +1,6 @@
-import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { router } from '@inertiajs/react'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -13,61 +13,33 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { displayFormSchema, displayItems, type DisplayFormValues } from '../data/schema'
 
-const items = [
-  {
-    id: 'recents',
-    label: 'Recents',
-  },
-  {
-    id: 'home',
-    label: 'Home',
-  },
-  {
-    id: 'applications',
-    label: 'Applications',
-  },
-  {
-    id: 'desktop',
-    label: 'Desktop',
-  },
-  {
-    id: 'downloads',
-    label: 'Downloads',
-  },
-  {
-    id: 'documents',
-    label: 'Documents',
-  },
-] as const
-
-const displayFormSchema = z.object({
-  items: z.array(z.string()).refine((value) => value.some((item) => item), {
-    message: 'You have to select at least one item.',
-  }),
-})
-
-type DisplayFormValues = z.infer<typeof displayFormSchema>
-
-// This can come from your database or API.
-const defaultValues: Partial<DisplayFormValues> = {
-  items: ['recents', 'home'],
+interface Props {
+  settings?: Partial<DisplayFormValues>
 }
 
-export function DisplayForm() {
+export function DisplayForm({ settings }: Props) {
   const form = useForm<DisplayFormValues>({
     resolver: zodResolver(displayFormSchema),
-    defaultValues,
+    defaultValues: {
+      items: settings?.items ?? ['recents', 'home'],
+    },
   })
 
   function onSubmit(data: DisplayFormValues) {
-    toast({
-      title: 'You submitted the following values:',
-      description: (
-        <pre className='mt-2 w-[340px] rounded-md bg-slate-950 p-4'>
-          <code className='text-white'>{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
+    router.patch('/dashboard/settings/display', data, {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast({ title: 'Display settings updated successfully.' })
+      },
+      onError: (errors) => {
+        toast({
+          title: 'Error updating display settings',
+          description: Object.values(errors).flat().join(', '),
+          variant: 'destructive',
+        })
+      },
     })
   }
 
@@ -85,7 +57,7 @@ export function DisplayForm() {
                   Select the items you want to display in the sidebar.
                 </FormDescription>
               </div>
-              {items.map((item) => (
+              {displayItems.map((item) => (
                 <FormField
                   key={item.id}
                   control={form.control}

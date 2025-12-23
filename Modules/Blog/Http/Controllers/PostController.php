@@ -62,15 +62,15 @@ class PostController extends Controller
 
         return Inertia::render('blog/posts', [
             'posts' => [
-                'data' => PostResource::collection($posts->items()),
+                'data' => PostResource::collection($posts->items())->resolve(),
                 'current_page' => $posts->currentPage(),
                 'last_page' => $posts->lastPage(),
                 'per_page' => $posts->perPage(),
                 'total' => $posts->total(),
             ],
             'filters' => $request->only(['search', 'status', 'category', 'tag', 'featured']),
-            'categories' => CategoryResource::collection(Category::active()->get(['id', 'name', 'slug'])),
-            'tags' => TagResource::collection(Tag::active()->popular(20)->get(['id', 'name', 'slug'])),
+            'categories' => CategoryResource::collection(Category::active()->get(['id', 'name', 'slug']))->resolve(),
+            'tags' => TagResource::collection(Tag::active()->popular(20)->get(['id', 'name', 'slug']))->resolve(),
         ]);
     }
 
@@ -82,8 +82,8 @@ class PostController extends Controller
         $this->authorize('create', Post::class);
 
         return Inertia::render('blog/create-post', [
-            'categories' => CategoryResource::collection(Category::active()->orderBy('name')->get(['id', 'name', 'slug'])),
-            'tags' => TagResource::collection(Tag::active()->orderBy('name')->get(['id', 'name', 'slug'])),
+            'categories' => CategoryResource::collection(Category::active()->orderBy('name')->get(['id', 'name', 'slug']))->resolve(),
+            'tags' => TagResource::collection(Tag::active()->orderBy('name')->get(['id', 'name', 'slug']))->resolve(),
         ]);
     }
 
@@ -179,7 +179,7 @@ class PostController extends Controller
         $post->increment('views_count');
 
         return Inertia::render('blog/post', [
-            'post' => PostResource::make($post),
+            'post' => PostResource::make($post)->resolve(),
         ]);
     }
 
@@ -193,9 +193,9 @@ class PostController extends Controller
         $post->load(['category', 'tags', 'user']);
 
         return Inertia::render('blog/edit-post', [
-            'post' => PostResource::make($post),
-            'categories' => CategoryResource::collection(Category::active()->orderBy('name')->get(['id', 'name', 'slug'])),
-            'tags' => TagResource::collection(Tag::active()->orderBy('name')->get(['id', 'name', 'slug'])),
+            'post' => PostResource::make($post)->resolve(),
+            'categories' => CategoryResource::collection(Category::active()->orderBy('name')->get(['id', 'name', 'slug']))->resolve(),
+            'tags' => TagResource::collection(Tag::active()->orderBy('name')->get(['id', 'name', 'slug']))->resolve(),
         ]);
     }
 

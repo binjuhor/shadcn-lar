@@ -1,5 +1,7 @@
 {
     "Blog": true,
     "Ecommerce": true,
-    "Permission": true
+    "Permission": true,
+    "Notification": true,
+    "Invoice": true
 }

@@ -20,7 +20,7 @@ class OrderItemResource extends JsonResource
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
 
-            'product' => ProductResource::make($this->whenLoaded('product')),
+            'product' => $this->whenLoaded('product', fn() => ProductResource::make($this->product)->resolve()),
         ];
     }
 }

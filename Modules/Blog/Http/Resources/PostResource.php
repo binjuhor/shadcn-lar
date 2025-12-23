@@ -29,9 +29,9 @@ class PostResource extends JsonResource
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
 
-            'category' => CategoryResource::make($this->whenLoaded('category')),
-            'tags' => TagResource::collection($this->whenLoaded('tags')),
-            'user' => UserResource::make($this->whenLoaded('user')),
+            'category' => $this->whenLoaded('category', fn() => CategoryResource::make($this->category)->resolve()),
+            'tags' => $this->whenLoaded('tags', fn() => TagResource::collection($this->tags)->resolve()),
+            'user' => $this->whenLoaded('user', fn() => UserResource::make($this->user)->resolve()),
         ];
     }
 }

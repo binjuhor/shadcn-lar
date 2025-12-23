@@ -1,0 +1,28 @@
+{
+    "name": "nwidart/invoice",
+    "description": "Invoice management module",
+    "authors": [
+        {
+            "name": "binjuhor",
+            "email": "hi@binjuhor.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Invoice\\Database\\Factories\\": "database/factories/",
+            "Modules\\Invoice\\Database\\Seeders\\": "database/seeders/",
+            "Modules\\Invoice\\": ""
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Invoice\\Tests\\": "tests/"
+        }
+    }
+}

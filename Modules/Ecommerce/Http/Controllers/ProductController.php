@@ -56,15 +56,15 @@ class ProductController extends Controller
 
         return Inertia::render('ecommerce/products', [
             'products' => [
-                'data' => ProductResource::collection($products->items()),
+                'data' => ProductResource::collection($products->items())->resolve(),
                 'current_page' => $products->currentPage(),
                 'last_page' => $products->lastPage(),
                 'per_page' => $products->perPage(),
                 'total' => $products->total(),
             ],
             'filters' => $request->only(['search', 'status', 'category_id', 'featured']),
-            'categories' => ProductCategoryResource::collection(ProductCategory::active()->get(['id', 'name', 'slug', 'is_active'])),
-            'tags' => ProductTagResource::collection(ProductTag::withCount('products')->orderBy('name')->get(['id', 'name', 'slug'])),
+            'categories' => ProductCategoryResource::collection(ProductCategory::active()->get(['id', 'name', 'slug', 'is_active']))->resolve(),
+            'tags' => ProductTagResource::collection(ProductTag::withCount('products')->orderBy('name')->get(['id', 'name', 'slug']))->resolve(),
         ]);
     }
 
@@ -76,8 +76,8 @@ class ProductController extends Controller
         $this->authorize('create', Product::class);
 
         return Inertia::render('ecommerce/create-product', [
-            'categories' => ProductCategoryResource::collection(ProductCategory::active()->orderBy('name')->get(['id', 'name', 'slug', 'is_active'])),
-            'tags' => ProductTagResource::collection(ProductTag::orderBy('name')->get(['id', 'name', 'slug'])),
+            'categories' => ProductCategoryResource::collection(ProductCategory::active()->orderBy('name')->get(['id', 'name', 'slug', 'is_active']))->resolve(),
+            'tags' => ProductTagResource::collection(ProductTag::orderBy('name')->get(['id', 'name', 'slug']))->resolve(),
         ]);
     }
 
@@ -169,9 +169,9 @@ class ProductController extends Controller
         $product->load(['category', 'tags', 'user']);
 
         return Inertia::render('ecommerce/edit-product', [
-            'product' => ProductResource::make($product),
-            'categories' => ProductCategoryResource::collection(ProductCategory::active()->orderBy('name')->get(['id', 'name', 'slug', 'is_active'])),
-            'tags' => ProductTagResource::collection(ProductTag::orderBy('name')->get(['id', 'name', 'slug'])),
+            'product' => ProductResource::make($product)->resolve(),
+            'categories' => ProductCategoryResource::collection(ProductCategory::active()->orderBy('name')->get(['id', 'name', 'slug', 'is_active']))->resolve(),
+            'tags' => ProductTagResource::collection(ProductTag::orderBy('name')->get(['id', 'name', 'slug']))->resolve(),
         ]);
     }
 

@@ -25,44 +25,57 @@ interface EditProductPageProps extends PageProps {
 }
 
 export default function EditProduct({ product, categories = [], tags = [] }: EditProductPageProps) {
+  // Guard clause - show error if product is not passed
+  if (!product) {
+    return (
+      <AuthenticatedLayout title="Error">
+        <Main>
+          <div className="flex items-center justify-center h-64">
+            <p className="text-destructive">Product not found or failed to load.</p>
+          </div>
+        </Main>
+      </AuthenticatedLayout>
+    )
+  }
+
   const [data, setData] = useState<ProductFormData>({
-    name: product.name,
-    slug: product.slug,
-    content: product.content || "",
-    description: product.description || "",
-    sku: product.sku,
-    price: product.price,
-    sale_price: product.sale_price,
-    cost: product.cost,
-    stock_quantity: product.stock_quantity,
-    low_stock_threshold: product.low_stock_threshold,
-    track_inventory: product.track_inventory,
-    status: product.status,
-    is_featured: product.is_featured,
-    category_id: product.category?.id,
-    tag_ids: product.tags?.map(tag => tag.id) || [],
-    meta_title: product.meta_title || "",
-    meta_description: product.meta_description || "",
+    name: product?.name || "",
+    slug: product?.slug || "",
+    content: product?.content || "",
+    description: product?.description || "",
+    sku: product?.sku || "",
+    price: product?.price || 0,
+    sale_price: product?.sale_price,
+    cost: product?.cost,
+    stock_quantity: product?.stock_quantity || 0,
+    low_stock_threshold: product?.low_stock_threshold,
+    track_inventory: product?.track_inventory ?? true,
+    status: product?.status || "draft",
+    is_featured: product?.is_featured ?? false,
+    category_id: product?.category?.id,
+    tag_ids: product?.tags?.map(tag => tag.id) || [],
+    meta_title: product?.meta_title || "",
+    meta_description: product?.meta_description || "",
   })
 
-  const [content, setContent] = useState<Content>(product.content || "")
+  const [content, setContent] = useState<Content>(product?.content || "")
   const [featuredImageFiles, setFeaturedImageFiles] = useState<File[]>([])
   const [removeFeaturedImage, setRemoveFeaturedImage] = useState(false)
   const [processing, setProcessing] = useState(false)
   const { toast } = useToast()
 
-  const initialMedia = product.featured_image_url ? [{
-    uuid: `product-${product.id}-featured`,
+  const initialMedia = product?.featured_image_url ? [{
+    uuid: `product-${product?.id}-featured`,
     name: 'Featured Image',
     file_name: 'featured-image.jpg',
     mime_type: 'image/jpeg',
     size: 0,
-    preview_url: product.featured_image_url,
+    preview_url: product?.featured_image_url || "",
   }] : []
 
   useEffect(() => {
-    setContent(product.content || "")
-  }, [product.content])
+    setContent(product?.content || "")
+  }, [product?.content])
 
   const handleFeaturedImageChange = (files: File[]) => {
     setFeaturedImageFiles(files)
@@ -114,7 +127,7 @@ export default function EditProduct({ product, categories = [], tags = [] }: Edi
     }
     formData.append('_method', 'PUT')
 
-    router.post(route('dashboard.ecommerce.products.update', product.slug), formData, {
+    router.post(route('dashboard.ecommerce.products.update', product?.slug || ''), formData, {
       forceFormData: true,
       onSuccess: () => {
         setProcessing(false)
@@ -139,7 +152,7 @@ export default function EditProduct({ product, categories = [], tags = [] }: Edi
 
   return (
     <>
-      <AuthenticatedLayout title={`Edit: ${product.name}`}>
+      <AuthenticatedLayout title={`Edit: ${product?.name || 'Product'}`}>
         <Main>
           <div className="grid flex-1 items-start gap-4 md:gap-8">
             <div className="grid flex-1 auto-rows-max gap-4">

@@ -41,7 +41,13 @@ class PermissionController extends Controller
             ->pluck('group_name');
 
         return Inertia::render('permissions/index', [
-            'permissions' => PermissionResource::collection($permissions),
+            'permissions' => [
+                'data' => PermissionResource::collection($permissions->items())->resolve(),
+                'current_page' => $permissions->currentPage(),
+                'last_page' => $permissions->lastPage(),
+                'per_page' => $permissions->perPage(),
+                'total' => $permissions->total(),
+            ],
             'groups' => $groups,
             'filters' => $request->only(['search', 'group']),
         ]);
@@ -74,7 +80,7 @@ class PermissionController extends Controller
     public function edit(Permission $permission): Response
     {
         return Inertia::render('permissions/edit', [
-            'permission' => new PermissionResource($permission),
+            'permission' => (new PermissionResource($permission))->resolve(),
         ]);
     }
 

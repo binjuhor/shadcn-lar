@@ -148,7 +148,7 @@ export default function EditUser({ user, roles, userRoles }: EditUserPageProps) 
                 <Badge variant="outline">Your Account</Badge>
               )}
               <div className="hidden items-center gap-2 md:ml-auto md:flex">
-                <Button variant="outline" onClick={() => router.get(route('dashboard.users.index'))}>
+                <Button variant="outline" onClick={() => router.get(route('dashboard.users'))}>
                   Cancel
                 </Button>
                 <Button size="sm" onClick={handleSubmit} disabled={processing}>
@@ -303,7 +303,7 @@ export default function EditUser({ user, roles, userRoles }: EditUserPageProps) 
             </div>
 
             <div className="flex items-center justify-center gap-2 md:hidden">
-              <Button variant="outline" onClick={() => router.get(route('dashboard.users.index'))}>
+              <Button variant="outline" onClick={() => router.get(route('dashboard.users'))}>
                 Cancel
               </Button>
               <Button size="sm" onClick={handleSubmit} disabled={processing}>

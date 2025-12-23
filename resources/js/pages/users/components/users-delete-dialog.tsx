@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { IconAlertTriangle } from '@tabler/icons-react'
+import { router } from '@inertiajs/react'
 import { toast } from '@/hooks/use-toast'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
@@ -19,67 +20,77 @@ export function UsersDeleteDialog({ open, onOpenChange, currentRow }: Props) {
   const [value, setValue] = useState('')
 
   const handleDelete = () => {
-    if (value.trim() !== currentRow.username) return
+    if (value.trim() !== currentRow.name) return
 
-    onOpenChange(false)
-    toast({
-      title: 'The following user has been deleted:',
-      description: (
-        <pre className='mt-2 w-[340px] rounded-md bg-slate-950 p-4'>
-          <code className='text-white'>
-            {JSON.stringify(currentRow, null, 2)}
-          </code>
-        </pre>
-      ),
+    router.delete(route('dashboard.users.destroy', currentRow.id), {
+      onSuccess: () => {
+        onOpenChange(false)
+        setValue('')
+        toast({
+          title: 'User deleted!',
+          description: `"${currentRow.name}" has been deleted successfully.`,
+        })
+      },
+      onError: (errors) => {
+        toast({
+          variant: 'destructive',
+          title: 'Error deleting user',
+          description:
+            (Object.values(errors)[0] as string) || 'Something went wrong.',
+        })
+      },
     })
   }
+
+  const roleNames = currentRow.role_names?.join(', ') || 'No roles'
 
   return (
     <ConfirmDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(isOpen) => {
+        onOpenChange(isOpen)
+        if (!isOpen) setValue('')
+      }}
       handleConfirm={handleDelete}
-      disabled={value.trim() !== currentRow.username}
+      disabled={value.trim() !== currentRow.name}
       title={
-        <span className='text-destructive'>
+        <span className="text-destructive">
           <IconAlertTriangle
-            className='mr-1 inline-block stroke-destructive'
+            className="mr-1 inline-block stroke-destructive"
             size={18}
           />{' '}
           Delete User
         </span>
       }
       desc={
-        <div className='space-y-4'>
-          <p className='mb-2'>
+        <div className="space-y-4">
+          <p className="mb-2">
             Are you sure you want to delete{' '}
-            <span className='font-bold'>{currentRow.username}</span>?
+            <span className="font-bold">{currentRow.name}</span>?
             <br />
             This action will permanently remove the user with the role of{' '}
-            <span className='font-bold'>
-              {currentRow.role.toUpperCase()}
-            </span>{' '}
-            from the system. This cannot be undone.
+            <span className="font-bold">{roleNames}</span> from the system. This
+            cannot be undone.
           </p>
 
-          <Label className='my-2'>
-            Username:
+          <Label className="my-2">
+            Name:
             <Input
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder='Enter username to confirm deletion.'
+              placeholder="Enter user name to confirm deletion."
             />
           </Label>
 
-          <Alert variant='destructive'>
+          <Alert variant="destructive">
             <AlertTitle>Warning!</AlertTitle>
             <AlertDescription>
-              Please be carefull, this operation can not be rolled back.
+              Please be careful, this operation cannot be rolled back.
             </AlertDescription>
           </Alert>
         </div>
       }
-      confirmText='Delete'
+      confirmText="Delete"
       destructive
     />
   )

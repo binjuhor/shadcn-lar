@@ -3,7 +3,11 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Modules\Notification\Enums\NotificationCategory;
+use Modules\Notification\Enums\NotificationChannel;
+use Modules\Notification\Models\NotificationPreference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -22,6 +26,14 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'username',
+        'bio',
+        'urls',
+        'language',
+        'dob',
+        'appearance_settings',
+        'notification_settings',
+        'display_settings',
     ];
 
     /**
@@ -44,6 +56,28 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'dob' => 'date',
+            'urls' => 'array',
+            'appearance_settings' => 'array',
+            'notification_settings' => 'array',
+            'display_settings' => 'array',
         ];
+    }
+
+    public function notificationPreferences(): HasMany
+    {
+        return $this->hasMany(NotificationPreference::class);
+    }
+
+    public function canReceiveNotification(
+        NotificationCategory $category,
+        NotificationChannel $channel
+    ): bool {
+        $preference = $this->notificationPreferences()
+            ->where('category', $category)
+            ->where('channel', $channel)
+            ->first();
+
+        return $preference?->enabled ?? true;
     }
 }

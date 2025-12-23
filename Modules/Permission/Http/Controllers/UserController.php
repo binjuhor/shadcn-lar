@@ -45,8 +45,14 @@ class UserController extends Controller
         $roles = Role::orderBy('name')->get();
 
         return Inertia::render('users/index', [
-            'users' => UserResource::collection($users),
-            'roles' => RoleResource::collection($roles),
+            'users' => [
+                'data' => UserResource::collection($users->items())->resolve(),
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+            ],
+            'roles' => RoleResource::collection($roles)->resolve(),
             'filters' => $request->only(['search', 'role']),
         ]);
     }
@@ -56,7 +62,7 @@ class UserController extends Controller
         $roles = Role::orderBy('name')->get();
 
         return Inertia::render('users/create', [
-            'roles' => RoleResource::collection($roles),
+            'roles' => RoleResource::collection($roles)->resolve(),
         ]);
     }
 
@@ -80,7 +86,7 @@ class UserController extends Controller
         $user->load('roles.permissions');
 
         return Inertia::render('users/show', [
-            'user' => new UserResource($user),
+            'user' => (new UserResource($user))->resolve(),
         ]);
     }
 
@@ -90,8 +96,8 @@ class UserController extends Controller
         $roles = Role::orderBy('name')->get();
 
         return Inertia::render('users/edit', [
-            'user' => new UserResource($user),
-            'roles' => RoleResource::collection($roles),
+            'user' => (new UserResource($user))->resolve(),
+            'roles' => RoleResource::collection($roles)->resolve(),
             'userRoles' => $user->roles->pluck('name')->toArray(),
         ]);
     }

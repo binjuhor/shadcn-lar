@@ -42,9 +42,9 @@ class ProductResource extends JsonResource
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
 
-            'category' => ProductCategoryResource::make($this->whenLoaded('category')),
-            'tags' => ProductTagResource::collection($this->whenLoaded('tags')),
-            'user' => new \Modules\Blog\Http\Resources\UserResource($this->whenLoaded('user')),
+            'category' => $this->whenLoaded('category', fn() => ProductCategoryResource::make($this->category)->resolve()),
+            'tags' => $this->whenLoaded('tags', fn() => ProductTagResource::collection($this->tags)->resolve()),
+            'user' => $this->whenLoaded('user', fn() => (new \Modules\Blog\Http\Resources\UserResource($this->user))->resolve()),
         ];
     }
 }
