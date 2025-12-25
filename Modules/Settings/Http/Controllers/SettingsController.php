@@ -1,16 +1,17 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Modules\Settings\Http\Controllers;
 
-use App\Http\Requests\Settings\UpdateAccountRequest;
-use App\Http\Requests\Settings\UpdateAppearanceRequest;
-use App\Http\Requests\Settings\UpdateDisplayRequest;
-use App\Http\Requests\Settings\UpdateNotificationsRequest;
-use App\Http\Requests\Settings\UpdateProfileRequest;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Settings\Http\Requests\UpdateAccountRequest;
+use Modules\Settings\Http\Requests\UpdateAppearanceRequest;
+use Modules\Settings\Http\Requests\UpdateDisplayRequest;
+use Modules\Settings\Http\Requests\UpdateNotificationsRequest;
+use Modules\Settings\Http\Requests\UpdateProfileRequest;
 
 class SettingsController extends Controller
 {
