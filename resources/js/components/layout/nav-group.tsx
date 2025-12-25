@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import { Link, usePage } from "@inertiajs/react"
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, ChevronDown } from 'lucide-react'
 import {
   Collapsible,
   CollapsibleContent,
@@ -28,28 +28,55 @@ import {
 } from '../ui/dropdown-menu'
 import { NavCollapsible, NavItem, NavLink, type NavGroup } from './types'
 
-export function NavGroup({ title, items }: NavGroup) {
+interface NavGroupProps extends NavGroup {
+  isCollapsed?: boolean
+  onToggle?: () => void
+}
+
+export function NavGroup({ title, items, collapsible, isCollapsed, onToggle }: NavGroupProps) {
   const { state } = useSidebar()
-  // const href = useLocation({ select: (location) => location.href })
-    const { url: href } = usePage()
+  const { url: href } = usePage()
+
+  const content = (
+    <SidebarMenu>
+      {items.map((item) => {
+        const key = `${item.title}-${item.url}`
+
+        if (!item.items)
+          return <SidebarMenuLink key={key} item={item} href={href} />
+
+        if (state === 'collapsed')
+          return (
+            <SidebarMenuCollapsedDropdown key={key} item={item} href={href} />
+          )
+
+        return <SidebarMenuCollapsible key={key} item={item} href={href} />
+      })}
+    </SidebarMenu>
+  )
+
+  if (collapsible && onToggle) {
+    return (
+      <Collapsible open={!isCollapsed} onOpenChange={() => onToggle()} className="group/nav-collapsible">
+        <SidebarGroup>
+          <CollapsibleTrigger asChild>
+            <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors">
+              <span className="flex-1">{title}</span>
+              <ChevronRight className="ml-auto size-4 shrink-0 transition-transform duration-200 group-data-[state=open]/nav-collapsible:rotate-90" />
+            </SidebarGroupLabel>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            {content}
+          </CollapsibleContent>
+        </SidebarGroup>
+      </Collapsible>
+    )
+  }
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{title}</SidebarGroupLabel>
-      <SidebarMenu>
-        {items.map((item) => {
-          const key = `${item.title}-${item.url}`
-
-          if (!item.items)
-            return <SidebarMenuLink key={key} item={item} href={href} />
-
-          if (state === 'collapsed')
-            return (
-              <SidebarMenuCollapsedDropdown key={key} item={item} href={href} />
-            )
-
-          return <SidebarMenuCollapsible key={key} item={item} href={href} />
-        })}
-      </SidebarMenu>
+      {content}
     </SidebarGroup>
   )
 }

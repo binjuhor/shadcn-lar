@@ -112,6 +112,7 @@ export const sidebarData: SidebarData = {
     },
     {
       title: 'Access Control',
+      collapsible: true,
       items: [
         {
           title: 'Roles',
@@ -135,6 +136,7 @@ export const sidebarData: SidebarData = {
     },
     {
       title: 'Ecommerce',
+      collapsible: true,
       items: [
         {
           title: 'Products',
@@ -170,6 +172,7 @@ export const sidebarData: SidebarData = {
     },
     {
       title: 'Blog',
+      collapsible: true,
       items: [
         {
           title: 'Posts',
@@ -199,6 +202,7 @@ export const sidebarData: SidebarData = {
     },
     {
       title: 'Pages',
+      collapsible: true,
       items: [
         {
           title: 'Auth',
@@ -261,6 +265,7 @@ export const sidebarData: SidebarData = {
     },
     {
       title: 'Other',
+      collapsible: true,
       items: [
         {
           title: 'Settings',

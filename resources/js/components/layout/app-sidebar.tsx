@@ -11,9 +11,11 @@ import { NavUser } from '@/components/layout/nav-user'
 import { TeamSwitcher } from '@/components/layout/team-switcher'
 import { sidebarData } from './data/sidebar-data'
 import { usePermission } from '@/hooks/use-permission'
+import { useCollapsibleGroups } from '@/hooks/use-collapsible-groups'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { filterNavGroups } = usePermission()
+  const { isCollapsed, toggleGroup } = useCollapsibleGroups()
 
   const filteredNavGroups = useMemo(
     () => filterNavGroups(sidebarData.navGroups),
@@ -26,8 +28,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={sidebarData.teams} />
       </SidebarHeader>
       <SidebarContent>
-        {filteredNavGroups.map((props) => (
-          <NavGroup key={props.title} {...props} />
+        {filteredNavGroups.map((group) => (
+          <NavGroup
+            key={group.title}
+            {...group}
+            isCollapsed={group.collapsible ? isCollapsed(group.title) : undefined}
+            onToggle={group.collapsible ? () => toggleGroup(group.title) : undefined}
+          />
         ))}
       </SidebarContent>
       <SidebarFooter>
