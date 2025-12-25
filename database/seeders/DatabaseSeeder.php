@@ -7,6 +7,7 @@ use Modules\Blog\Database\Seeders\BlogDatabaseSeeder;
 use Modules\Ecommerce\Database\Seeders\EcommerceDatabaseSeeder;
 use Modules\Notification\Database\Seeders\NotificationDatabaseSeeder;
 use Modules\Permission\Database\Seeders\PermissionDatabaseSeeder;
+use Modules\Invoice\Database\Seeders\InvoiceSeeder;
 
 class DatabaseSeeder extends Seeder
 {
