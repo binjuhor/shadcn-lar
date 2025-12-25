@@ -3,11 +3,11 @@
 namespace Modules\Blog\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Modules\Blog\Models\Category;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Blog\Models\Category;
 
 class CategoryController extends Controller
 {
@@ -139,7 +139,7 @@ class CategoryController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:categories,slug,' . $category->id,
+            'slug' => 'nullable|string|max:255|unique:categories,slug,'.$category->id,
             'description' => 'nullable|string',
             'color' => 'nullable|string|max:7',
             'icon' => 'nullable|string|max:255',
@@ -153,6 +153,7 @@ class CategoryController extends Controller
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'A category cannot be its own parent'], 422);
             }
+
             return back()->withErrors(['parent_id' => 'A category cannot be its own parent']);
         }
 
@@ -180,6 +181,7 @@ class CategoryController extends Controller
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Cannot delete category with existing posts'], 422);
             }
+
             return back()->withErrors(['error' => 'Cannot delete category with existing posts']);
         }
 
@@ -187,6 +189,7 @@ class CategoryController extends Controller
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Cannot delete category with child categories'], 422);
             }
+
             return back()->withErrors(['error' => 'Cannot delete category with child categories']);
         }
 

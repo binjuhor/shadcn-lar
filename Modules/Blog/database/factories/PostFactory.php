@@ -2,10 +2,10 @@
 
 namespace Modules\Blog\Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
-use Modules\Blog\Models\Post;
-use Modules\Blog\Models\Category;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Modules\Blog\Models\Category;
+use Modules\Blog\Models\Post;
 
 class PostFactory extends Factory
 {
@@ -81,22 +81,22 @@ class PostFactory extends Factory
         $paragraphs = [];
         $numParagraphs = rand(5, 15);
 
-        $paragraphs[] = '<h2>' . $this->faker->sentence(4) . '</h2>';
-        $paragraphs[] = '<p>' . $this->faker->paragraph(rand(4, 8)) . '</p>';
+        $paragraphs[] = '<h2>'.$this->faker->sentence(4).'</h2>';
+        $paragraphs[] = '<p>'.$this->faker->paragraph(rand(4, 8)).'</p>';
 
         for ($i = 0; $i < $numParagraphs; $i++) {
             if ($i % 3 === 0 && $i !== 0) {
-                $paragraphs[] = '<h2>' . $this->faker->sentence(rand(3, 6)) . '</h2>';
+                $paragraphs[] = '<h2>'.$this->faker->sentence(rand(3, 6)).'</h2>';
             }
 
-            $paragraphs[] = '<p>' . $this->faker->paragraph(rand(4, 8)) . '</p>';
+            $paragraphs[] = '<p>'.$this->faker->paragraph(rand(4, 8)).'</p>';
 
             if ($i % 5 === 0 && $i !== 0) {
                 $listItems = array_map(
-                    fn($item) => '<li>' . $this->faker->sentence(rand(3, 8)) . '</li>',
+                    fn ($item) => '<li>'.$this->faker->sentence(rand(3, 8)).'</li>',
                     range(1, rand(3, 5))
                 );
-                $paragraphs[] = '<ul>' . implode('', $listItems) . '</ul>';
+                $paragraphs[] = '<ul>'.implode('', $listItems).'</ul>';
             }
         }
 

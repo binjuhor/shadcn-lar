@@ -4,17 +4,16 @@ namespace Modules\Blog\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Modules\Blog\Models\Post;
-use Modules\Blog\Models\Category;
-use Modules\Blog\Models\Tag;
-use Modules\Blog\Http\Resources\PostResource;
-use Modules\Blog\Http\Resources\CategoryResource;
-use Modules\Blog\Http\Resources\TagResource;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Blog\Http\Resources\CategoryResource;
+use Modules\Blog\Http\Resources\PostResource;
+use Modules\Blog\Http\Resources\TagResource;
+use Modules\Blog\Models\Category;
+use Modules\Blog\Models\Post;
+use Modules\Blog\Models\Tag;
 
 class PostController extends Controller
 {
@@ -30,9 +29,9 @@ class PostController extends Controller
         // Apply filters
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->search . '%')
-                  ->orWhere('content', 'like', '%' . $request->search . '%')
-                  ->orWhere('excerpt', 'like', '%' . $request->search . '%');
+                $q->where('title', 'like', '%'.$request->search.'%')
+                    ->orWhere('content', 'like', '%'.$request->search.'%')
+                    ->orWhere('excerpt', 'like', '%'.$request->search.'%');
             });
         }
 
@@ -43,14 +42,14 @@ class PostController extends Controller
         if ($request->filled('category')) {
             $query->whereHas('category', function ($q) use ($request) {
                 $q->where('categories.slug', $request->category)
-                  ->orWhere('categories.id', $request->category);
+                    ->orWhere('categories.id', $request->category);
             });
         }
 
         if ($request->filled('tag')) {
             $query->whereHas('tags', function ($q) use ($request) {
                 $q->where('tags.slug', $request->tag)
-                  ->orWhere('tags.id', $request->tag);
+                    ->orWhere('tags.id', $request->tag);
             });
         }
 
@@ -118,7 +117,7 @@ class PostController extends Controller
             // Handle scheduled posts
             if ($validated['status'] === 'scheduled' && empty($validated['published_at'])) {
                 throw ValidationException::withMessages([
-                    'published_at' => 'Published date is required for scheduled posts.'
+                    'published_at' => 'Published date is required for scheduled posts.',
                 ]);
             }
 
@@ -141,7 +140,7 @@ class PostController extends Controller
             }
 
             // Attach tags
-            if (!empty($tagIds)) {
+            if (! empty($tagIds)) {
                 $post->tags()->attach($tagIds);
 
                 // Update tag usage counts
@@ -160,8 +159,9 @@ class PostController extends Controller
             throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
+
             return back()
-                ->withErrors(['error' => 'Failed to create post: ' . $e->getMessage()])
+                ->withErrors(['error' => 'Failed to create post: '.$e->getMessage()])
                 ->withInput();
         }
     }
@@ -208,7 +208,7 @@ class PostController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:posts,slug,' . $post->id,
+            'slug' => 'nullable|string|max:255|unique:posts,slug,'.$post->id,
             'content' => 'required|string',
             'excerpt' => 'nullable|string|max:500',
             'featured_image' => 'nullable|file|image|max:5120', // 5MB max
@@ -229,11 +229,11 @@ class PostController extends Controller
             // Handle status changes
             if ($validated['status'] === 'scheduled' && empty($validated['published_at'])) {
                 throw ValidationException::withMessages([
-                    'published_at' => 'Published date is required for scheduled posts.'
+                    'published_at' => 'Published date is required for scheduled posts.',
                 ]);
             }
 
-            if ($validated['status'] === 'published' && !$post->published_at && empty($validated['published_at'])) {
+            if ($validated['status'] === 'published' && ! $post->published_at && empty($validated['published_at'])) {
                 $validated['published_at'] = now();
             }
 
@@ -281,8 +281,9 @@ class PostController extends Controller
             throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
+
             return back()
-                ->withErrors(['error' => 'Failed to update post: ' . $e->getMessage()])
+                ->withErrors(['error' => 'Failed to update post: '.$e->getMessage()])
                 ->withInput();
         }
     }
@@ -314,8 +315,9 @@ class PostController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return back()
-                ->withErrors(['error' => 'Failed to delete post: ' . $e->getMessage()]);
+                ->withErrors(['error' => 'Failed to delete post: '.$e->getMessage()]);
         }
     }
 }

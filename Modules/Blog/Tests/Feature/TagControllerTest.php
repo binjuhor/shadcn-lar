@@ -2,13 +2,13 @@
 
 namespace Modules\Blog\Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
-use Modules\Blog\Models\Tag;
-use Modules\Blog\Models\Post;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Blog\Models\Post;
+use Modules\Blog\Models\Tag;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Permission;
+use Tests\TestCase;
 
 class TagControllerTest extends TestCase
 {

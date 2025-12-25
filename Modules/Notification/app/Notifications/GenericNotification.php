@@ -2,12 +2,12 @@
 
 namespace Modules\Notification\Notifications;
 
-use Modules\Notification\Enums\NotificationCategory;
-use Modules\Notification\Enums\NotificationChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Modules\Notification\Enums\NotificationCategory;
+use Modules\Notification\Enums\NotificationChannel;
 use Modules\Notification\Models\NotificationTemplate;
 
 class GenericNotification extends Notification implements ShouldQueue
@@ -15,12 +15,19 @@ class GenericNotification extends Notification implements ShouldQueue
     use Queueable;
 
     protected string $title;
+
     protected string $message;
+
     protected NotificationCategory $category;
+
     protected array $channels;
+
     protected ?string $actionUrl;
+
     protected ?string $actionLabel;
+
     protected ?string $icon;
+
     protected array $data;
 
     public function __construct(
@@ -51,7 +58,7 @@ class GenericNotification extends Notification implements ShouldQueue
     ): self {
         $rendered = $template->render($variables);
         $channels = array_map(
-            fn($c) => NotificationChannel::from($c),
+            fn ($c) => NotificationChannel::from($c),
             $template->channels
         );
 
@@ -69,14 +76,14 @@ class GenericNotification extends Notification implements ShouldQueue
     public function via(object $notifiable): array
     {
         return array_map(
-            fn($channel) => $channel instanceof NotificationChannel ? $channel->driver() : $channel,
+            fn ($channel) => $channel instanceof NotificationChannel ? $channel->driver() : $channel,
             $this->channels
         );
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = (new MailMessage())
+        $mail = (new MailMessage)
             ->subject($this->title)
             ->line($this->message);
 

@@ -2,16 +2,16 @@
 
 namespace Modules\Blog\Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
-use Modules\Blog\Models\Post;
-use Modules\Blog\Models\Category;
-use Modules\Blog\Models\Tag;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Modules\Blog\Models\Category;
+use Modules\Blog\Models\Post;
+use Modules\Blog\Models\Tag;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Permission;
+use Tests\TestCase;
 
 class PostControllerTest extends TestCase
 {
@@ -57,9 +57,8 @@ class PostControllerTest extends TestCase
             ->get('/dashboard/posts');
 
         $response->assertStatus(200)
-            ->assertInertia(fn ($page) =>
-                $page->component('blog/posts')
-                    ->has('posts.data', 5)
+            ->assertInertia(fn ($page) => $page->component('blog/posts')
+                ->has('posts.data', 5)
             );
     }
 
@@ -73,8 +72,7 @@ class PostControllerTest extends TestCase
             ->get('/dashboard/posts?status=published');
 
         $response->assertStatus(200)
-            ->assertInertia(fn ($page) =>
-                $page->has('posts.data', 3)
+            ->assertInertia(fn ($page) => $page->has('posts.data', 3)
             );
     }
 
@@ -90,8 +88,7 @@ class PostControllerTest extends TestCase
             ->get("/dashboard/posts?category={$category->id}");
 
         $response->assertStatus(200)
-            ->assertInertia(fn ($page) =>
-                $page->has('posts.data', 3)
+            ->assertInertia(fn ($page) => $page->has('posts.data', 3)
             );
     }
 
@@ -109,8 +106,7 @@ class PostControllerTest extends TestCase
             ->get("/dashboard/posts?tag={$tag->id}");
 
         $response->assertStatus(200)
-            ->assertInertia(fn ($page) =>
-                $page->has('posts.data', 3)
+            ->assertInertia(fn ($page) => $page->has('posts.data', 3)
             );
     }
 
@@ -125,8 +121,7 @@ class PostControllerTest extends TestCase
             ->get('/dashboard/posts?search=Laravel');
 
         $response->assertStatus(200)
-            ->assertInertia(fn ($page) =>
-                $page->has('posts.data', 2)
+            ->assertInertia(fn ($page) => $page->has('posts.data', 2)
             );
     }
 
@@ -137,10 +132,9 @@ class PostControllerTest extends TestCase
             ->get('/dashboard/posts/create');
 
         $response->assertStatus(200)
-            ->assertInertia(fn ($page) =>
-                $page->component('blog/create-post')
-                    ->has('categories')
-                    ->has('tags')
+            ->assertInertia(fn ($page) => $page->component('blog/create-post')
+                ->has('categories')
+                ->has('tags')
             );
     }
 
@@ -258,13 +252,11 @@ class PostControllerTest extends TestCase
             ->get("/dashboard/posts/{$post->slug}");
 
         $response->assertStatus(200)
-            ->assertInertia(fn ($page) =>
-                $page->component('blog/post')
-                    ->has('post', fn ($prop) =>
-                        $prop->where('id', $post->id)
-                            ->where('slug', $post->slug)
-                            ->etc()
-                    )
+            ->assertInertia(fn ($page) => $page->component('blog/post')
+                ->has('post', fn ($prop) => $prop->where('id', $post->id)
+                    ->where('slug', $post->slug)
+                    ->etc()
+                )
             );
     }
 
@@ -277,11 +269,10 @@ class PostControllerTest extends TestCase
             ->get("/dashboard/posts/{$post->slug}/edit");
 
         $response->assertStatus(200)
-            ->assertInertia(fn ($page) =>
-                $page->component('blog/edit-post')
-                    ->has('post')
-                    ->has('categories')
-                    ->has('tags')
+            ->assertInertia(fn ($page) => $page->component('blog/edit-post')
+                ->has('post')
+                ->has('categories')
+                ->has('tags')
             );
     }
 

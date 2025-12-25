@@ -2,13 +2,13 @@
 
 namespace Modules\Blog\Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Blog\Models\Category;
 use Modules\Blog\Models\Post;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Permission;
+use Tests\TestCase;
 
 class CategoryControllerTest extends TestCase
 {

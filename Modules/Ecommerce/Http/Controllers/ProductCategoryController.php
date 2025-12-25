@@ -3,11 +3,11 @@
 namespace Modules\Ecommerce\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Modules\Ecommerce\Models\ProductCategory;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Ecommerce\Models\ProductCategory;
 
 class ProductCategoryController extends Controller
 {
@@ -134,7 +134,7 @@ class ProductCategoryController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', 'unique:product_categories,slug,' . $productCategory->id],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:product_categories,slug,'.$productCategory->id],
             'description' => ['nullable', 'string'],
             'color' => ['nullable', 'string', 'max:7'],
             'icon' => ['nullable', 'string', 'max:255'],

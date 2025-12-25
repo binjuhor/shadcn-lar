@@ -2,11 +2,11 @@
 
 namespace Modules\Ecommerce\Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Modules\Ecommerce\Models\Product;
 use Modules\Ecommerce\Models\ProductCategory;
 use Modules\Ecommerce\Models\ProductTag;
-use App\Models\User;
 
 class ProductSeeder extends Seeder
 {
@@ -16,8 +16,9 @@ class ProductSeeder extends Seeder
         $categories = ProductCategory::all();
         $tags = ProductTag::all();
 
-        if (!$user || $categories->isEmpty()) {
+        if (! $user || $categories->isEmpty()) {
             $this->command->warn('Please create a user and categories first');
+
             return;
         }
 
@@ -180,6 +181,6 @@ class ProductSeeder extends Seeder
             $product->tags()->sync($randomTags);
         }
 
-        $this->command->info('Successfully seeded ' . count($products) . ' products with tags');
+        $this->command->info('Successfully seeded '.count($products).' products with tags');
     }
 }

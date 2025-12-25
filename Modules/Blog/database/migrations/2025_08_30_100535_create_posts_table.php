@@ -29,7 +29,7 @@ return new class extends Migration
             $table->boolean('is_featured')->default(false);
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index(['status', 'published_at']);
             $table->index(['category_id', 'status']);
             $table->index(['user_id', 'status']);

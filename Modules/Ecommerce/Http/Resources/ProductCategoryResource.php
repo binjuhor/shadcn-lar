@@ -26,8 +26,8 @@ class ProductCategoryResource extends JsonResource
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
 
-            'parent' => $this->whenLoaded('parent', fn() => static::make($this->parent)->resolve()),
-            'children' => $this->whenLoaded('children', fn() => static::collection($this->children)->resolve()),
+            'parent' => $this->whenLoaded('parent', fn () => static::make($this->parent)->resolve()),
+            'children' => $this->whenLoaded('children', fn () => static::collection($this->children)->resolve()),
         ];
     }
 }

@@ -2,13 +2,13 @@
 
 namespace Modules\Notification\Http\Controllers;
 
-use Modules\Notification\Enums\NotificationCategory;
-use Modules\Notification\Enums\NotificationChannel;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Notification\Enums\NotificationCategory;
+use Modules\Notification\Enums\NotificationChannel;
 use Modules\Notification\Http\Resources\NotificationTemplateResource;
 use Modules\Notification\Models\NotificationTemplate;
 
@@ -46,7 +46,7 @@ class NotificationTemplateController extends Controller
                 'total' => $templates->total(),
             ],
             'filters' => $request->only(['search', 'category', 'status']),
-            'categories' => collect(NotificationCategory::cases())->map(fn($c) => [
+            'categories' => collect(NotificationCategory::cases())->map(fn ($c) => [
                 'value' => $c->value,
                 'label' => $c->label(),
             ])->values()->all(),
@@ -58,12 +58,12 @@ class NotificationTemplateController extends Controller
         $this->authorize('create', NotificationTemplate::class);
 
         return Inertia::render('notifications/templates/create', [
-            'categories' => collect(NotificationCategory::cases())->map(fn($c) => [
+            'categories' => collect(NotificationCategory::cases())->map(fn ($c) => [
                 'value' => $c->value,
                 'label' => $c->label(),
                 'description' => $c->description(),
             ])->values()->all(),
-            'channels' => collect(NotificationChannel::cases())->map(fn($c) => [
+            'channels' => collect(NotificationChannel::cases())->map(fn ($c) => [
                 'value' => $c->value,
                 'label' => $c->label(),
                 'description' => $c->description(),
@@ -80,9 +80,9 @@ class NotificationTemplateController extends Controller
             'slug' => 'nullable|string|max:255|unique:notification_templates,slug',
             'subject' => 'required|string|max:500',
             'body' => 'required|string',
-            'category' => 'required|string|in:' . implode(',', array_column(NotificationCategory::cases(), 'value')),
+            'category' => 'required|string|in:'.implode(',', array_column(NotificationCategory::cases(), 'value')),
             'channels' => 'required|array|min:1',
-            'channels.*' => 'string|in:' . implode(',', array_column(NotificationChannel::cases(), 'value')),
+            'channels.*' => 'string|in:'.implode(',', array_column(NotificationChannel::cases(), 'value')),
             'variables' => 'nullable|array',
             'variables.*' => 'string|max:50',
             'is_active' => 'boolean',
@@ -99,6 +99,7 @@ class NotificationTemplateController extends Controller
                 ->with('success', 'Template created successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return back()
                 ->withErrors(['error' => "Failed to create template: {$e->getMessage()}"])
                 ->withInput();
@@ -120,12 +121,12 @@ class NotificationTemplateController extends Controller
 
         return Inertia::render('notifications/templates/edit', [
             'template' => NotificationTemplateResource::make($template)->resolve(),
-            'categories' => collect(NotificationCategory::cases())->map(fn($c) => [
+            'categories' => collect(NotificationCategory::cases())->map(fn ($c) => [
                 'value' => $c->value,
                 'label' => $c->label(),
                 'description' => $c->description(),
             ])->values()->all(),
-            'channels' => collect(NotificationChannel::cases())->map(fn($c) => [
+            'channels' => collect(NotificationChannel::cases())->map(fn ($c) => [
                 'value' => $c->value,
                 'label' => $c->label(),
                 'description' => $c->description(),
@@ -142,9 +143,9 @@ class NotificationTemplateController extends Controller
             'slug' => "nullable|string|max:255|unique:notification_templates,slug,{$template->id}",
             'subject' => 'required|string|max:500',
             'body' => 'required|string',
-            'category' => 'required|string|in:' . implode(',', array_column(NotificationCategory::cases(), 'value')),
+            'category' => 'required|string|in:'.implode(',', array_column(NotificationCategory::cases(), 'value')),
             'channels' => 'required|array|min:1',
-            'channels.*' => 'string|in:' . implode(',', array_column(NotificationChannel::cases(), 'value')),
+            'channels.*' => 'string|in:'.implode(',', array_column(NotificationChannel::cases(), 'value')),
             'variables' => 'nullable|array',
             'variables.*' => 'string|max:50',
             'is_active' => 'boolean',
@@ -161,6 +162,7 @@ class NotificationTemplateController extends Controller
                 ->with('success', 'Template updated successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return back()
                 ->withErrors(['error' => "Failed to update template: {$e->getMessage()}"])
                 ->withInput();
@@ -186,7 +188,7 @@ class NotificationTemplateController extends Controller
     {
         $this->authorize('update', $template);
 
-        $template->update(['is_active' => !$template->is_active]);
+        $template->update(['is_active' => ! $template->is_active]);
 
         return response()->json([
             'message' => $template->is_active ? 'Template activated.' : 'Template deactivated.',

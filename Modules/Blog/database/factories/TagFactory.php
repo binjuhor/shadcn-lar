@@ -37,7 +37,7 @@ class TagFactory extends Factory
         $tag = $this->faker->randomElement($tags);
 
         return [
-            'name' => $tag['name'] . ' ' . $this->faker->unique()->numberBetween(1, 1000),
+            'name' => $tag['name'].' '.$this->faker->unique()->numberBetween(1, 1000),
             'description' => $this->faker->optional()->sentence(),
             'color' => $tag['color'],
             'is_active' => $this->faker->boolean(95),

@@ -3,15 +3,15 @@
 namespace Modules\Ecommerce\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Modules\Ecommerce\Models\Order;
-use Modules\Ecommerce\Models\Product;
-use Modules\Ecommerce\Http\Resources\OrderResource;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Ecommerce\Http\Resources\OrderResource;
+use Modules\Ecommerce\Models\Order;
+use Modules\Ecommerce\Models\Product;
 
 class OrderController extends Controller
 {
@@ -34,10 +34,10 @@ class OrderController extends Controller
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('order_number', 'like', '%' . $request->search . '%')
+                $q->where('order_number', 'like', '%'.$request->search.'%')
                     ->orWhereHas('user', function ($userQuery) use ($request) {
-                        $userQuery->where('name', 'like', '%' . $request->search . '%')
-                            ->orWhere('email', 'like', '%' . $request->search . '%');
+                        $userQuery->where('name', 'like', '%'.$request->search.'%')
+                            ->orWhere('email', 'like', '%'.$request->search.'%');
                     });
             });
         }

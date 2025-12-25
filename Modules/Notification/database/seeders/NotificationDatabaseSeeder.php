@@ -2,9 +2,9 @@
 
 namespace Modules\Notification\Database\Seeders;
 
+use Illuminate\Database\Seeder;
 use Modules\Notification\Enums\NotificationCategory;
 use Modules\Notification\Enums\NotificationChannel;
-use Illuminate\Database\Seeder;
 use Modules\Notification\Models\NotificationTemplate;
 
 class NotificationDatabaseSeeder extends Seeder

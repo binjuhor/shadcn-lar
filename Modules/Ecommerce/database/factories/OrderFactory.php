@@ -2,9 +2,9 @@
 
 namespace Modules\Ecommerce\Database\Factories;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Modules\Ecommerce\Models\Order;
-use App\Models\User;
 
 class OrderFactory extends Factory
 {
@@ -19,7 +19,7 @@ class OrderFactory extends Factory
         $total = $subtotal + $tax + $shipping - $discount;
 
         return [
-            'order_number' => 'ORD-' . strtoupper($this->faker->unique()->bothify('??######')),
+            'order_number' => 'ORD-'.strtoupper($this->faker->unique()->bothify('??######')),
             'user_id' => User::factory(),
             'status' => $this->faker->randomElement(['pending', 'processing', 'completed', 'cancelled']),
             'subtotal' => $subtotal,

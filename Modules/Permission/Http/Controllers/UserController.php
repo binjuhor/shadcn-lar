@@ -157,6 +157,6 @@ class UserController extends Controller
             $user->syncRoles($request->roles);
         }
 
-        return back()->with('success', 'Roles assigned to ' . count($request->user_ids) . ' users.');
+        return back()->with('success', 'Roles assigned to '.count($request->user_ids).' users.');
     }
 }

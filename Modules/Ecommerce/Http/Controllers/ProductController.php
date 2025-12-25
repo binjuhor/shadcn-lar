@@ -3,17 +3,17 @@
 namespace Modules\Ecommerce\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Modules\Ecommerce\Models\Product;
-use Modules\Ecommerce\Models\ProductCategory;
-use Modules\Ecommerce\Models\ProductTag;
-use Modules\Ecommerce\Http\Resources\ProductResource;
-use Modules\Ecommerce\Http\Resources\ProductCategoryResource;
-use Modules\Ecommerce\Http\Resources\ProductTagResource;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Ecommerce\Http\Resources\ProductCategoryResource;
+use Modules\Ecommerce\Http\Resources\ProductResource;
+use Modules\Ecommerce\Http\Resources\ProductTagResource;
+use Modules\Ecommerce\Models\Product;
+use Modules\Ecommerce\Models\ProductCategory;
+use Modules\Ecommerce\Models\ProductTag;
 
 class ProductController extends Controller
 {
@@ -36,9 +36,9 @@ class ProductController extends Controller
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%')
-                    ->orWhere('sku', 'like', '%' . $request->search . '%');
+                $q->where('name', 'like', '%'.$request->search.'%')
+                    ->orWhere('description', 'like', '%'.$request->search.'%')
+                    ->orWhere('sku', 'like', '%'.$request->search.'%');
             });
         }
 
@@ -184,10 +184,10 @@ class ProductController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', 'unique:products,slug,' . $product->id],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:products,slug,'.$product->id],
             'description' => ['nullable', 'string'],
             'content' => ['nullable', 'string'],
-            'sku' => ['nullable', 'string', 'max:255', 'unique:products,sku,' . $product->id],
+            'sku' => ['nullable', 'string', 'max:255', 'unique:products,sku,'.$product->id],
             'price' => ['required', 'numeric', 'min:0'],
             'sale_price' => ['nullable', 'numeric', 'min:0'],
             'cost' => ['nullable', 'numeric', 'min:0'],
@@ -247,6 +247,7 @@ class ProductController extends Controller
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Cannot delete product with existing orders'], 422);
             }
+
             return back()->withErrors(['error' => 'Cannot delete product with existing orders']);
         }
 

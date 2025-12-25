@@ -22,7 +22,7 @@ class NotificationServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new NotificationService();
+        $this->service = new NotificationService;
     }
 
     public function test_send_to_user(): void
@@ -186,6 +186,7 @@ class NotificationServiceTest extends TestCase
 
         Notification::assertSentTo($user, GenericNotification::class, function ($notification) use ($user) {
             $channels = $notification->via($user);
+
             return in_array('database', $channels) && in_array('mail', $channels);
         });
     }
@@ -207,6 +208,7 @@ class NotificationServiceTest extends TestCase
 
         Notification::assertSentTo($user, GenericNotification::class, function ($notification) use ($user) {
             $data = $notification->toArray($user);
+
             return $data['action_url'] === 'https://example.com/order/123'
                 && $data['action_label'] === 'View Order';
         });

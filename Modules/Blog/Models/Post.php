@@ -2,18 +2,18 @@
 
 namespace Modules\Blog\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Modules\Blog\Database\Factories\PostFactory;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Post extends Model implements HasMedia
 {
-    use HasFactory, SoftDeletes, InteractsWithMedia;
+    use HasFactory, InteractsWithMedia, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -58,6 +58,7 @@ class Post extends Model implements HasMedia
     public function getFeaturedImageUrlAttribute(): ?string
     {
         $media = $this->getFirstMedia('featured_image');
+
         return $media ? $media->getUrl() : null;
     }
 
@@ -67,6 +68,7 @@ class Post extends Model implements HasMedia
     public function getFeaturedImageThumbnailAttribute(): ?string
     {
         $media = $this->getFirstMedia('featured_image');
+
         return $media ? $media->getUrl('thumb') : null;
     }
 
@@ -108,7 +110,7 @@ class Post extends Model implements HasMedia
     public function scopePublished($query)
     {
         return $query->where('status', 'published')
-                    ->where('published_at', '<=', now());
+            ->where('published_at', '<=', now());
     }
 
     /**
@@ -145,7 +147,7 @@ class Post extends Model implements HasMedia
         });
 
         static::updating(function ($post) {
-            if ($post->isDirty('slug') && !empty($post->slug)) {
+            if ($post->isDirty('slug') && ! empty($post->slug)) {
                 $post->slug = self::generateUniqueSlug($post->slug, $post->id);
             }
 
@@ -165,7 +167,7 @@ class Post extends Model implements HasMedia
         $count = 1;
 
         while (self::slugExists($slug, $ignoreId)) {
-            $slug = $originalSlug . '-' . $count;
+            $slug = $originalSlug.'-'.$count;
             $count++;
         }
 
@@ -192,6 +194,7 @@ class Post extends Model implements HasMedia
     private static function calculateReadingTime(string $content): int
     {
         $wordCount = str_word_count(strip_tags($content));
+
         return max(1, ceil($wordCount / 200)); // Assuming 200 words per minute
     }
 }

@@ -2,12 +2,12 @@
 
 namespace Modules\Permission\Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Tests\TestCase;
 
 class RoleControllerTest extends TestCase
 {
@@ -53,9 +53,8 @@ class RoleControllerTest extends TestCase
             ->get('/dashboard/roles');
 
         $response->assertStatus(200)
-            ->assertInertia(fn ($page) =>
-                $page->component('roles/index')
-                    ->has('roles.data', 2)
+            ->assertInertia(fn ($page) => $page->component('roles/index')
+                ->has('roles.data', 2)
             );
     }
 

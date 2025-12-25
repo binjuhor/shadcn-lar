@@ -17,7 +17,7 @@ class InvoiceFactory extends Factory
         $status = fake()->randomElement(['draft', 'sent', 'paid', 'overdue', 'cancelled']);
 
         return [
-            'invoice_number' => 'INV-' . fake()->unique()->numerify('########'),
+            'invoice_number' => 'INV-'.fake()->unique()->numerify('########'),
             'invoice_date' => $invoiceDate,
             'due_date' => $dueDate,
             'status' => $status,

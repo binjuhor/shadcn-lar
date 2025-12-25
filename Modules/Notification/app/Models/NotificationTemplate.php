@@ -2,13 +2,13 @@
 
 namespace Modules\Notification\Models;
 
-use Modules\Notification\Enums\NotificationCategory;
-use Modules\Notification\Enums\NotificationChannel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Notification\Database\Factories\NotificationTemplateFactory;
+use Modules\Notification\Enums\NotificationCategory;
+use Modules\Notification\Enums\NotificationChannel;
 
 class NotificationTemplate extends Model
 {
@@ -91,7 +91,7 @@ class NotificationTemplate extends Model
         });
 
         static::updating(function (self $template) {
-            if ($template->isDirty('slug') && !empty($template->slug)) {
+            if ($template->isDirty('slug') && ! empty($template->slug)) {
                 $template->slug = self::generateUniqueSlug($template->slug, $template->id);
             }
         });

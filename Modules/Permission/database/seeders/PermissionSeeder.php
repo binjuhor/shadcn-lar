@@ -30,7 +30,7 @@ class PermissionSeeder extends Seeder
             }
         }
 
-        $this->command->info('Created ' . count($allPermissions) . ' permissions');
+        $this->command->info('Created '.count($allPermissions).' permissions');
 
         // Create roles and assign permissions
         foreach ($defaultRoles as $roleName) {
@@ -41,6 +41,7 @@ class PermissionSeeder extends Seeder
             if ($rolePermissions === '*') {
                 // Super Admin gets all permissions via Gate::before, no need to assign
                 $this->command->info("Created role: {$roleName} (bypass via Gate::before)");
+
                 continue;
             }
 
@@ -48,7 +49,7 @@ class PermissionSeeder extends Seeder
             $expandedPermissions = $this->expandPermissions($rolePermissions, $permissionsConfig);
 
             $role->syncPermissions($expandedPermissions);
-            $this->command->info("Created role: {$roleName} with " . count($expandedPermissions) . ' permissions');
+            $this->command->info("Created role: {$roleName} with ".count($expandedPermissions).' permissions');
         }
 
         // Create test super admin user if not exists

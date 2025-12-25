@@ -2,10 +2,10 @@
 
 namespace Modules\Blog\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Modules\Blog\Database\Factories\TagFactory;
 
 class Tag extends Model
@@ -54,8 +54,8 @@ class Tag extends Model
     public function publishedPosts(): BelongsToMany
     {
         return $this->belongsToMany(Post::class, 'post_tags')
-                    ->where('posts.status', 'published')
-                    ->where('posts.published_at', '<=', now());
+            ->where('posts.status', 'published')
+            ->where('posts.published_at', '<=', now());
     }
 
     /**
@@ -93,7 +93,7 @@ class Tag extends Model
             if (empty($tag->slug)) {
                 $tag->slug = \Str::slug($tag->name);
             }
-            
+
             if (is_null($tag->usage_count)) {
                 $tag->usage_count = 0;
             }
@@ -112,7 +112,7 @@ class Tag extends Model
     public function updateUsageCount(): void
     {
         $this->update([
-            'usage_count' => $this->posts()->count()
+            'usage_count' => $this->posts()->count(),
         ]);
     }
 

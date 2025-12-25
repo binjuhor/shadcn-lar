@@ -32,7 +32,7 @@ class ProductResource extends JsonResource
             'track_inventory' => $this->track_inventory,
             'status' => $this->status,
             'featured_image' => $this->featured_image,
-            'featured_image_url' => $this->featured_image ? asset('storage/' . $this->featured_image) : null,
+            'featured_image_url' => $this->featured_image ? asset('storage/'.$this->featured_image) : null,
             'images' => $this->images,
             'is_featured' => $this->is_featured,
             'views_count' => $this->views_count,
@@ -42,9 +42,9 @@ class ProductResource extends JsonResource
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
 
-            'category' => $this->whenLoaded('category', fn() => ProductCategoryResource::make($this->category)->resolve()),
-            'tags' => $this->whenLoaded('tags', fn() => ProductTagResource::collection($this->tags)->resolve()),
-            'user' => $this->whenLoaded('user', fn() => (new \Modules\Blog\Http\Resources\UserResource($this->user))->resolve()),
+            'category' => $this->whenLoaded('category', fn () => ProductCategoryResource::make($this->category)->resolve()),
+            'tags' => $this->whenLoaded('tags', fn () => ProductTagResource::collection($this->tags)->resolve()),
+            'user' => $this->whenLoaded('user', fn () => (new \Modules\Blog\Http\Resources\UserResource($this->user))->resolve()),
         ];
     }
 }

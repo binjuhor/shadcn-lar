@@ -2,14 +2,13 @@
 
 namespace Modules\Ecommerce\Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Ecommerce\Models\Product;
 use Modules\Ecommerce\Models\ProductCategory;
-use Modules\Ecommerce\Models\ProductTag;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Permission;
+use Tests\TestCase;
 
 class ProductControllerTest extends TestCase
 {
@@ -54,9 +53,8 @@ class ProductControllerTest extends TestCase
             ->get('/dashboard/ecommerce/products');
 
         $response->assertStatus(200)
-            ->assertInertia(fn ($page) =>
-                $page->component('ecommerce/products')
-                    ->has('products.data', 5)
+            ->assertInertia(fn ($page) => $page->component('ecommerce/products')
+                ->has('products.data', 5)
             );
     }
 
@@ -94,9 +92,8 @@ class ProductControllerTest extends TestCase
             ->get("/dashboard/ecommerce/products/{$product->slug}");
 
         $response->assertStatus(200)
-            ->assertInertia(fn ($page) =>
-                $page->component('ecommerce/product')
-                    ->has('product')
+            ->assertInertia(fn ($page) => $page->component('ecommerce/product')
+                ->has('product')
             );
     }
 

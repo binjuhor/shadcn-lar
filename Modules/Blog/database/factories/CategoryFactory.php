@@ -25,7 +25,7 @@ class CategoryFactory extends Factory
         $category = $this->faker->randomElement($categories);
 
         return [
-            'name' => $category['name'] . ' ' . $this->faker->unique()->numberBetween(1, 1000),
+            'name' => $category['name'].' '.$this->faker->unique()->numberBetween(1, 1000),
             'description' => $category['description'],
             'color' => $category['color'],
             'icon' => $category['icon'],

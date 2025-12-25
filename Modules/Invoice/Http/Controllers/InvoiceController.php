@@ -142,7 +142,7 @@ class InvoiceController extends Controller
         $this->authorize('view', $invoice);
 
         $userId = auth()->id();
-        $cacheKey = "pdf_downloads:{$userId}:" . now()->format('Y-m-d');
+        $cacheKey = "pdf_downloads:{$userId}:".now()->format('Y-m-d');
         $downloads = Cache::get($cacheKey, 0);
 
         if ($downloads >= 10) {

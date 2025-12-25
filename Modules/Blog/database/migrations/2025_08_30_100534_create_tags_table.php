@@ -21,7 +21,7 @@ return new class extends Migration
             $table->integer('usage_count')->default(0);
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index(['is_active', 'usage_count']);
         });
     }

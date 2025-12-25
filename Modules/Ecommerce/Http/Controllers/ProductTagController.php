@@ -3,11 +3,11 @@
 namespace Modules\Ecommerce\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Modules\Ecommerce\Models\ProductTag;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Ecommerce\Models\ProductTag;
 
 class ProductTagController extends Controller
 {
@@ -109,7 +109,7 @@ class ProductTagController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', 'unique:product_tags,slug,' . $productTag->id],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:product_tags,slug,'.$productTag->id],
             'description' => ['nullable', 'string'],
             'color' => ['nullable', 'string', 'max:7'],
         ]);

@@ -2,10 +2,10 @@
 
 namespace Modules\Ecommerce\Database\Factories;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Modules\Ecommerce\Models\Product;
 use Modules\Ecommerce\Models\ProductCategory;
-use App\Models\User;
 
 class ProductFactory extends Factory
 {
@@ -21,7 +21,7 @@ class ProductFactory extends Factory
             'slug' => $this->faker->unique()->slug(3),
             'description' => $this->faker->paragraph(2),
             'content' => $this->generateContent(),
-            'sku' => 'PRD-' . strtoupper($this->faker->unique()->bothify('??####')),
+            'sku' => 'PRD-'.strtoupper($this->faker->unique()->bothify('??####')),
             'price' => $price,
             'sale_price' => $salePrice,
             'cost' => $price * $this->faker->randomFloat(2, 0.3, 0.6),
@@ -66,6 +66,7 @@ class ProductFactory extends Factory
     {
         return $this->state(function (array $attributes) {
             $price = $attributes['price'] ?? 100;
+
             return [
                 'sale_price' => $price * 0.8,
             ];
@@ -92,11 +93,11 @@ class ProductFactory extends Factory
         $paragraphs = [];
         $numParagraphs = rand(3, 8);
 
-        $paragraphs[] = '<h2>' . $this->faker->sentence(4) . '</h2>';
-        $paragraphs[] = '<p>' . $this->faker->paragraph(rand(3, 6)) . '</p>';
+        $paragraphs[] = '<h2>'.$this->faker->sentence(4).'</h2>';
+        $paragraphs[] = '<p>'.$this->faker->paragraph(rand(3, 6)).'</p>';
 
         for ($i = 0; $i < $numParagraphs; $i++) {
-            $paragraphs[] = '<p>' . $this->faker->paragraph(rand(3, 6)) . '</p>';
+            $paragraphs[] = '<p>'.$this->faker->paragraph(rand(3, 6)).'</p>';
         }
 
         return implode("\n\n", $paragraphs);

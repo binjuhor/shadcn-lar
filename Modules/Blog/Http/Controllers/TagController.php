@@ -3,11 +3,11 @@
 namespace Modules\Blog\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Modules\Blog\Models\Tag;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Blog\Models\Tag;
 
 class TagController extends Controller
 {
@@ -118,7 +118,7 @@ class TagController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:tags,slug,' . $tag->id,
+            'slug' => 'nullable|string|max:255|unique:tags,slug,'.$tag->id,
             'description' => 'nullable|string',
             'color' => 'nullable|string|max:7',
             'is_active' => 'sometimes|boolean',
@@ -148,6 +148,7 @@ class TagController extends Controller
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Cannot delete tag with existing posts'], 422);
             }
+
             return back()->withErrors(['error' => 'Cannot delete tag with existing posts']);
         }
 
