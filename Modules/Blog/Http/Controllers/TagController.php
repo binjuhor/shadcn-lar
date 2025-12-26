@@ -29,7 +29,7 @@ class TagController extends Controller
             ]);
         }
 
-        return Inertia::render('blog/tags', [
+        return Inertia::render('Blog::tags', [
             'tags' => $tags,
         ]);
     }
@@ -41,7 +41,7 @@ class TagController extends Controller
     {
         $this->authorize('create', Tag::class);
 
-        return Inertia::render('blog/create-tag');
+        return Inertia::render('Blog::create-tag');
     }
 
     /**
@@ -91,7 +91,7 @@ class TagController extends Controller
             ]);
         }
 
-        return Inertia::render('blog/tag', [
+        return Inertia::render('Blog::tag', [
             'tag' => $tag,
             'posts' => $posts,
         ]);
@@ -104,7 +104,7 @@ class TagController extends Controller
     {
         $this->authorize('update', $tag);
 
-        return Inertia::render('blog/edit-tag', [
+        return Inertia::render('Blog::edit-tag', [
             'tag' => $tag,
         ]);
     }

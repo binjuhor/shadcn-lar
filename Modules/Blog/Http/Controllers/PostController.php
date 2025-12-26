@@ -59,7 +59,7 @@ class PostController extends Controller
 
         $posts = $query->paginate(15)->withQueryString();
 
-        return Inertia::render('blog/posts', [
+        return Inertia::render('Blog::posts', [
             'posts' => [
                 'data' => PostResource::collection($posts->items())->resolve(),
                 'current_page' => $posts->currentPage(),
@@ -80,7 +80,7 @@ class PostController extends Controller
     {
         $this->authorize('create', Post::class);
 
-        return Inertia::render('blog/create-post', [
+        return Inertia::render('Blog::create-post', [
             'categories' => CategoryResource::collection(Category::active()->orderBy('name')->get(['id', 'name', 'slug']))->resolve(),
             'tags' => TagResource::collection(Tag::active()->orderBy('name')->get(['id', 'name', 'slug']))->resolve(),
         ]);
@@ -178,7 +178,7 @@ class PostController extends Controller
         // Increment view count
         $post->increment('views_count');
 
-        return Inertia::render('blog/post', [
+        return Inertia::render('Blog::post', [
             'post' => PostResource::make($post)->resolve(),
         ]);
     }
@@ -192,7 +192,7 @@ class PostController extends Controller
 
         $post->load(['category', 'tags', 'user']);
 
-        return Inertia::render('blog/edit-post', [
+        return Inertia::render('Blog::edit-post', [
             'post' => PostResource::make($post)->resolve(),
             'categories' => CategoryResource::collection(Category::active()->orderBy('name')->get(['id', 'name', 'slug']))->resolve(),
             'tags' => TagResource::collection(Tag::active()->orderBy('name')->get(['id', 'name', 'slug']))->resolve(),

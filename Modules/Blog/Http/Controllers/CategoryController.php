@@ -30,7 +30,7 @@ class CategoryController extends Controller
             ]);
         }
 
-        return Inertia::render('blog/categories', [
+        return Inertia::render('Blog::categories', [
             'categories' => $categories,
         ]);
     }
@@ -46,7 +46,7 @@ class CategoryController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'slug', 'parent_id']);
 
-        return Inertia::render('blog/create-category', [
+        return Inertia::render('Blog::create-category', [
             'categories' => $categories,
         ]);
     }
@@ -104,7 +104,7 @@ class CategoryController extends Controller
             ]);
         }
 
-        return Inertia::render('blog/category', [
+        return Inertia::render('Blog::category', [
             'category' => $category,
             'posts' => $posts,
         ]);
@@ -124,7 +124,7 @@ class CategoryController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'slug', 'parent_id']);
 
-        return Inertia::render('blog/edit-category', [
+        return Inertia::render('Blog::edit-category', [
             'category' => $category,
             'categories' => $categories,
         ]);
