@@ -6,26 +6,9 @@
   <style>
     body {
       font-family: sans-serif;
-      font-size: 12px;
+      font-size: 14px;
       color: #333;
       line-height: 1.4;
-    }
-
-    .header {
-      margin-bottom: 30px;
-      border-bottom: 2px solid #333;
-      padding-bottom: 20px;
-    }
-
-    .invoice-number {
-      font-size: 28px;
-      font-weight: bold;
-      color: #1a1a1a;
-      margin-bottom: 10px;
-    }
-
-    .meta-info {
-      color: #666;
     }
 
     .addresses {
@@ -46,40 +29,48 @@
 
     .address-block {
       padding: 15px;
-      background: #f9f9f9;
       border-radius: 4px;
     }
 
     .address-label {
-      font-weight: bold;
       color: #666;
-      text-transform: uppercase;
-      font-size: 10px;
       margin-bottom: 8px;
+      margin-top: 20px;
     }
 
     .address-name {
-      font-size: 14px;
       font-weight: bold;
-      margin-bottom: 5px;
     }
 
-    .items-table {
+    .items-table,
+    .meta-table {
       width: 100%;
       border-collapse: collapse;
+      border-spacing: 0;
       margin-bottom: 30px;
     }
 
+    .items-table thead th {
+      background: #151313;
+      border-color: #151313;
+    }
+    .items-table thead th:first-child{
+      border-radius: 4px 0 0 4px;
+    }
+
+    .items-table thead th:last-child{
+      border-radius: 0 4px 4px 0 ;
+    }
+
     .items-table th {
-      background: #f5f5f5;
-      padding: 12px 8px;
+      padding: 5px 20px;
       text-align: left;
-      font-weight: bold;
-      border-bottom: 2px solid #ddd;
+      color: #fff;
+      font-weight: normal;
     }
 
     .items-table td {
-      padding: 12px 8px;
+      padding: 5px 20px;
       border-bottom: 1px solid #eee;
     }
 
@@ -115,7 +106,6 @@
 
     .totals .total-row {
       border-top: 2px solid #333;
-      font-size: 16px;
     }
 
     .totals .total-row td {
@@ -135,38 +125,27 @@
       color: #666;
     }
 
-    .status-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 4px;
-      font-size: 11px;
+    .meta-table {
+      text-align: right;
+    }
+
+    .meta-table td {
+      padding: 5px 15px;
+    }
+
+    .meta-table tr:last-child {
       font-weight: bold;
-      text-transform: uppercase;
+      background: #f5f5f5;
+      border-color: #f5f5f5;
+      padding: 5px 15px;
+      border-radius: 4px;
+    }
+    .meta-table tr:last-child td:first-child {
+      border-radius: 4px 0 0 4px;
     }
 
-    .status-draft {
-      background: #e5e5e5;
-      color: #666;
-    }
-
-    .status-sent {
-      background: #dbeafe;
-      color: #1d4ed8;
-    }
-
-    .status-paid {
-      background: #dcfce7;
-      color: #166534;
-    }
-
-    .status-overdue {
-      background: #fee2e2;
-      color: #dc2626;
-    }
-
-    .status-cancelled {
-      background: #f3f4f6;
-      color: #6b7280;
+    .meta-table tr:last-child td:last-child {
+      border-radius: 0 4px 4px 0;
     }
   </style>
 </head>
@@ -176,10 +155,9 @@
     <tr>
       <td style="padding-right: 20px;">
         <div class="address-block">
-          <div class="address-label">From</div>
-          <div class="address-name">{{ $invoice->from_name }}</div>
+          <div class="address-name">Full name: {{ $invoice->from_name }}</div>
           @if($invoice->from_address)
-            {!! nl2br(e($invoice->from_address)) !!}<br>
+            Address: {!! nl2br(e($invoice->from_address)) !!}<br>
           @endif
           @if($invoice->from_email)
             {{ $invoice->from_email }}<br>
@@ -187,24 +165,35 @@
           @if($invoice->from_phone)
             {{ $invoice->from_phone }}
           @endif
-        </div>``
-        <div class="address-block">
           <div class="address-label">Bill To</div>
           <div class="address-name">{{ $invoice->to_name }}</div>
           @if($invoice->to_address)
             {!! nl2br(e($invoice->to_address)) !!}<br>
           @endif
           @if($invoice->to_email)
-            {{ $invoice->to_email }}
+            Email: {{ $invoice->to_email }}<br>
           @endif
         </div>
       </td>
-      <td style="padding-left: 20px;">
-        <div class="invoice-meta">
-          <strong>{{ $invoice->invoice_number }}</strong><br>
-          Date: {{ $invoice->invoice_date->format('M d, Y') }}<br>
-          Due: {{ $invoice->due_date->format('M d, Y') }}<br>
+      <td style="padding-left: 20px; text-align: right; line-height: 1.2">
+        <div style="margin-bottom: 50px;">
+          <h1 style="font-size: 40px; font-weight: normal; line-height: 1;">INVOICE</h1>
+          <strong style="color: #5c5c5c">{{ $invoice->invoice_number }}</strong><br>
         </div>
+        <table class="meta-table">
+          <tr>
+            <td>Date: </td>
+            <td>{{ $invoice->invoice_date->format('M d, Y') }}</td>
+          </tr>
+          <tr>
+            <td>Due Date: </td>
+            <td>{{ $invoice->due_date->format('M d, Y') }}</td>
+          </tr>
+          <tr>
+            <td>Balance Due:</td>
+            <td>${{ number_format($invoice->total, 2) }}</td>
+          </tr>
+        </table>
       </td>
     </tr>
   </table>
@@ -212,12 +201,12 @@
 
 <table class="items-table">
   <thead>
-  <tr>
-    <th style="width: 50%;">Description</th>
-    <th style="width: 15%;" class="text-right">Qty</th>
-    <th style="width: 15%;" class="text-right">Unit Price</th>
-    <th style="width: 20%;" class="text-right">Amount</th>
-  </tr>
+    <tr style="color: #fff">
+      <th style="width: 50%;">Description</th>
+      <th style="width: 15%;" class="text-right">Qty</th>
+      <th style="width: 15%;" class="text-right">Unit Price</th>
+      <th style="width: 20%;" class="text-right">Amount</th>
+    </tr>
   </thead>
   <tbody>
   @foreach($invoice->items as $item)

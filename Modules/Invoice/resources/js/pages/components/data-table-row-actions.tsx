@@ -48,11 +48,13 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
             Edit
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a href={route('dashboard.invoices.pdf', row.original.id)}>
-            <IconFileTypePdf className='mr-2 h-4 w-4' />
-            Download PDF
-          </a>
+        <DropdownMenuItem
+          onClick={() => {
+            window.open(route('dashboard.invoices.pdf', row.original.id), '_blank')
+          }}
+        >
+          <IconFileTypePdf className='mr-2 h-4 w-4' />
+          Download PDF
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleDelete} className='text-red-600'>

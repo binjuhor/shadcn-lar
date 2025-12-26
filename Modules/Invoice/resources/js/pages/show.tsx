@@ -50,10 +50,11 @@ export default function ShowInvoice({ invoice }: ShowInvoiceProps) {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <a href={route('dashboard.invoices.pdf', invoice.id)}>
-                <IconDownload size={18} className="mr-1" /> Download PDF
-              </a>
+            <Button
+              variant="outline"
+              onClick={() => window.open(route('dashboard.invoices.pdf', invoice.id), '_blank')}
+            >
+              <IconDownload size={18} className="mr-1" /> Download PDF
             </Button>
             <Button asChild>
               <Link href={route('dashboard.invoices.edit', invoice.id)}>

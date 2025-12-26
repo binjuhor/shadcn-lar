@@ -20,14 +20,14 @@ class InvoiceController extends Controller
             ->latest('invoice_date')
             ->paginate(15);
 
-        return Inertia::render('invoices/index', [
+        return Inertia::render('Invoice::index', [
             'invoices' => $invoices,
         ]);
     }
 
     public function create()
     {
-        return Inertia::render('invoices/create');
+        return Inertia::render('Invoice::create');
     }
 
     public function store(StoreInvoiceRequest $request)
@@ -73,7 +73,7 @@ class InvoiceController extends Controller
     {
         $this->authorize('view', $invoice);
 
-        return Inertia::render('invoices/show', [
+        return Inertia::render('Invoice::show', [
             'invoice' => $invoice->load('items'),
         ]);
     }
@@ -82,7 +82,7 @@ class InvoiceController extends Controller
     {
         $this->authorize('update', $invoice);
 
-        return Inertia::render('invoices/edit', [
+        return Inertia::render('Invoice::edit', [
             'invoice' => $invoice->load('items'),
         ]);
     }
