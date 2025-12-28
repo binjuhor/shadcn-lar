@@ -33,7 +33,7 @@ class NotificationController extends Controller
 
         $notifications = $query->paginate(20)->withQueryString();
 
-        return Inertia::render('notifications/index', [
+        return Inertia::render('Notification::index', [
             'notifications' => [
                 'data' => NotificationResource::collection($notifications->items())->resolve(),
                 'current_page' => $notifications->currentPage(),

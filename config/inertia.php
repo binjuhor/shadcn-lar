@@ -41,15 +41,15 @@ return [
         'ensure_pages_exist' => true,
         'page_paths' => [
             resource_path('js/pages'),
+            base_path('Modules/Blog/resources/js/pages'),
+            base_path('Modules/Ecommerce/resources/js/pages'),
+            base_path('Modules/Invoice/resources/js/pages'),
+            base_path('Modules/Notification/resources/js/pages'),
+            base_path('Modules/Permission/resources/js/pages'),
         ],
 
         'page_extensions' => [
-            'js',
-            'jsx',
-            'svelte',
-            'ts',
             'tsx',
-            'vue',
         ],
 
     ],

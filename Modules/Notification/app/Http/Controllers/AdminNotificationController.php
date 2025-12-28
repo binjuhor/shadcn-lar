@@ -25,7 +25,7 @@ class AdminNotificationController extends Controller
     {
         $this->authorize('send', NotificationTemplate::class);
 
-        return Inertia::render('notifications/send/index', [
+        return Inertia::render('Notification::send/index', [
             'templates' => NotificationTemplateResource::collection(
                 NotificationTemplate::active()->get()
             )->resolve(),

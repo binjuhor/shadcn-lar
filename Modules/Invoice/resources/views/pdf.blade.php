@@ -11,6 +11,10 @@
       line-height: 1.4;
     }
 
+    strong {
+      color: #999;
+    }
+
     .addresses {
       margin-bottom: 30px;
     }
@@ -54,6 +58,7 @@
       background: #151313;
       border-color: #151313;
     }
+
     .items-table thead th:first-child{
       border-radius: 4px 0 0 4px;
     }
@@ -153,7 +158,7 @@
 <div class="addresses">
   <table>
     <tr>
-      <td style="padding-right: 20px;">
+      <td style="width: 60%;">
         <div class="address-block">
           <div class="address-name">Full name: {{ $invoice->from_name }}</div>
           @if($invoice->from_address)
@@ -226,10 +231,12 @@
       <td class="label">Subtotal:</td>
       <td class="value">${{ number_format($invoice->subtotal, 2) }}</td>
     </tr>
+    @if($invoice->tax_rate > 0)
     <tr>
       <td class="label">Tax ({{ $invoice->tax_rate * 100 }}%):</td>
       <td class="value">${{ number_format($invoice->tax_amount, 2) }}</td>
     </tr>
+    @endif
     <tr class="total-row">
       <td class="label">Total:</td>
       <td class="value">${{ number_format($invoice->total, 2) }}</td>

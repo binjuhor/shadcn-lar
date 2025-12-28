@@ -12,6 +12,7 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
             <directory>Modules/Notification/tests/Feature</directory>
+            <directory>Modules/Settings/tests/Feature</directory>
         </testsuite>
     </testsuites>
     <source>

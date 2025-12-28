@@ -1,7 +1,9 @@
 {
-    "Blog": true,
-    "Ecommerce": true,
-    "Permission": true,
-    "Notification": true,
-    "Invoice": true
+  "Blog": true,
+  "Ecommerce": true,
+  "Permission": true,
+  "Notification": true,
+  "Invoice": true,
+  "Settings": true,
+  "Finance": true
 }

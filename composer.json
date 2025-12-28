@@ -11,11 +11,14 @@
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
+        "brick/money": "^0.10.3",
         "inertiajs/inertia-laravel": "^2.0",
+        "kalnoy/nestedset": "^6.0",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "nwidart/laravel-modules": "^12.0",
+        "owen-it/laravel-auditing": "^14.0",
         "spatie/laravel-medialibrary": "^11.15",
         "spatie/laravel-permission": "^6.24",
         "tightenco/ziggy": "^2.0"
@@ -44,13 +47,23 @@
             "Modules\\Permission\\Database\\Seeders\\": "Modules/Permission/database/seeders/",
             "Modules\\Notification\\": "Modules/Notification/app/",
             "Modules\\Notification\\Database\\Factories\\": "Modules/Notification/database/factories/",
-            "Modules\\Notification\\Database\\Seeders\\": "Modules/Notification/database/seeders/"
+            "Modules\\Notification\\Database\\Seeders\\": "Modules/Notification/database/seeders/",
+            "Modules\\Finance\\": "Modules/Finance/app/",
+            "Modules\\Finance\\Database\\Factories\\": "Modules/Finance/database/factories/",
+            "Modules\\Finance\\Database\\Seeders\\": "Modules/Finance/database/seeders/",
+            "Modules\\Settings\\": "Modules/Settings/app/",
+            "Modules\\Settings\\Database\\Seeders\\": "Modules/Settings/database/seeders/",
+            "Modules\\Inventory\\": "Modules/Inventory/app/",
+            "Modules\\Inventory\\Database\\Factories\\": "Modules/Inventory/database/factories/",
+            "Modules\\Inventory\\Database\\Seeders\\": "Modules/Inventory/database/seeders/"
         }
     },
     "autoload-dev": {
         "psr-4": {
             "Tests\\": "tests/",
-            "Modules\\Notification\\Tests\\": "Modules/Notification/tests/"
+            "Modules\\Notification\\Tests\\": "Modules/Notification/tests/",
+            "Modules\\Settings\\Tests\\": "Modules/Settings/tests/",
+            "Modules\\Finance\\Tests\\": "Modules/Finance/tests/"
         }
     },
     "scripts": {

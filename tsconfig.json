@@ -13,8 +13,19 @@
         "noEmit": true,
         "paths": {
             "@/*": ["./resources/js/*"],
+            "@modules/Blog/*": ["./Modules/Blog/resources/js/*"],
+            "@modules/Ecommerce/*": ["./Modules/Ecommerce/resources/js/*"],
+            "@modules/Invoice/*": ["./Modules/Invoice/resources/js/*"],
+            "@modules/Notification/*": ["./Modules/Notification/resources/js/*"],
+            "@modules/Permission/*": ["./Modules/Permission/resources/js/*"],
             "ziggy-js": ["./vendor/tightenco/ziggy"]
         }
     },
-    "include": ["resources/js/**/*.ts", "resources/js/**/*.tsx", "resources/js/**/*.d.ts"]
+    "include": [
+        "resources/js/**/*.ts",
+        "resources/js/**/*.tsx",
+        "resources/js/**/*.d.ts",
+        "Modules/*/resources/js/**/*.ts",
+        "Modules/*/resources/js/**/*.tsx"
+    ]
 }

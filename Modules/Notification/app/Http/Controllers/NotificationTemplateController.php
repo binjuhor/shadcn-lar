@@ -37,7 +37,7 @@ class NotificationTemplateController extends Controller
 
         $templates = $query->paginate(15)->withQueryString();
 
-        return Inertia::render('notifications/templates/index', [
+        return Inertia::render('Notification::templates/index', [
             'templates' => [
                 'data' => NotificationTemplateResource::collection($templates->items())->resolve(),
                 'current_page' => $templates->currentPage(),
@@ -57,7 +57,7 @@ class NotificationTemplateController extends Controller
     {
         $this->authorize('create', NotificationTemplate::class);
 
-        return Inertia::render('notifications/templates/create', [
+        return Inertia::render('Notification::templates/create', [
             'categories' => collect(NotificationCategory::cases())->map(fn ($c) => [
                 'value' => $c->value,
                 'label' => $c->label(),
@@ -110,7 +110,7 @@ class NotificationTemplateController extends Controller
     {
         $this->authorize('view', $template);
 
-        return Inertia::render('notifications/templates/show', [
+        return Inertia::render('Notification::templates/show', [
             'template' => NotificationTemplateResource::make($template)->resolve(),
         ]);
     }
@@ -119,7 +119,7 @@ class NotificationTemplateController extends Controller
     {
         $this->authorize('update', $template);
 
-        return Inertia::render('notifications/templates/edit', [
+        return Inertia::render('Notification::templates/edit', [
             'template' => NotificationTemplateResource::make($template)->resolve(),
             'categories' => collect(NotificationCategory::cases())->map(fn ($c) => [
                 'value' => $c->value,
