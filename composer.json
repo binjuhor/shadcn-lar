@@ -53,9 +53,7 @@
             "Modules\\Finance\\Database\\Seeders\\": "Modules/Finance/database/seeders/",
             "Modules\\Settings\\": "Modules/Settings/app/",
             "Modules\\Settings\\Database\\Seeders\\": "Modules/Settings/database/seeders/",
-            "Modules\\Inventory\\": "Modules/Inventory/app/",
-            "Modules\\Inventory\\Database\\Factories\\": "Modules/Inventory/database/factories/",
-            "Modules\\Inventory\\Database\\Seeders\\": "Modules/Inventory/database/seeders/"
+            "Modules\\ModuleGenerator\\": "Modules/ModuleGenerator/app/"
         }
     },
     "autoload-dev": {

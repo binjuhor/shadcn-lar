@@ -1,16 +1,13 @@
-import {type JSX, useState} from 'react'
-import {Link, router} from '@inertiajs/react'
-import {cn} from '@/lib/utils'
-import {buttonVariants} from '@/components/ui/button'
-import {ScrollArea} from '@/components/ui/scroll-area'
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select'
+import { useState } from 'react'
+import { Link, router } from '@inertiajs/react'
+import { cn } from '@/lib/utils'
+import { buttonVariants } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { type SettingsNavItem } from '@/pages/settings/data/nav-items'
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
-  items: {
-    href: string
-    title: string
-    icon: JSX.Element
-  }[]
+  items: SettingsNavItem[]
 }
 
 export default function SidebarNav({

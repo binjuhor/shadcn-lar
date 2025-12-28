@@ -19,7 +19,7 @@ class ModulesController extends Controller
 
         $modules = collect(Module::all())->map(function ($module) {
             $config = json_decode(
-                file_get_contents($module->getPath() . '/module.json'),
+                file_get_contents($module->getPath().'/module.json'),
                 true
             );
 

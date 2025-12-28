@@ -1,12 +1,20 @@
 import {
   IconBrowserCheck,
   IconNotification,
+  IconPackages,
   IconPalette,
   IconTool,
   IconUser,
 } from '@tabler/icons-react'
 
-export const settingsNavItems = [
+export interface SettingsNavItem {
+  title: string
+  icon: React.ReactNode
+  href: string
+  superAdminOnly?: boolean
+}
+
+export const settingsNavItems: SettingsNavItem[] = [
   {
     title: 'Profile',
     icon: <IconUser size={18} />,
@@ -31,5 +39,11 @@ export const settingsNavItems = [
     title: 'Display',
     icon: <IconBrowserCheck size={18} />,
     href: '/dashboard/settings/display',
+  },
+  {
+    title: 'Modules',
+    icon: <IconPackages size={18} />,
+    href: '/dashboard/settings/modules',
+    superAdminOnly: true,
   },
 ]
