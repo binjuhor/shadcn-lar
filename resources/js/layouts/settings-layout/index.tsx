@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator'
 import SidebarNav from '@/pages/settings/components/sidebar-nav'
 import { Main } from '@/components/layout'
 import { settingsNavItems } from '@/pages/settings/data/nav-items'
+import { usePermission } from '@/hooks/use-permission'
 
 const topNav = [
   {
@@ -39,6 +40,12 @@ const topNav = [
 ]
 
 export function SettingLayout({ children, title }: { children: React.ReactNode; title?: string }) {
+  const { isSuperAdmin } = usePermission()
+
+  const filteredNavItems = settingsNavItems.filter(
+    item => !item.superAdminOnly || isSuperAdmin()
+  )
+
   return (
     <>
       <Head title={title ?? 'Settings'} />
@@ -66,7 +73,7 @@ export function SettingLayout({ children, title }: { children: React.ReactNode; 
             <Separator className='my-4 lg:my-6' />
             <div className='flex flex-1 flex-col space-y-2 md:space-y-2 overflow-hidden lg:flex-row lg:space-x-12 lg:space-y-0'>
               <aside className='top-0 lg:sticky lg:w-1/5'>
-                <SidebarNav items={settingsNavItems} />
+                <SidebarNav items={filteredNavItems} />
               </aside>
               <div className='flex w-full p-1 pr-4 overflow-y-hidden'>
                 {children}

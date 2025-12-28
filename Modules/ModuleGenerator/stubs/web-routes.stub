@@ -1,0 +1,11 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Modules\{{moduleName}}\Http\Controllers\{{moduleName}}Controller;
+
+Route::middleware(['auth', 'verified'])
+    ->prefix('dashboard/{{moduleNameKebab}}')
+    ->name('dashboard.{{moduleNameKebab}}.')
+    ->group(function () {
+        Route::get('/', [{{moduleName}}Controller::class, 'index'])->name('index');
+    });

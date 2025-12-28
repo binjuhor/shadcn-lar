@@ -1,0 +1,121 @@
+import { Link, router } from '@inertiajs/react'
+import { AuthenticatedLayout } from '@/layouts'
+import { Main } from '@/components/layout/main'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+} from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
+
+interface {{entityName}} {
+  id: number
+  name: string
+  description?: string
+  is_active: boolean
+  created_at: string
+}
+
+interface PaginatedData<T> {
+  data: T[]
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+}
+
+interface Props {
+  {{entityNamePluralCamel}}: PaginatedData<{{entityName}}>
+}
+
+export default function {{entityName}}Index({ {{entityNamePluralCamel}} }: Props) {
+  function handleDelete(id: number) {
+    if (confirm('Are you sure you want to delete this {{entityNameLower}}?')) {
+      router.delete(route('dashboard.{{moduleNameKebab}}.{{entityNamePluralLower}}.destroy', id))
+    }
+  }
+
+  return (
+    <AuthenticatedLayout title="{{entityNamePlural}}">
+      <Main>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{{entityNamePlural}}</h1>
+            <p className="text-muted-foreground">
+              Manage your {{entityNamePluralLower}}
+            </p>
+          </div>
+          <Link href={route('dashboard.{{moduleNameKebab}}.{{entityNamePluralLower}}.create')}>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add {{entityName}}
+            </Button>
+          </Link>
+        </div>
+
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {{{entityNamePluralCamel}}.data.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                      No {{entityNamePluralLower}} found. Create your first one!
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  {{entityNamePluralCamel}}.data.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell>
+                        <Badge variant={item.is_active ? 'default' : 'secondary'}>
+                          {item.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Link href={route('dashboard.{{moduleNameKebab}}.{{entityNamePluralLower}}.edit', item.id)}>
+                            <Button variant="ghost" size="icon">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </Main>
+    </AuthenticatedLayout>
+  )
+}

@@ -1,0 +1,40 @@
+import { AuthenticatedLayout } from '@/layouts'
+import { Main } from '@/components/layout/main'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+
+export default function {{moduleName}}Index() {
+  return (
+    <AuthenticatedLayout title="{{moduleName}}">
+      <Main>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{{moduleName}}</h1>
+            <p className="text-muted-foreground">
+              Manage your {{moduleNameLower}} data
+            </p>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Welcome to {{moduleName}}</CardTitle>
+            <CardDescription>
+              This module is ready for development
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Start building your {{moduleNameLower}} features here.
+            </p>
+          </CardContent>
+        </Card>
+      </Main>
+    </AuthenticatedLayout>
+  )
+}

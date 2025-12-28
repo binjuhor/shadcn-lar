@@ -1,0 +1,84 @@
+<?php
+
+namespace Modules\{{moduleName}}\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Redirect;
+use Inertia\Inertia;
+use Inertia\Response;
+use Modules\{{moduleName}}\Models\{{entityName}};
+
+class {{entityName}}Controller extends Controller
+{
+    use AuthorizesRequests;
+
+    public function index(): Response
+    {
+        ${{entityNamePluralCamel}} = {{entityName}}::forUser(auth()->id())
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return Inertia::render('{{moduleName}}::{{entityNamePluralLower}}/index', [
+            '{{entityNamePluralCamel}}' => ${{entityNamePluralCamel}},
+        ]);
+    }
+
+    public function create(): Response
+    {
+        return Inertia::render('{{moduleName}}::{{entityNamePluralLower}}/create');
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'is_active' => ['boolean'],
+        ]);
+
+        {{entityName}}::create([
+            'user_id' => auth()->id(),
+            ...$validated,
+        ]);
+
+        return Redirect::route('dashboard.{{moduleNameKebab}}.{{entityNamePluralLower}}.index')
+            ->with('success', '{{entityName}} created successfully');
+    }
+
+    public function edit({{entityName}} ${{entityNameCamel}}): Response
+    {
+        $this->authorize('update', ${{entityNameCamel}});
+
+        return Inertia::render('{{moduleName}}::{{entityNamePluralLower}}/edit', [
+            '{{entityNameCamel}}' => ${{entityNameCamel}},
+        ]);
+    }
+
+    public function update(Request $request, {{entityName}} ${{entityNameCamel}}): RedirectResponse
+    {
+        $this->authorize('update', ${{entityNameCamel}});
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'is_active' => ['sometimes', 'boolean'],
+        ]);
+
+        ${{entityNameCamel}}->update($validated);
+
+        return Redirect::back()->with('success', '{{entityName}} updated successfully');
+    }
+
+    public function destroy({{entityName}} ${{entityNameCamel}}): RedirectResponse
+    {
+        $this->authorize('delete', ${{entityNameCamel}});
+
+        ${{entityNameCamel}}->delete();
+
+        return Redirect::route('dashboard.{{moduleNameKebab}}.{{entityNamePluralLower}}.index')
+            ->with('success', '{{entityName}} deleted successfully');
+    }
+}

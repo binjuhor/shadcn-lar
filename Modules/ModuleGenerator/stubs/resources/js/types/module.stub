@@ -1,0 +1,17 @@
+/**
+ * {{moduleName}} Module Types
+ */
+
+export interface Base{{moduleName}}Entity {
+  id: number
+  created_at: string
+  updated_at: string
+}
+
+export interface PaginatedData<T> {
+  data: T[]
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+}

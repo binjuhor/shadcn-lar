@@ -1,0 +1,48 @@
+import { AuthenticatedLayout } from '@/layouts'
+import { Main } from '@/components/layout/main'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { {{entityName}}Form } from './components/{{entityNameLower}}-form'
+
+interface {{entityName}} {
+  id: number
+  name: string
+  description?: string
+  is_active: boolean
+}
+
+interface Props {
+  {{entityNameCamel}}: {{entityName}}
+}
+
+export default function Edit{{entityName}}({ {{entityNameCamel}} }: Props) {
+  return (
+    <AuthenticatedLayout title="Edit {{entityName}}">
+      <Main>
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold tracking-tight">Edit {{entityName}}</h1>
+          <p className="text-muted-foreground">
+            Update {{entityNameLower}} information
+          </p>
+        </div>
+
+        <Card className="max-w-2xl">
+          <CardHeader>
+            <CardTitle>{{entityName}} Details</CardTitle>
+            <CardDescription>
+              Modify the information below to update this {{entityNameLower}}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <{{entityName}}Form {{entityNameCamel}}={{{entityNameCamel}}} />
+          </CardContent>
+        </Card>
+      </Main>
+    </AuthenticatedLayout>
+  )
+}

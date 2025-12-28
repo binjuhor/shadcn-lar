@@ -1,0 +1,34 @@
+<?php
+
+namespace Modules\{{moduleName}}\Policies;
+
+use App\Models\User;
+use Modules\{{moduleName}}\Models\{{entityName}};
+
+class {{entityName}}Policy
+{
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
+
+    public function view(User $user, {{entityName}} ${{entityNameCamel}}): bool
+    {
+        return $user->id === ${{entityNameCamel}}->user_id;
+    }
+
+    public function create(User $user): bool
+    {
+        return true;
+    }
+
+    public function update(User $user, {{entityName}} ${{entityNameCamel}}): bool
+    {
+        return $user->id === ${{entityNameCamel}}->user_id;
+    }
+
+    public function delete(User $user, {{entityName}} ${{entityNameCamel}}): bool
+    {
+        return $user->id === ${{entityNameCamel}}->user_id;
+    }
+}

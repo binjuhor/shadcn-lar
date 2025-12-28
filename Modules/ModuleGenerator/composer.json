@@ -1,0 +1,16 @@
+{
+    "name": "modules/module-generator",
+    "description": "Module scaffolding command with React/TypeScript frontend support",
+    "authors": [],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\ModuleGenerator\\": "app/"
+        }
+    }
+}

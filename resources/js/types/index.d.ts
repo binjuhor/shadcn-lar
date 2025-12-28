@@ -36,6 +36,16 @@ export interface GroupedPermissions {
     }[];
 }
 
+export interface Module {
+    name: string;
+    alias: string;
+    description: string;
+    keywords: string[];
+    priority: number;
+    enabled: boolean;
+    isCore: boolean;
+}
+
 export interface PaginatedData<T> {
     data: T[];
     current_page: number;

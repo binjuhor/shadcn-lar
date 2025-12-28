@@ -1,0 +1,37 @@
+import { AuthenticatedLayout } from '@/layouts'
+import { Main } from '@/components/layout/main'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { {{entityName}}Form } from './components/{{entityNameLower}}-form'
+
+export default function Create{{entityName}}() {
+  return (
+    <AuthenticatedLayout title="Create {{entityName}}">
+      <Main>
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold tracking-tight">Create {{entityName}}</h1>
+          <p className="text-muted-foreground">
+            Add a new {{entityNameLower}} to your collection
+          </p>
+        </div>
+
+        <Card className="max-w-2xl">
+          <CardHeader>
+            <CardTitle>{{entityName}} Details</CardTitle>
+            <CardDescription>
+              Fill in the information below to create a new {{entityNameLower}}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <{{entityName}}Form />
+          </CardContent>
+        </Card>
+      </Main>
+    </AuthenticatedLayout>
+  )
+}

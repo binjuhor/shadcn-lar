@@ -1,0 +1,11 @@
+{
+    "name": "ModuleGenerator",
+    "alias": "module-generator",
+    "description": "Module scaffolding command with React/TypeScript frontend support",
+    "keywords": ["generator", "scaffold", "module"],
+    "priority": 0,
+    "providers": [
+        "Modules\\ModuleGenerator\\Providers\\ModuleGeneratorServiceProvider"
+    ],
+    "files": []
+}
