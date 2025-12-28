@@ -40,7 +40,7 @@ class PermissionController extends Controller
             ->orderBy('group_name')
             ->pluck('group_name');
 
-        return Inertia::render('permissions/index', [
+        return Inertia::render('Permission::permissions/index', [
             'permissions' => [
                 'data' => PermissionResource::collection($permissions->items())->resolve(),
                 'current_page' => $permissions->currentPage(),
@@ -60,7 +60,7 @@ class PermissionController extends Controller
             ->orderBy('group_name')
             ->pluck('group_name');
 
-        return Inertia::render('permissions/create', [
+        return Inertia::render('Permission::permissions/create', [
             'groups' => $groups,
         ]);
     }
@@ -79,7 +79,7 @@ class PermissionController extends Controller
 
     public function edit(Permission $permission): Response
     {
-        return Inertia::render('permissions/edit', [
+        return Inertia::render('Permission::permissions/edit', [
             'permission' => (new PermissionResource($permission))->resolve(),
         ]);
     }

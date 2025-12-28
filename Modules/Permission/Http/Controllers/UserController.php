@@ -44,7 +44,7 @@ class UserController extends Controller
         $users = $query->orderBy('name')->paginate(10)->withQueryString();
         $roles = Role::orderBy('name')->get();
 
-        return Inertia::render('users/index', [
+        return Inertia::render('Permission::users/index', [
             'users' => [
                 'data' => UserResource::collection($users->items())->resolve(),
                 'current_page' => $users->currentPage(),
@@ -61,7 +61,7 @@ class UserController extends Controller
     {
         $roles = Role::orderBy('name')->get();
 
-        return Inertia::render('users/create', [
+        return Inertia::render('Permission::users/create', [
             'roles' => RoleResource::collection($roles)->resolve(),
         ]);
     }
@@ -85,7 +85,7 @@ class UserController extends Controller
     {
         $user->load('roles.permissions');
 
-        return Inertia::render('users/show', [
+        return Inertia::render('Permission::users/show', [
             'user' => (new UserResource($user))->resolve(),
         ]);
     }
@@ -95,7 +95,7 @@ class UserController extends Controller
         $user->load('roles');
         $roles = Role::orderBy('name')->get();
 
-        return Inertia::render('users/edit', [
+        return Inertia::render('Permission::users/edit', [
             'user' => (new UserResource($user))->resolve(),
             'roles' => RoleResource::collection($roles)->resolve(),
             'userRoles' => $user->roles->pluck('name')->toArray(),

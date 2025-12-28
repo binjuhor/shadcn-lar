@@ -1,5 +1,14 @@
 import { AuthenticatedLayout } from "@/layouts"
-import { MoreHorizontal, PlusCircle, Edit, Trash2, Shield, Users } from "lucide-react"
+import {
+  File,
+  ListFilter,
+  MoreHorizontal,
+  PlusCircle,
+  Edit,
+  Trash2,
+  Shield,
+} from "lucide-react"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -29,8 +38,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Main } from "@/components/layout"
 import { useState } from "react"
-import { Role, PageProps, PaginatedData } from "@/types"
 import { router } from "@inertiajs/react"
+import { PageProps } from "@/types"
 import { useToast } from "@/hooks/use-toast"
 import {
   Pagination,
@@ -41,18 +50,36 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 
-interface RolesPageProps extends PageProps {
-  roles: PaginatedData<Role>
-  filters?: { search?: string }
+interface Role {
+  id: number
+  name: string
+  guard_name: string
+  permissions: { id: number; name: string }[]
+  users_count: number
+  created_at: string
+  updated_at: string
 }
 
-export default function RolesIndex({ roles, filters: initialFilters = {} }: RolesPageProps) {
+interface RolesPageProps extends PageProps {
+  roles: {
+    data: Role[]
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+  }
+  filters: {
+    search?: string
+  }
+}
+
+export default function Roles({ roles, filters: initialFilters = {} }: RolesPageProps) {
   const [searchTerm, setSearchTerm] = useState(initialFilters?.search || "")
   const { toast } = useToast()
 
   const handleSearch = (value: string) => {
     setSearchTerm(value)
-    router.get(route('roles.index'), { search: value }, {
+    router.get(route('dashboard.roles.index'), { search: value }, {
       preserveState: true,
       replace: true,
     })
@@ -63,13 +90,13 @@ export default function RolesIndex({ roles, filters: initialFilters = {} }: Role
       toast({
         variant: "destructive",
         title: "Cannot delete",
-        description: "Super Admin role cannot be deleted.",
+        description: "The Super Admin role cannot be deleted.",
       })
       return
     }
 
-    if (confirm(`Are you sure you want to delete the "${role.name}" role?`)) {
-      router.delete(route('roles.destroy', role.id), {
+    if (confirm(`Are you sure you want to delete the role "${role.name}"?`)) {
+      router.delete(route('dashboard.roles.destroy', role.id), {
         onSuccess: () => {
           toast({
             title: "Role deleted!",
@@ -88,7 +115,7 @@ export default function RolesIndex({ roles, filters: initialFilters = {} }: Role
   }
 
   const handlePageChange = (page: number) => {
-    router.get(route('roles.index'), { ...initialFilters, page }, {
+    router.get(route('dashboard.roles.index'), { ...initialFilters, page }, {
       preserveState: true,
       replace: true,
     })
@@ -100,50 +127,78 @@ export default function RolesIndex({ roles, filters: initialFilters = {} }: Role
     const rangeStart = Math.max(2, roles.current_page - delta)
     const rangeEnd = Math.min(roles.last_page - 1, roles.current_page + delta)
 
-    if (roles.last_page > 1) pages.push(1)
-    if (rangeStart > 2) pages.push('...')
-    for (let i = rangeStart; i <= rangeEnd; i++) {
-      if (i !== 1 && i !== roles.last_page) pages.push(i)
+    if (roles.last_page > 1) {
+      pages.push(1)
     }
-    if (rangeEnd < roles.last_page - 1) pages.push('...')
-    if (roles.last_page > 1 && roles.last_page !== 1) pages.push(roles.last_page)
+
+    if (rangeStart > 2) {
+      pages.push('...')
+    }
+
+    for (let i = rangeStart; i <= rangeEnd; i++) {
+      if (i !== 1 && i !== roles.last_page) {
+        pages.push(i)
+      }
+    }
+
+    if (rangeEnd < roles.last_page - 1) {
+      pages.push('...')
+    }
+
+    if (roles.last_page > 1 && roles.last_page !== 1) {
+      pages.push(roles.last_page)
+    }
 
     return pages
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
   }
 
   return (
     <AuthenticatedLayout title="Roles">
       <Main>
         <div className="grid flex-1 items-start gap-4 md:gap-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Roles</h2>
+              <p className="text-muted-foreground">
+                Manage roles and their permissions
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Input
+                  placeholder="Search roles..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="w-64"
+                />
+              </div>
+              <Button
+                size="sm"
+                className="h-9 gap-1"
+                onClick={() => router.get(route('dashboard.roles.create'))}
+              >
+                <PlusCircle className="h-3.5 w-3.5" />
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                  Add Role
+                </span>
+              </Button>
+            </div>
+          </div>
+
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    Roles
-                  </CardTitle>
-                  <CardDescription>
-                    Manage user roles and their associated permissions.
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Search roles..."
-                    value={searchTerm}
-                    onChange={(e) => handleSearch(e.target.value)}
-                    className="w-64"
-                  />
-                  <Button
-                    size="sm"
-                    className="gap-1"
-                    onClick={() => router.get(route('roles.create'))}
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                    Add Role
-                  </Button>
-                </div>
-              </div>
+              <CardTitle>All Roles</CardTitle>
+              <CardDescription>
+                A list of all roles in your application with their assigned permissions.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -152,7 +207,7 @@ export default function RolesIndex({ roles, filters: initialFilters = {} }: Role
                     <TableHead>Name</TableHead>
                     <TableHead>Permissions</TableHead>
                     <TableHead>Users</TableHead>
-                    <TableHead>Guard</TableHead>
+                    <TableHead className="hidden md:table-cell">Created</TableHead>
                     <TableHead>
                       <span className="sr-only">Actions</span>
                     </TableHead>
@@ -170,25 +225,35 @@ export default function RolesIndex({ roles, filters: initialFilters = {} }: Role
                       <TableRow key={role.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                            {role.name}
+                            <Shield className="h-4 w-4 text-muted-foreground" />
+                            <span>{role.name}</span>
                             {role.name === 'Super Admin' && (
-                              <Badge variant="secondary">System</Badge>
+                              <Badge variant="secondary" className="text-xs">System</Badge>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">
-                            {role.name === 'Super Admin' ? 'All' : role.permissions_count || 0}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span>{role.users_count || 0}</span>
+                          <div className="flex flex-wrap gap-1 max-w-md">
+                            {role.permissions.slice(0, 3).map((permission) => (
+                              <Badge key={permission.id} variant="outline" className="text-xs">
+                                {permission.name}
+                              </Badge>
+                            ))}
+                            {role.permissions.length > 3 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{role.permissions.length - 3} more
+                              </Badge>
+                            )}
+                            {role.permissions.length === 0 && (
+                              <span className="text-sm text-muted-foreground">No permissions</span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{role.guard_name}</Badge>
+                          <Badge variant="outline">{role.users_count} users</Badge>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {formatDate(role.created_at)}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -206,20 +271,23 @@ export default function RolesIndex({ roles, filters: initialFilters = {} }: Role
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                onClick={() => router.get(route('roles.edit', role.id))}
+                                onClick={() => router.get(route('dashboard.roles.edit', role.id))}
                               >
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => handleDelete(role)}
-                                disabled={role.name === 'Super Admin'}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
+                              {role.name !== 'Super Admin' && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-red-600"
+                                    onClick={() => handleDelete(role)}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -231,7 +299,13 @@ export default function RolesIndex({ roles, filters: initialFilters = {} }: Role
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-xs text-muted-foreground">
-                Showing <strong>{((roles.current_page - 1) * roles.per_page) + 1}-{Math.min(roles.current_page * roles.per_page, roles.total)}</strong> of <strong>{roles.total}</strong> roles
+                {roles?.current_page && roles?.per_page && roles?.total ? (
+                  <>
+                    Showing <strong>{((roles.current_page - 1) * roles.per_page) + 1}-{Math.min(roles.current_page * roles.per_page, roles.total)}</strong> of <strong>{roles.total}</strong> roles
+                  </>
+                ) : (
+                  <>Showing <strong>0</strong> roles</>
+                )}
               </div>
 
               {roles.last_page > 1 && (
@@ -242,7 +316,9 @@ export default function RolesIndex({ roles, filters: initialFilters = {} }: Role
                         href="#"
                         onClick={(e) => {
                           e.preventDefault()
-                          if (roles.current_page > 1) handlePageChange(roles.current_page - 1)
+                          if (roles.current_page > 1) {
+                            handlePageChange(roles.current_page - 1)
+                          }
                         }}
                         className={roles.current_page === 1 ? "pointer-events-none opacity-50" : ""}
                       />
@@ -272,7 +348,9 @@ export default function RolesIndex({ roles, filters: initialFilters = {} }: Role
                         href="#"
                         onClick={(e) => {
                           e.preventDefault()
-                          if (roles.current_page < roles.last_page) handlePageChange(roles.current_page + 1)
+                          if (roles.current_page < roles.last_page) {
+                            handlePageChange(roles.current_page + 1)
+                          }
                         }}
                         className={roles.current_page === roles.last_page ? "pointer-events-none opacity-50" : ""}
                       />
