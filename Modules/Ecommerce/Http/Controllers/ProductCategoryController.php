@@ -30,7 +30,7 @@ class ProductCategoryController extends Controller
             ]);
         }
 
-        return Inertia::render('ecommerce/categories', [
+        return Inertia::render('Ecommerce::categories', [
             'categories' => $categories,
         ]);
     }
@@ -48,7 +48,7 @@ class ProductCategoryController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'slug', 'parent_id']);
 
-        return Inertia::render('ecommerce/create-category', [
+        return Inertia::render('Ecommerce::create-category', [
             'categories' => $categories,
         ]);
     }
@@ -99,7 +99,7 @@ class ProductCategoryController extends Controller
             ]);
         }
 
-        return Inertia::render('ecommerce/category', [
+        return Inertia::render('Ecommerce::category', [
             'category' => $productCategory,
             'products' => $products,
         ]);
@@ -119,7 +119,7 @@ class ProductCategoryController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'slug', 'parent_id']);
 
-        return Inertia::render('ecommerce/edit-category', [
+        return Inertia::render('Ecommerce::edit-category', [
             'category' => $productCategory,
             'categories' => $categories,
         ]);

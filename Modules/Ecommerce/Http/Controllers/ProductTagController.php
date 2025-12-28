@@ -28,7 +28,7 @@ class ProductTagController extends Controller
             ]);
         }
 
-        return Inertia::render('ecommerce/tags', [
+        return Inertia::render('Ecommerce::tags', [
             'tags' => $tags,
         ]);
     }
@@ -40,7 +40,7 @@ class ProductTagController extends Controller
     {
         $this->authorize('create', ProductTag::class);
 
-        return Inertia::render('ecommerce/create-tag');
+        return Inertia::render('Ecommerce::create-tag');
     }
 
     /**
@@ -82,7 +82,7 @@ class ProductTagController extends Controller
             ]);
         }
 
-        return Inertia::render('ecommerce/tag', [
+        return Inertia::render('Ecommerce::tag', [
             'tag' => $productTag,
             'products' => $products,
         ]);
@@ -95,7 +95,7 @@ class ProductTagController extends Controller
     {
         $this->authorize('update', $productTag);
 
-        return Inertia::render('ecommerce/edit-tag', [
+        return Inertia::render('Ecommerce::edit-tag', [
             'tag' => $productTag,
         ]);
     }

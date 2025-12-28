@@ -54,7 +54,7 @@ class ProductController extends Controller
             ]);
         }
 
-        return Inertia::render('ecommerce/products', [
+        return Inertia::render('Ecommerce::products', [
             'products' => [
                 'data' => ProductResource::collection($products->items())->resolve(),
                 'current_page' => $products->currentPage(),
@@ -75,7 +75,7 @@ class ProductController extends Controller
     {
         $this->authorize('create', Product::class);
 
-        return Inertia::render('ecommerce/create-product', [
+        return Inertia::render('Ecommerce::create-product', [
             'categories' => ProductCategoryResource::collection(ProductCategory::active()->orderBy('name')->get(['id', 'name', 'slug', 'is_active']))->resolve(),
             'tags' => ProductTagResource::collection(ProductTag::orderBy('name')->get(['id', 'name', 'slug']))->resolve(),
         ]);
@@ -154,7 +154,7 @@ class ProductController extends Controller
             ]);
         }
 
-        return Inertia::render('ecommerce/product', [
+        return Inertia::render('Ecommerce::product', [
             'product' => $product,
         ]);
     }
@@ -168,7 +168,7 @@ class ProductController extends Controller
 
         $product->load(['category', 'tags', 'user']);
 
-        return Inertia::render('ecommerce/edit-product', [
+        return Inertia::render('Ecommerce::edit-product', [
             'product' => ProductResource::make($product)->resolve(),
             'categories' => ProductCategoryResource::collection(ProductCategory::active()->orderBy('name')->get(['id', 'name', 'slug', 'is_active']))->resolve(),
             'tags' => ProductTagResource::collection(ProductTag::orderBy('name')->get(['id', 'name', 'slug']))->resolve(),

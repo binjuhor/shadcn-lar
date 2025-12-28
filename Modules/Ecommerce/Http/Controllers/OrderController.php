@@ -50,7 +50,7 @@ class OrderController extends Controller
             ]);
         }
 
-        return Inertia::render('ecommerce/orders', [
+        return Inertia::render('Ecommerce::orders', [
             'orders' => [
                 'data' => OrderResource::collection($orders->items())->resolve(),
                 'current_page' => $orders->currentPage(),
@@ -165,7 +165,7 @@ class OrderController extends Controller
             ]);
         }
 
-        return Inertia::render('ecommerce/order', [
+        return Inertia::render('Ecommerce::order', [
             'order' => OrderResource::make($order)->resolve(),
         ]);
     }
