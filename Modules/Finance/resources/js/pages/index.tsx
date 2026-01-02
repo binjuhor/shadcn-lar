@@ -25,7 +25,7 @@ import type {
   Transaction,
   Budget,
   AccountSummary,
-} from '@modules/Finance/resources/js/types/finance'
+} from '@modules/Finance/types/finance'
 
 interface Props {
   summary: AccountSummary
@@ -38,7 +38,7 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: currencyCode,
-  }).format(amount / 100)
+  }).format(amount)
 }
 
 function SummaryCards({ summary }: { summary: AccountSummary }) {

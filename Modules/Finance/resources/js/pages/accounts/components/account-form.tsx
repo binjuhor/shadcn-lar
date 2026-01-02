@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,7 +20,7 @@ import {
   SheetTitle,
   SheetFooter,
 } from '@/components/ui/sheet'
-import type { Account, Currency, AccountType } from '@modules/Finance/resources/js/types/finance'
+import type { Account, Currency, AccountType, RateSource } from '@modules/Finance/types/finance'
 
 interface AccountFormProps {
   open: boolean
@@ -43,6 +44,14 @@ const colors = [
   '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
 ]
 
+const rateSources: { value: string; label: string }[] = [
+  { value: '__default__', label: 'Default (Best available)' },
+  { value: 'payoneer', label: 'Payoneer' },
+  { value: 'vietcombank', label: 'Vietcombank' },
+  { value: 'exchangerate_api', label: 'ExchangeRate API' },
+  { value: 'open_exchange_rates', label: 'Open Exchange Rates' },
+]
+
 export function AccountForm({
   open,
   onOpenChange,
@@ -52,23 +61,48 @@ export function AccountForm({
 }: AccountFormProps) {
   const isEditing = !!account
 
+  const defaultCurrency = currencies.find(c => c.is_default)?.code || 'VND'
+
   const { data, setData, post, put, processing, errors, reset } = useForm({
-    name: account?.name || '',
-    account_type: account?.account_type || 'bank',
-    currency_code: account?.currency_code || currencies.find(c => c.is_default)?.code || 'VND',
-    initial_balance: account?.initial_balance ? String(account.initial_balance / 100) : '0',
-    description: account?.description || '',
-    color: account?.color || '#3b82f6',
-    is_active: account?.is_active ?? true,
-    exclude_from_total: account?.exclude_from_total ?? false,
+    name: '',
+    account_type: 'bank' as AccountType,
+    currency_code: defaultCurrency,
+    rate_source: '__default__',
+    initial_balance: '0',
+    description: '',
+    color: '#3b82f6',
+    is_active: true as boolean,
+    exclude_from_total: false as boolean,
   })
+
+  // Sync form data when account prop changes (for editing)
+  useEffect(() => {
+    if (account) {
+      const balanceValue = account.current_balance ?? account.initial_balance ?? 0
+      setData({
+        name: account.name || '',
+        account_type: account.account_type || 'bank',
+        currency_code: account.currency_code || defaultCurrency,
+        rate_source: account.rate_source || '__default__',
+        initial_balance: String(balanceValue),
+        description: account.description || '',
+        color: account.color || '#3b82f6',
+        is_active: account.is_active ?? true,
+        exclude_from_total: account.exclude_from_total ?? false,
+      })
+    } else if (open) {
+      // Reset to defaults when creating new account
+      reset()
+    }
+  }, [account, open])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
     const formData = {
       ...data,
-      initial_balance: Math.round(parseFloat(data.initial_balance) * 100),
+      initial_balance: Math.round(parseFloat(data.initial_balance || '0')),
+      rate_source: data.rate_source === '__default__' ? null : data.rate_source,
     }
 
     if (isEditing && account) {
@@ -166,6 +200,31 @@ export function AccountForm({
             </Select>
             {errors.currency_code && (
               <p className="text-sm text-red-600">{errors.currency_code}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="rate_source">Exchange Rate Source</Label>
+            <Select
+              value={data.rate_source}
+              onValueChange={(value) => setData('rate_source', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select rate source" />
+              </SelectTrigger>
+              <SelectContent>
+                {rateSources.map((source) => (
+                  <SelectItem key={source.value} value={source.value}>
+                    {source.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Used for currency conversion (e.g., Payoneer account uses Payoneer rates)
+            </p>
+            {errors.rate_source && (
+              <p className="text-sm text-red-600">{errors.rate_source}</p>
             )}
           </div>
 

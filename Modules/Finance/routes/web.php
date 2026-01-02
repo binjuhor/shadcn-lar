@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Finance\Http\Controllers\AccountController;
 use Modules\Finance\Http\Controllers\BudgetController;
 use Modules\Finance\Http\Controllers\CategoryController;
+use Modules\Finance\Http\Controllers\ExchangeRateController;
 use Modules\Finance\Http\Controllers\FinanceDashboardController;
 use Modules\Finance\Http\Controllers\TransactionController;
 
@@ -24,4 +25,12 @@ Route::middleware(['auth', 'verified'])
         Route::resource('budgets', BudgetController::class)->except(['show']);
         Route::post('budgets/{budget}/refresh', [BudgetController::class, 'refresh'])
             ->name('budgets.refresh');
+
+        Route::resource('exchange-rates', ExchangeRateController::class)
+            ->parameters(['exchange-rates' => 'exchangeRate'])
+            ->except(['show']);
+        Route::post('exchange-rates/fetch', [ExchangeRateController::class, 'fetchRates'])
+            ->name('exchange-rates.fetch');
+        Route::post('exchange-rates/convert', [ExchangeRateController::class, 'convert'])
+            ->name('exchange-rates.convert');
     });

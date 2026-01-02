@@ -21,7 +21,13 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'resources/js'),
-        '@modules': path.resolve(__dirname, 'Modules'),
+        '@modules/Blog': path.resolve(__dirname, 'Modules/Blog/resources/js'),
+        '@modules/Ecommerce': path.resolve(__dirname, 'Modules/Ecommerce/resources/js'),
+        '@modules/Invoice': path.resolve(__dirname, 'Modules/Invoice/resources/js'),
+        '@modules/Notification': path.resolve(__dirname, 'Modules/Notification/resources/js'),
+        '@modules/Permission': path.resolve(__dirname, 'Modules/Permission/resources/js'),
+        '@modules/Finance': path.resolve(__dirname, 'Modules/Finance/resources/js'),
+        '@modules/Settings': path.resolve(__dirname, 'Modules/Settings/resources/js'),
       },
     },
     build: {

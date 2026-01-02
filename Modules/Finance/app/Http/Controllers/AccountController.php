@@ -11,14 +11,22 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Currency;
+use Modules\Finance\Services\ExchangeRateService;
 
 class AccountController extends Controller
 {
     use AuthorizesRequests;
 
+    public function __construct(
+        protected ExchangeRateService $exchangeRateService
+    ) {}
+
     public function index(): Response
     {
         $userId = auth()->id();
+        $defaultCurrency = Currency::where('is_default', true)->first();
+        $defaultCode = $defaultCurrency?->code ?? 'VND';
+
         $accounts = Account::with('currency')
             ->where('user_id', $userId)
             ->orderBy('is_active', 'desc')
@@ -29,16 +37,15 @@ class AccountController extends Controller
 
         $totalAssets = $activeAccounts
             ->whereIn('account_type', ['bank', 'investment', 'cash'])
-            ->where('balance', '>', 0)
-            ->sum('balance');
+            ->where('current_balance', '>', 0)
+            ->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode));
 
         $totalLiabilities = abs($activeAccounts
             ->whereIn('account_type', ['credit_card', 'loan'])
-            ->sum('balance'));
+            ->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode)));
 
         $netWorth = $totalAssets - $totalLiabilities;
 
-        $defaultCurrency = Currency::where('is_default', true)->first();
         $currencies = Currency::orderBy('code')->get();
 
         return Inertia::render('Finance::accounts/index', [
@@ -47,7 +54,7 @@ class AccountController extends Controller
                 'total_assets' => $totalAssets,
                 'total_liabilities' => $totalLiabilities,
                 'net_worth' => $netWorth,
-                'currency_code' => $defaultCurrency?->code ?? 'VND',
+                'currency_code' => $defaultCode,
             ],
             'currencies' => $currencies,
         ]);
@@ -80,8 +87,8 @@ class AccountController extends Controller
             'name' => $validated['name'],
             'account_type' => $validated['account_type'],
             'currency_code' => $validated['currency_code'],
-            'balance' => $validated['initial_balance'],
             'initial_balance' => $validated['initial_balance'],
+            'current_balance' => $validated['initial_balance'],
             'description' => $validated['description'] ?? null,
             'color' => $validated['color'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
@@ -103,11 +110,11 @@ class AccountController extends Controller
         }]);
 
         $totalIncome = $account->transactions()
-            ->where('type', 'income')
+            ->where('transaction_type', 'income')
             ->sum('amount');
 
         $totalExpense = $account->transactions()
-            ->where('type', 'expense')
+            ->where('transaction_type', 'expense')
             ->sum('amount');
 
         $totalTransactions = $account->transactions()->count();
@@ -150,6 +157,11 @@ class AccountController extends Controller
             'exclude_from_total' => ['sometimes', 'boolean'],
         ]);
 
+        // Also update current_balance when initial_balance changes
+        if (isset($validated['initial_balance'])) {
+            $validated['current_balance'] = $validated['initial_balance'];
+        }
+
         $account->update($validated);
 
         return Redirect::back()->with('success', 'Account updated successfully');
@@ -168,5 +180,18 @@ class AccountController extends Controller
 
         return Redirect::route('dashboard.finance.accounts.index')
             ->with('success', 'Account deleted successfully');
+    }
+
+    protected function convertToDefault(float $amount, string $fromCurrency, string $defaultCurrency): float
+    {
+        if ($fromCurrency === $defaultCurrency) {
+            return $amount;
+        }
+
+        try {
+            return $this->exchangeRateService->convert($amount, $fromCurrency, $defaultCurrency);
+        } catch (\Exception) {
+            return $amount;
+        }
     }
 }

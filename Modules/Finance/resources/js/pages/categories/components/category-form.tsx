@@ -18,7 +18,7 @@ import {
   SheetTitle,
   SheetFooter,
 } from '@/components/ui/sheet'
-import type { Category } from '@modules/Finance/resources/js/types/finance'
+import type { Category } from '@modules/Finance/types/finance'
 
 interface CategoryFormProps {
   open: boolean
@@ -148,14 +148,14 @@ export function CategoryForm({
             <div className="space-y-2">
               <Label htmlFor="parent_id">Parent Category (Optional)</Label>
               <Select
-                value={data.parent_id}
-                onValueChange={(value) => setData('parent_id', value)}
+                value={data.parent_id || '__none__'}
+                onValueChange={(value) => setData('parent_id', value === '__none__' ? '' : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="No parent (top level)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No parent (top level)</SelectItem>
+                  <SelectItem value="__none__">No parent (top level)</SelectItem>
                   {filteredParents.map((parent) => (
                     <SelectItem key={parent.id} value={String(parent.id)}>
                       {parent.name}

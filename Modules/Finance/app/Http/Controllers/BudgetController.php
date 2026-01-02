@@ -124,6 +124,12 @@ class BudgetController extends Controller
             'rollover' => ['sometimes', 'boolean'],
         ]);
 
+        // Map amount to allocated_amount for the model
+        if (isset($validated['amount'])) {
+            $validated['allocated_amount'] = $validated['amount'];
+            unset($validated['amount']);
+        }
+
         $budget->update($validated);
 
         return Redirect::back()->with('success', 'Budget updated successfully');

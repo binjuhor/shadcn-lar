@@ -16,6 +16,7 @@ return new class extends Migration
             $table->enum('type', ['income', 'expense', 'both'])->default('both');
             $table->string('icon', 50)->nullable();
             $table->string('color', 7)->nullable();
+            $table->boolean('is_active')->default(true);
             $table->integer('_lft')->default(0);
             $table->integer('_rgt')->default(0);
             $table->timestamps();

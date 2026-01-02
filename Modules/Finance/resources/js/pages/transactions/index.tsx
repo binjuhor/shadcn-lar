@@ -47,7 +47,7 @@ import {
   Inbox,
 } from 'lucide-react'
 import { TransactionForm } from './components/transaction-form'
-import type { Transaction, Account, Category, PaginatedData } from '@modules/Finance/resources/js/types/finance'
+import type { Transaction, Account, Category, PaginatedData } from '@modules/Finance/types/finance'
 
 interface Props {
   transactions: PaginatedData<Transaction>
@@ -64,7 +64,7 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: currencyCode,
-  }).format(amount / 100)
+  }).format(amount)
 }
 
 export default function TransactionsIndex({

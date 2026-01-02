@@ -27,7 +27,7 @@ class TransactionController extends Controller
     {
         $userId = auth()->id();
 
-        $query = Transaction::with(['account', 'category', 'transferAccount'])
+        $query = Transaction::with(['account', 'category'])
             ->whereHas('account', fn ($q) => $q->where('user_id', $userId));
 
         if ($request->account_id) {
@@ -39,7 +39,7 @@ class TransactionController extends Controller
         }
 
         if ($request->type) {
-            $query->where('type', $request->type);
+            $query->where('transaction_type', $request->type);
         }
 
         if ($request->date_from) {

@@ -21,7 +21,7 @@ import {
 import { Plus, PiggyBank, ChevronDown } from 'lucide-react'
 import { BudgetCard } from './components/budget-card'
 import { BudgetForm } from './components/budget-form'
-import type { Budget, Category, Currency } from '@modules/Finance/resources/js/types/finance'
+import type { Budget, Category, Currency } from '@modules/Finance/types/finance'
 
 interface Props {
   budgets: Budget[]

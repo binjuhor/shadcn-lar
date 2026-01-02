@@ -16,7 +16,7 @@ import {
 import { Plus, Wallet } from 'lucide-react'
 import { AccountCard } from './components/account-card'
 import { AccountForm } from './components/account-form'
-import type { Account, AccountSummary, Currency, AccountType } from '@modules/Finance/resources/js/types/finance'
+import type { Account, AccountSummary, Currency, AccountType } from '@modules/Finance/types/finance'
 
 interface Props {
   accounts: Account[]
@@ -36,7 +36,7 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: currencyCode,
-  }).format(amount / 100)
+  }).format(amount)
 }
 
 export default function AccountsIndex({ accounts, summary, currencies }: Props) {
@@ -102,7 +102,7 @@ export default function AccountsIndex({ accounts, summary, currencies }: Props) 
         </div>
 
         {/* Summary */}
-        <div className="grid gap-4 sm:grid-cols-3 mb-6">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3 mb-6">
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm text-muted-foreground">Total Assets</p>
             <p className="text-2xl font-bold text-green-600">
@@ -141,7 +141,7 @@ export default function AccountsIndex({ accounts, summary, currencies }: Props) 
         {activeAccounts.length > 0 && (
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-4">Active Accounts</h3>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 sm:grid-cols-2">
               {activeAccounts.map((account) => (
                 <AccountCard
                   key={account.id}
@@ -160,7 +160,7 @@ export default function AccountsIndex({ accounts, summary, currencies }: Props) 
             <h3 className="text-lg font-medium text-muted-foreground mb-4">
               Inactive Accounts
             </h3>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
               {inactiveAccounts.map((account) => (
                 <AccountCard
                   key={account.id}

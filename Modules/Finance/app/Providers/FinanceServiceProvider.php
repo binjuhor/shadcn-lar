@@ -2,9 +2,11 @@
 
 namespace Modules\Finance\Providers;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Modules\Finance\Console\Commands\FetchExchangeRatesCommand;
 use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Budget;
 use Modules\Finance\Models\Transaction;
@@ -58,7 +60,9 @@ class FinanceServiceProvider extends ServiceProvider
      */
     protected function registerCommands(): void
     {
-        // $this->commands([]);
+        $this->commands([
+            FetchExchangeRatesCommand::class,
+        ]);
     }
 
     /**
@@ -66,10 +70,14 @@ class FinanceServiceProvider extends ServiceProvider
      */
     protected function registerCommandSchedules(): void
     {
-        // $this->app->booted(function () {
-        //     $schedule = $this->app->make(Schedule::class);
-        //     $schedule->command('inspire')->hourly();
-        // });
+        $this->app->booted(function () {
+            $schedule = $this->app->make(Schedule::class);
+
+            $schedule->command('finance:fetch-exchange-rates --provider=vietcombank')
+                ->dailyAt('08:00')
+                ->withoutOverlapping()
+                ->runInBackground();
+        });
     }
 
     /**

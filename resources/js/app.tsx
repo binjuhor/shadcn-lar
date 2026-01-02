@@ -11,7 +11,7 @@ const appName = import.meta.env.VITE_APP_NAME || 'Shadcn Laravel Admin';
 
 // Glob patterns for page discovery
 const mainPages = import.meta.glob('./pages/**/*.tsx');
-const modulePages = import.meta.glob('../../Modules/*/resources/js/pages/**/*.tsx');
+const modulePages = import.meta.glob('/Modules/*/resources/js/pages/**/*.tsx');
 
 /**
  * Resolve Inertia page component with namespace support
@@ -30,13 +30,16 @@ async function resolvePageComponent(name: string): Promise<React.ComponentType> 
   // Check for namespace syntax (Module::PagePath)
   if (name.includes('::')) {
     const [moduleName, pagePath] = name.split('::');
-    const modulePath = `../../Modules/${moduleName}/resources/js/pages/${pagePath}.tsx`;
+    const modulePath = `/Modules/${moduleName}/resources/js/pages/${pagePath}.tsx`;
 
     const page = modulePages[modulePath];
     if (!page) {
+      // Debug: log available keys
+      console.error('Available module pages:', Object.keys(modulePages));
       throw new Error(
         `Module page not found: ${name}\n` +
-        `Expected path: Modules/${moduleName}/resources/js/pages/${pagePath}.tsx`
+        `Expected path: Modules/${moduleName}/resources/js/pages/${pagePath}.tsx\n` +
+        `Looked for key: ${modulePath}`
       );
     }
 

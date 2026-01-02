@@ -30,6 +30,8 @@ class Transaction extends Model implements Auditable
         'reconciled_at',
     ];
 
+    protected $appends = ['type'];
+
     protected function casts(): array
     {
         return [
@@ -37,6 +39,11 @@ class Transaction extends Model implements Auditable
             'transaction_date' => 'date',
             'reconciled_at' => 'datetime',
         ];
+    }
+
+    public function getTypeAttribute(): string
+    {
+        return $this->transaction_type;
     }
 
     public function user(): BelongsTo

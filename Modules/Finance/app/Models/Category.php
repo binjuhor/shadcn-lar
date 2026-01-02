@@ -23,7 +23,15 @@ class Category extends Model
         'type',
         'icon',
         'color',
+        'is_active',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 
     public function user(): BelongsTo
     {

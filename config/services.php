@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'exchangerate_api' => [
+        'key' => env('EXCHANGERATE_API_KEY'),
+        'base' => env('EXCHANGERATE_API_BASE', 'USD'),
+    ],
+
+    'open_exchange_rates' => [
+        'key' => env('OPEN_EXCHANGE_RATES_KEY'),
+        'base' => env('OPEN_EXCHANGE_RATES_BASE', 'USD'),
+    ],
+
 ];

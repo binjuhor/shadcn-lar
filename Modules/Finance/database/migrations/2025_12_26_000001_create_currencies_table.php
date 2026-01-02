@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('symbol', 5);
             $table->tinyInteger('decimal_places')->default(2);
             $table->boolean('active')->default(true);
+            $table->boolean('is_default')->default(false);
             $table->timestamps();
 
             $table->index('active');

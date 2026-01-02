@@ -35,6 +35,7 @@ import {
   IconBuildingBank,
   IconArrowsExchange,
   IconPigMoney,
+  IconCurrencyDollar,
 } from '@tabler/icons-react'
 import {
   AudioWaveform,
@@ -139,6 +140,42 @@ export const sidebarData: SidebarData = {
       ],
     },
     {
+      title: 'Finance',
+      collapsible: true,
+      items: [
+        {
+          title: 'Dashboard',
+          url: '/dashboard/finance',
+          icon: IconWallet,
+        },
+        {
+          title: 'Accounts',
+          url: '/dashboard/finance/accounts',
+          icon: IconBuildingBank,
+        },
+        {
+          title: 'Transactions',
+          url: '/dashboard/finance/transactions',
+          icon: IconArrowsExchange,
+        },
+        {
+          title: 'Budgets',
+          url: '/dashboard/finance/budgets',
+          icon: IconPigMoney,
+        },
+        {
+          title: 'Categories',
+          url: '/dashboard/finance/categories',
+          icon: IconCategory,
+        },
+        {
+          title: 'Exchange Rates',
+          url: '/dashboard/finance/exchange-rates',
+          icon: IconCurrencyDollar,
+        },
+      ],
+    },
+    {
       title: 'Ecommerce',
       collapsible: true,
       items: [
@@ -201,37 +238,6 @@ export const sidebarData: SidebarData = {
           url: '/dashboard/tags',
           icon: IconTags,
           permission: 'tags.view',
-        },
-      ],
-    },
-    {
-      title: 'Finance',
-      collapsible: true,
-      items: [
-        {
-          title: 'Dashboard',
-          url: '/dashboard/finance',
-          icon: IconWallet,
-        },
-        {
-          title: 'Accounts',
-          url: '/dashboard/finance/accounts',
-          icon: IconBuildingBank,
-        },
-        {
-          title: 'Transactions',
-          url: '/dashboard/finance/transactions',
-          icon: IconArrowsExchange,
-        },
-        {
-          title: 'Budgets',
-          url: '/dashboard/finance/budgets',
-          icon: IconPigMoney,
-        },
-        {
-          title: 'Categories',
-          url: '/dashboard/finance/categories',
-          icon: IconCategory,
         },
       ],
     },

@@ -16,7 +16,7 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { MoreHorizontal, Pencil, Trash2, RefreshCw, AlertCircle } from 'lucide-react'
-import type { Budget } from '@modules/Finance/resources/js/types/finance'
+import type { Budget } from '@modules/Finance/types/finance'
 
 interface BudgetCardProps {
   budget: Budget
@@ -30,7 +30,7 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: currencyCode,
-  }).format(amount / 100)
+  }).format(amount)
 }
 
 const periodLabels: Record<string, string> = {

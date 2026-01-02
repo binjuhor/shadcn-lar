@@ -19,7 +19,7 @@ import {
   SheetTitle,
   SheetFooter,
 } from '@/components/ui/sheet'
-import type { Budget, Category, BudgetPeriod, Currency } from '@modules/Finance/resources/js/types/finance'
+import type { Budget, Category, BudgetPeriod, Currency } from '@modules/Finance/types/finance'
 
 interface BudgetFormProps {
   open: boolean
@@ -82,7 +82,7 @@ export function BudgetForm({
   const { data, setData, post, put, processing, errors, reset } = useForm({
     name: budget?.name || '',
     category_id: budget?.category_id ? String(budget.category_id) : '',
-    amount: budget?.amount ? String(budget.amount / 100) : '',
+    amount: budget?.amount ? String(budget.amount) : '',
     currency_code: budget?.currency_code || currencies.find(c => c.is_default)?.code || 'VND',
     period_type: budget?.period_type || 'monthly',
     start_date: budget?.start_date?.split('T')[0] || defaultDates.start,
@@ -109,7 +109,7 @@ export function BudgetForm({
 
     const formData = {
       ...data,
-      amount: Math.round(parseFloat(data.amount) * 100),
+      amount: Math.round(parseFloat(data.amount || '0')),
       category_id: data.category_id ? parseInt(data.category_id) : null,
     }
 
@@ -170,14 +170,14 @@ export function BudgetForm({
           <div className="space-y-2">
             <Label htmlFor="category_id">Category (Optional)</Label>
             <Select
-              value={data.category_id}
-              onValueChange={(value) => setData('category_id', value)}
+              value={data.category_id || '__all__'}
+              onValueChange={(value) => setData('category_id', value === '__all__' ? '' : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All expenses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All expenses</SelectItem>
+                <SelectItem value="__all__">All expenses</SelectItem>
                 {expenseCategories.map((category) => (
                   <SelectItem key={category.id} value={String(category.id)}>
                     {category.name}

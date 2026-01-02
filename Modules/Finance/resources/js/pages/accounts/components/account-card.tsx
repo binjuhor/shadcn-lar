@@ -25,7 +25,7 @@ import {
   Building,
   HelpCircle,
 } from 'lucide-react'
-import type { Account, AccountType } from '@modules/Finance/resources/js/types/finance'
+import type { Account, AccountType } from '@modules/Finance/types/finance'
 
 interface AccountCardProps {
   account: Account
@@ -55,7 +55,7 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: currencyCode,
-  }).format(amount / 100)
+  }).format(amount)
 }
 
 export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {

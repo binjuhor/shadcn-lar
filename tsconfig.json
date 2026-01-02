@@ -18,6 +18,7 @@
             "@modules/Invoice/*": ["./Modules/Invoice/resources/js/*"],
             "@modules/Notification/*": ["./Modules/Notification/resources/js/*"],
             "@modules/Permission/*": ["./Modules/Permission/resources/js/*"],
+            "@modules/Finance/*": ["./Modules/Finance/resources/js/*"],
             "ziggy-js": ["./vendor/tightenco/ziggy"]
         }
     },

@@ -19,7 +19,7 @@ import {
   SheetFooter,
 } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { Account, Category, TransactionType } from '@modules/Finance/resources/js/types/finance'
+import type { Account, Category, TransactionType } from '@modules/Finance/types/finance'
 
 interface TransactionFormProps {
   open: boolean
@@ -56,7 +56,7 @@ export function TransactionForm({
 
     const formData = {
       ...data,
-      amount: Math.round(parseFloat(data.amount) * 100),
+      amount: Math.round(parseFloat(data.amount || '0')),
       account_id: parseInt(data.account_id),
       category_id: data.category_id ? parseInt(data.category_id) : null,
       transfer_account_id: data.transfer_account_id ? parseInt(data.transfer_account_id) : null,

@@ -10,12 +10,19 @@ use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Budget;
 use Modules\Finance\Models\Currency;
 use Modules\Finance\Models\Transaction;
+use Modules\Finance\Services\ExchangeRateService;
 
 class FinanceDashboardController extends Controller
 {
+    public function __construct(
+        protected ExchangeRateService $exchangeRateService
+    ) {}
+
     public function index(): Response
     {
         $userId = auth()->id();
+        $defaultCurrency = Currency::where('is_default', true)->first();
+        $defaultCode = $defaultCurrency?->code ?? 'VND';
 
         $accounts = Account::where('user_id', $userId)
             ->where('is_active', true)
@@ -25,18 +32,16 @@ class FinanceDashboardController extends Controller
         $totalAssets = $accounts
             ->whereIn('account_type', ['bank', 'investment', 'cash'])
             ->where('current_balance', '>', 0)
-            ->sum('current_balance');
+            ->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode, $account->rate_source));
 
         $totalLiabilities = abs($accounts
             ->whereIn('account_type', ['credit_card', 'loan'])
-            ->sum('current_balance'));
+            ->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode, $account->rate_source)));
 
         $netWorth = $totalAssets - $totalLiabilities;
-        $totalBalance = $accounts->sum('current_balance');
+        $totalBalance = $accounts->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode, $account->rate_source));
 
-        $defaultCurrency = Currency::where('is_default', true)->first();
-
-        $recentTransactions = Transaction::with(['account', 'category', 'transferAccount'])
+        $recentTransactions = Transaction::with(['account', 'category'])
             ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
             ->orderBy('transaction_date', 'desc')
             ->orderBy('created_at', 'desc')
@@ -49,7 +54,7 @@ class FinanceDashboardController extends Controller
             ->where('is_active', true)
             ->where('start_date', '<=', $currentDate)
             ->where('end_date', '>=', $currentDate)
-            ->orderBy('amount', 'desc')
+            ->orderBy('allocated_amount', 'desc')
             ->get();
 
         $spendingTrend = Transaction::select(
@@ -57,7 +62,7 @@ class FinanceDashboardController extends Controller
             DB::raw('SUM(amount) as amount')
         )
             ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
-            ->where('type', 'expense')
+            ->where('transaction_type', 'expense')
             ->where('transaction_date', '>=', now()->subDays(30))
             ->groupBy('date')
             ->orderBy('date', 'asc')
@@ -80,5 +85,18 @@ class FinanceDashboardController extends Controller
             'budgets' => $budgets,
             'spendingTrend' => $spendingTrend,
         ]);
+    }
+
+    protected function convertToDefault(float $amount, string $fromCurrency, string $defaultCurrency, ?string $source = null): float
+    {
+        if ($fromCurrency === $defaultCurrency) {
+            return $amount;
+        }
+
+        try {
+            return $this->exchangeRateService->convert($amount, $fromCurrency, $defaultCurrency, $source);
+        } catch (\Exception) {
+            return $amount;
+        }
     }
 }

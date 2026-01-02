@@ -24,21 +24,33 @@ class Account extends Model implements Auditable
         'account_type',
         'name',
         'currency_code',
+        'rate_source',
         'account_number',
         'institution_name',
+        'description',
+        'initial_balance',
         'current_balance',
         'is_active',
         'exclude_from_total',
+        'color',
     ];
+
+    protected $appends = ['balance'];
 
     protected function casts(): array
     {
         return [
+            'initial_balance' => 'integer',
             'current_balance' => 'integer',
             'is_active' => 'boolean',
             'exclude_from_total' => 'boolean',
             'account_number' => 'encrypted',
         ];
+    }
+
+    public function getBalanceAttribute(): int
+    {
+        return $this->current_balance;
     }
 
     public function user(): BelongsTo

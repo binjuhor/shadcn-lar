@@ -11,13 +11,16 @@ return new class extends Migration
         Schema::create('finance_budgets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('category_id')->constrained('finance_categories')->cascadeOnDelete();
-            $table->enum('period_type', ['weekly', 'monthly', 'yearly']);
+            $table->foreignId('category_id')->nullable()->constrained('finance_categories')->cascadeOnDelete();
+            $table->string('name')->nullable();
+            $table->enum('period_type', ['weekly', 'monthly', 'quarterly', 'yearly', 'custom']);
             $table->bigInteger('allocated_amount');
             $table->bigInteger('spent_amount')->default(0);
             $table->char('currency_code', 3);
             $table->date('start_date');
             $table->date('end_date');
+            $table->boolean('is_active')->default(true);
+          $table->boolean('rollover')->default(false);
             $table->timestamps();
 
             $table->foreign('currency_code')->references('code')->on('currencies')->cascadeOnDelete();

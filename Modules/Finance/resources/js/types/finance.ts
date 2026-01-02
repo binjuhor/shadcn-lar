@@ -3,10 +3,15 @@ export interface Currency {
   name: string;
   symbol: string;
   decimal_places: number;
+  active: boolean;
   is_default: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export type AccountType = 'bank' | 'credit_card' | 'investment' | 'cash' | 'loan' | 'other';
+
+export type RateSource = 'exchangerate_api' | 'open_exchange_rates' | 'vietcombank' | 'payoneer' | null;
 
 export interface Account {
   id: number;
@@ -14,9 +19,11 @@ export interface Account {
   name: string;
   account_type: AccountType;
   currency_code: string;
+  rate_source?: RateSource;
   currency?: Currency;
   balance: number;
   initial_balance: number;
+  current_balance: number;
   description?: string;
   icon?: string;
   color?: string;
@@ -28,12 +35,14 @@ export interface Account {
 
 export type TransactionType = 'income' | 'expense' | 'transfer';
 
+export type CategoryType = 'income' | 'expense' | 'both';
+
 export interface Category {
   id: number;
   user_id?: number;
   parent_id?: number;
   name: string;
-  type: 'income' | 'expense';
+  type: CategoryType;
   icon?: string;
   color?: string;
   is_active: boolean;
@@ -129,4 +138,25 @@ export interface PaginatedData<T> {
   last_page: number;
   per_page: number;
   total: number;
+}
+
+export interface ExchangeRate {
+  id: number;
+  base_currency: string;
+  target_currency: string;
+  rate: number;
+  bid_rate?: number;
+  ask_rate?: number;
+  source: string;
+  rate_date: string;
+  baseCurrency?: Currency;
+  targetCurrency?: Currency;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExchangeRateFilters {
+  base_currency?: string;
+  target_currency?: string;
+  source?: string;
 }

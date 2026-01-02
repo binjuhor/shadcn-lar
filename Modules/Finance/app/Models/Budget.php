@@ -17,13 +17,18 @@ class Budget extends Model
     protected $fillable = [
         'user_id',
         'category_id',
+        'name',
         'period_type',
         'allocated_amount',
         'spent_amount',
         'currency_code',
         'start_date',
         'end_date',
+        'is_active',
+        'rollover',
     ];
+
+    protected $appends = ['amount', 'spent'];
 
     protected function casts(): array
     {
@@ -32,7 +37,19 @@ class Budget extends Model
             'spent_amount' => 'integer',
             'start_date' => 'date',
             'end_date' => 'date',
+            'is_active' => 'boolean',
+            'rollover' => 'boolean',
         ];
+    }
+
+    public function getAmountAttribute(): int
+    {
+        return $this->allocated_amount;
+    }
+
+    public function getSpentAttribute(): int
+    {
+        return $this->spent_amount;
     }
 
     public function user(): BelongsTo

@@ -19,12 +19,14 @@ class Currency extends Model
         'symbol',
         'decimal_places',
         'active',
+        'is_default',
     ];
 
     protected function casts(): array
     {
         return [
             'active' => 'boolean',
+            'is_default' => 'boolean',
             'decimal_places' => 'integer',
         ];
     }

@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Plus, MoreHorizontal, Pencil, Trash2, Tags } from 'lucide-react'
 import { CategoryForm } from './components/category-form'
-import type { Category } from '@modules/Finance/resources/js/types/finance'
+import type { Category } from '@modules/Finance/types/finance'
 
 interface Props {
   categories: Category[]

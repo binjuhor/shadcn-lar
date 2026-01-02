@@ -12,14 +12,17 @@ class BudgetService
     {
         return DB::transaction(function () use ($data) {
             return Budget::create([
-                'user_id' => auth()->id(),
-                'category_id' => $data['category_id'],
+                'user_id' => $data['user_id'] ?? auth()->id(),
+                'category_id' => $data['category_id'] ?? null,
+                'name' => $data['name'],
                 'period_type' => $data['period_type'],
-                'allocated_amount' => $data['allocated_amount'],
+                'allocated_amount' => $data['amount'] ?? $data['allocated_amount'],
                 'spent_amount' => 0,
                 'currency_code' => $data['currency_code'] ?? 'USD',
                 'start_date' => $data['start_date'],
                 'end_date' => $data['end_date'],
+                'is_active' => $data['is_active'] ?? true,
+                'rollover' => $data['rollover'] ?? false,
             ]);
         });
     }
