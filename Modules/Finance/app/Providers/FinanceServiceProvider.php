@@ -9,9 +9,11 @@ use Illuminate\Support\ServiceProvider;
 use Modules\Finance\Console\Commands\FetchExchangeRatesCommand;
 use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Budget;
+use Modules\Finance\Models\SavingsGoal;
 use Modules\Finance\Models\Transaction;
 use Modules\Finance\Policies\AccountPolicy;
 use Modules\Finance\Policies\BudgetPolicy;
+use Modules\Finance\Policies\SavingsGoalPolicy;
 use Modules\Finance\Policies\TransactionPolicy;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
@@ -44,6 +46,7 @@ class FinanceServiceProvider extends ServiceProvider
         Gate::policy(Account::class, AccountPolicy::class);
         Gate::policy(Transaction::class, TransactionPolicy::class);
         Gate::policy(Budget::class, BudgetPolicy::class);
+        Gate::policy(SavingsGoal::class, SavingsGoalPolicy::class);
     }
 
     /**

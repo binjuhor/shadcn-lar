@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Link, useForm, router } from '@inertiajs/react'
 import { format } from 'date-fns'
 import { AuthenticatedLayout } from '@/layouts'
@@ -83,6 +83,7 @@ export default function EditBudget({ budget, categories, currencies }: Props) {
   })
 
   const expenseCategories = categories.filter((c) => c.type === 'expense' || c.type === 'both')
+  const isFirstRender = useRef(true)
 
   transform((formData) => ({
     ...formData,
@@ -90,7 +91,12 @@ export default function EditBudget({ budget, categories, currencies }: Props) {
     category_id: formData.category_id ? parseInt(formData.category_id) : null,
   }))
 
+  // Only update dates when user changes period type, not on initial load
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     if (data.period_type !== 'custom') {
       const dates = getDefaultDates(data.period_type as BudgetPeriod)
       setData((prev) => ({

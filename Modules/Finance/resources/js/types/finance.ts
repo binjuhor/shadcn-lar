@@ -160,3 +160,94 @@ export interface ExchangeRateFilters {
   target_currency?: string;
   source?: string;
 }
+
+// Report types
+export type DateRangePreset = '30d' | '6m' | '12m' | 'ytd' | 'custom';
+
+export interface ReportFilters {
+  range: DateRangePreset;
+  startDate: string;
+  endDate: string;
+}
+
+export interface IncomeExpensePoint {
+  period: string;
+  income: number;
+  expense: number;
+}
+
+export interface CategoryBreakdownItem {
+  id: number;
+  name: string;
+  amount: number;
+  percentage: number;
+  color: string;
+}
+
+export interface AccountTypeBreakdown {
+  type: AccountType;
+  label: string;
+  balance: number;
+  count: number;
+  color: string;
+  isLiability: boolean;
+}
+
+export interface ReportSummary {
+  totalIncome: number;
+  totalExpense: number;
+  netChange: number;
+  previousPeriodChange: number;
+}
+
+export interface FinanceReportData {
+  filters: ReportFilters;
+  incomeExpenseTrend: IncomeExpensePoint[];
+  categoryBreakdown: CategoryBreakdownItem[];
+  accountDistribution: AccountTypeBreakdown[];
+  summary: ReportSummary;
+  currencyCode: string;
+}
+
+// Savings Goals
+export type SavingsGoalStatus = 'active' | 'completed' | 'paused' | 'cancelled';
+
+export type ContributionType = 'manual' | 'linked';
+
+export interface SavingsGoal {
+  id: number;
+  user_id: number;
+  target_account_id?: number;
+  target_account?: Account;
+  name: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  target_amount: number;
+  current_amount: number;
+  currency_code: string;
+  currency?: Currency;
+  target_date?: string;
+  status: SavingsGoalStatus;
+  is_active: boolean;
+  completed_at?: string;
+  progress_percent: number;
+  remaining_amount: number;
+  contributions?: SavingsContribution[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SavingsContribution {
+  id: number;
+  savings_goal_id: number;
+  transaction_id?: number;
+  transaction?: Transaction;
+  amount: number;
+  currency_code: string;
+  contribution_date: string;
+  notes?: string;
+  type: ContributionType;
+  created_at: string;
+  updated_at: string;
+}

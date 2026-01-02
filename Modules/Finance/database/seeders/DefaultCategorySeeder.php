@@ -24,6 +24,7 @@ class DefaultCategorySeeder extends Seeder
             ['name' => 'Shopping', 'type' => 'expense', 'icon' => 'shopping-bag', 'color' => '#f43f5e'],
             ['name' => 'Education', 'type' => 'expense', 'icon' => 'book', 'color' => '#0ea5e9'],
             ['name' => 'Insurance', 'type' => 'expense', 'icon' => 'shield', 'color' => '#06b6d4'],
+            ['name' => 'Gifts & Donations', 'type' => 'expense', 'icon' => 'more-horizontal', 'color' => '#6b7280'],
             ['name' => 'Other Expenses', 'type' => 'expense', 'icon' => 'more-horizontal', 'color' => '#6b7280'],
         ];
 

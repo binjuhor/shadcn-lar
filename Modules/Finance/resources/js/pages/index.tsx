@@ -19,6 +19,7 @@ import {
   Plus,
   ArrowRight,
   PiggyBank,
+  BarChart3,
 } from 'lucide-react'
 import type {
   FinanceDashboardData,
@@ -314,12 +315,20 @@ export default function FinanceDashboard({
               Track your personal finances and budgets
             </p>
           </div>
-          <Link href={route('dashboard.finance.transactions.create')}>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Transaction
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href={route('dashboard.finance.reports')}>
+              <Button variant="outline">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Reports
+              </Button>
+            </Link>
+            <Link href={route('dashboard.finance.transactions.create')}>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Transaction
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {!hasData ? (

@@ -36,6 +36,7 @@ import {
   IconArrowsExchange,
   IconPigMoney,
   IconCurrencyDollar,
+  IconTarget,
 } from '@tabler/icons-react'
 import {
   AudioWaveform,
@@ -149,6 +150,11 @@ export const sidebarData: SidebarData = {
           icon: IconWallet,
         },
         {
+          title: 'Reports',
+          url: '/dashboard/finance/reports',
+          icon: IconChartBar,
+        },
+        {
           title: 'Accounts',
           url: '/dashboard/finance/accounts',
           icon: IconBuildingBank,
@@ -162,6 +168,11 @@ export const sidebarData: SidebarData = {
           title: 'Budgets',
           url: '/dashboard/finance/budgets',
           icon: IconPigMoney,
+        },
+        {
+          title: 'Savings Goals',
+          url: '/dashboard/finance/savings-goals',
+          icon: IconTarget,
         },
         {
           title: 'Categories',
