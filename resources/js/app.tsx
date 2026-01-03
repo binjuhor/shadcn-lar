@@ -11,7 +11,18 @@ const appName = import.meta.env.VITE_APP_NAME || 'Shadcn Laravel Admin';
 
 // Glob patterns for page discovery
 const mainPages = import.meta.glob('./pages/**/*.tsx');
-const modulePages = import.meta.glob('/Modules/*/resources/js/pages/**/*.tsx');
+
+// Try multiple glob patterns for module pages
+const modulePages1 = import.meta.glob('../../Modules/*/resources/js/pages/**/*.tsx');
+const modulePages2 = import.meta.glob('/Modules/*/resources/js/pages/**/*.tsx');
+
+// Merge all module pages
+const modulePages = { ...modulePages1, ...modulePages2 };
+
+// Debug: Log available module pages on startup
+console.log('[DEBUG] modulePages1 keys:', Object.keys(modulePages1));
+console.log('[DEBUG] modulePages2 keys:', Object.keys(modulePages2));
+console.log('[DEBUG] Total module pages found:', Object.keys(modulePages).length);
 
 /**
  * Resolve Inertia page component with namespace support
@@ -30,19 +41,35 @@ async function resolvePageComponent(name: string): Promise<React.ComponentType> 
   // Check for namespace syntax (Module::PagePath)
   if (name.includes('::')) {
     const [moduleName, pagePath] = name.split('::');
-    const modulePath = `/Modules/${moduleName}/resources/js/pages/${pagePath}.tsx`;
 
-    const page = modulePages[modulePath];
+    // Try different path formats
+    const pathFormats = [
+      `../../Modules/${moduleName}/resources/js/pages/${pagePath}.tsx`,
+      `/Modules/${moduleName}/resources/js/pages/${pagePath}.tsx`,
+    ];
+
+    let page = null;
+    let usedPath = '';
+    for (const path of pathFormats) {
+      if (modulePages[path]) {
+        page = modulePages[path];
+        usedPath = path;
+        break;
+      }
+    }
+
     if (!page) {
       // Debug: log available keys
-      console.error('Available module pages:', Object.keys(modulePages));
+      console.error('[DEBUG] Available module pages:', Object.keys(modulePages));
+      console.error('[DEBUG] Tried paths:', pathFormats);
       throw new Error(
         `Module page not found: ${name}\n` +
         `Expected path: Modules/${moduleName}/resources/js/pages/${pagePath}.tsx\n` +
-        `Looked for key: ${modulePath}`
+        `Tried keys: ${pathFormats.join(', ')}`
       );
     }
 
+    console.log(`[DEBUG] Resolved ${name} using path: ${usedPath}`);
     const module = await page();
     return (module as { default: React.ComponentType }).default;
   }

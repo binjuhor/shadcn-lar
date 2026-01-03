@@ -1,3 +1,4 @@
+import * as React from 'react'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import {
   Card,
@@ -57,16 +58,45 @@ export function IncomeExpenseTrend({ data, currencyCode }: IncomeExpenseTrendPro
     periodLabel: formatPeriod(item.period),
   }))
 
+  const totals = React.useMemo(() => ({
+    income: data.reduce((acc, curr) => acc + curr.income, 0),
+    expense: data.reduce((acc, curr) => acc + curr.expense, 0),
+  }), [data])
+
+  const netChange = totals.income - totals.expense
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Income vs Expense</CardTitle>
-        <CardDescription>
-          Track your income and expenses over time
-        </CardDescription>
+      <CardHeader className="flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row">
+        <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-4">
+          <CardTitle>Income vs Expense</CardTitle>
+          <CardDescription>
+            Track your income and expenses over time
+          </CardDescription>
+        </div>
+        <div className="flex">
+          <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
+            <span className="text-xs text-muted-foreground">Net</span>
+            <span className={`text-sm font-bold leading-none ${netChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {netChange >= 0 ? '+' : ''}{formatCurrency(netChange, currencyCode)}
+            </span>
+          </div>
+          <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
+            <span className="text-xs text-muted-foreground">Income</span>
+            <span className="text-sm font-bold leading-none text-green-600">
+              {formatCurrency(totals.income, currencyCode)}
+            </span>
+          </div>
+          <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
+            <span className="text-xs text-muted-foreground">Expense</span>
+            <span className="text-sm font-bold leading-none text-red-600">
+              {formatCurrency(totals.expense, currencyCode)}
+            </span>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="aspect-auto h-[300px] w-full">
+      <CardContent className="px-2 sm:p-6">
+        <ChartContainer config={chartConfig} className="aspect-auto h-[350px] w-full">
           <BarChart
             accessibilityLayer
             data={formattedData}
@@ -78,16 +108,18 @@ export function IncomeExpenseTrend({ data, currencyCode }: IncomeExpenseTrendPro
               tickLine={false}
               axisLine={false}
               tickMargin={8}
+              minTickGap={32}
             />
             <YAxis
               tickFormatter={(value) => formatCurrency(value, currencyCode)}
               tickLine={false}
               axisLine={false}
-              width={80}
+              width={70}
             />
             <ChartTooltip
               content={
                 <ChartTooltipContent
+                  className="w-[180px]"
                   formatter={(value, name) => (
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">

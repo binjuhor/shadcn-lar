@@ -41,12 +41,12 @@ export function CategoryBreakdown({ data, currencyCode }: CategoryBreakdownProps
 
   if (data.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Expense by Category</CardTitle>
+      <Card className="h-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Expense by Category</CardTitle>
           <CardDescription>No expense data for this period</CardDescription>
         </CardHeader>
-        <CardContent className="flex h-[300px] items-center justify-center">
+        <CardContent className="flex h-[200px] items-center justify-center">
           <p className="text-muted-foreground">No data available</p>
         </CardContent>
       </Card>
@@ -54,15 +54,15 @@ export function CategoryBreakdown({ data, currencyCode }: CategoryBreakdownProps
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Expense by Category</CardTitle>
+    <Card className="h-full">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Expense by Category</CardTitle>
         <CardDescription>
-          Top spending categories for the selected period
+          Top spending categories
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="aspect-square h-[300px] w-full">
+      <CardContent className="pb-4">
+        <ChartContainer config={chartConfig} className="mx-auto aspect-square h-[220px]">
           <PieChart>
             <ChartTooltip
               content={
@@ -83,8 +83,8 @@ export function CategoryBreakdown({ data, currencyCode }: CategoryBreakdownProps
               data={data}
               dataKey="amount"
               nameKey="name"
-              innerRadius={60}
-              outerRadius={100}
+              innerRadius={50}
+              outerRadius={85}
               paddingAngle={2}
             >
               {data.map((entry) => (
@@ -103,16 +103,16 @@ export function CategoryBreakdown({ data, currencyCode }: CategoryBreakdownProps
                         <tspan
                           x={viewBox.cx}
                           y={viewBox.cy}
-                          className="fill-foreground text-2xl font-bold"
+                          className="fill-foreground text-lg font-bold"
                         >
                           {formatCurrency(total, currencyCode)}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
-                          y={(viewBox.cy || 0) + 20}
-                          className="fill-muted-foreground text-sm"
+                          y={(viewBox.cy || 0) + 16}
+                          className="fill-muted-foreground text-xs"
                         >
-                          Total Spent
+                          Total
                         </tspan>
                       </text>
                     )
@@ -123,11 +123,11 @@ export function CategoryBreakdown({ data, currencyCode }: CategoryBreakdownProps
           </PieChart>
         </ChartContainer>
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
           {data.slice(0, 6).map((item) => (
-            <div key={item.id} className="flex items-center gap-2 text-sm">
+            <div key={item.id} className="flex items-center gap-2 text-xs">
               <div
-                className="h-3 w-3 rounded-full"
+                className="h-2 w-2 shrink-0 rounded-full"
                 style={{ backgroundColor: item.color }}
               />
               <span className="truncate text-muted-foreground">{item.name}</span>

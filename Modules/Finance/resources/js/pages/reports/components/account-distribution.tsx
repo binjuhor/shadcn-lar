@@ -47,12 +47,12 @@ export function AccountDistribution({ data, currencyCode }: AccountDistributionP
 
   if (data.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Distribution</CardTitle>
+      <Card className="h-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Account Distribution</CardTitle>
           <CardDescription>No active accounts found</CardDescription>
         </CardHeader>
-        <CardContent className="flex h-[300px] items-center justify-center">
+        <CardContent className="flex h-[200px] items-center justify-center">
           <p className="text-muted-foreground">No data available</p>
         </CardContent>
       </Card>
@@ -60,20 +60,20 @@ export function AccountDistribution({ data, currencyCode }: AccountDistributionP
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Account Distribution</CardTitle>
+    <Card className="h-full">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Account Distribution</CardTitle>
         <CardDescription>
-          Balance breakdown by account type
+          Balance by account type
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="aspect-auto h-[300px] w-full">
+      <CardContent className="pb-4">
+        <ChartContainer config={chartConfig} className="aspect-auto h-[220px] w-full">
           <BarChart
             accessibilityLayer
             data={data}
             layout="vertical"
-            margin={{ left: 0, right: 12, top: 12, bottom: 12 }}
+            margin={{ left: 0, right: 12, top: 8, bottom: 8 }}
           >
             <XAxis
               type="number"
@@ -86,8 +86,9 @@ export function AccountDistribution({ data, currencyCode }: AccountDistributionP
               type="category"
               tickLine={false}
               axisLine={false}
-              width={100}
-              tickMargin={8}
+              width={80}
+              tickMargin={4}
+              fontSize={12}
             />
             <ChartTooltip
               content={
@@ -118,16 +119,16 @@ export function AccountDistribution({ data, currencyCode }: AccountDistributionP
           </BarChart>
         </ChartContainer>
 
-        <div className="mt-4 flex justify-between border-t pt-4">
+        <div className="flex justify-between border-t pt-3">
           <div>
-            <p className="text-sm text-muted-foreground">Total Assets</p>
-            <p className="text-lg font-semibold text-green-600">
+            <p className="text-xs text-muted-foreground">Assets</p>
+            <p className="text-sm font-semibold text-green-600">
               {formatCurrency(totalAssets, currencyCode)}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground">Total Liabilities</p>
-            <p className="text-lg font-semibold text-red-600">
+            <p className="text-xs text-muted-foreground">Liabilities</p>
+            <p className="text-sm font-semibold text-red-600">
               {formatCurrency(totalLiabilities, currencyCode)}
             </p>
           </div>
