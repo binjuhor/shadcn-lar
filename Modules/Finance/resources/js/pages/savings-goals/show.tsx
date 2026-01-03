@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link, router, useForm } from '@inertiajs/react'
+import { format } from 'date-fns'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -42,6 +44,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   ArrowLeft,
   Target,
   Plus,
@@ -51,12 +60,14 @@ import {
   CheckCircle,
   Pause,
   Link as LinkIcon,
+  ArrowRightLeft,
 } from 'lucide-react'
-import type { SavingsGoal, SavingsContribution, Transaction } from '@modules/Finance/types/finance'
+import type { SavingsGoal, SavingsContribution, Transaction, Account } from '@modules/Finance/types/finance'
 
 interface Props {
   goal: SavingsGoal
   availableTransactions: Transaction[]
+  accounts: Account[]
 }
 
 function formatMoney(amount: number, currencyCode = 'VND'): string {
@@ -74,9 +85,10 @@ function formatDate(dateStr: string): string {
   })
 }
 
-export default function ShowSavingsGoal({ goal, availableTransactions }: Props) {
+export default function ShowSavingsGoal({ goal, availableTransactions, accounts }: Props) {
   const [showContributeDialog, setShowContributeDialog] = useState(false)
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false)
+  const [showTransferDialog, setShowTransferDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedContribution, setSelectedContribution] = useState<SavingsContribution | null>(null)
 
@@ -89,6 +101,13 @@ export default function ShowSavingsGoal({ goal, availableTransactions }: Props) 
   const withdrawForm = useForm({
     amount: '',
     contribution_date: new Date().toISOString().split('T')[0],
+    notes: '',
+  })
+
+  const transferForm = useForm({
+    from_account_id: '',
+    amount: '',
+    transfer_date: new Date().toISOString().split('T')[0],
     notes: '',
   })
 
@@ -108,6 +127,16 @@ export default function ShowSavingsGoal({ goal, availableTransactions }: Props) 
       onSuccess: () => {
         withdrawForm.reset()
         setShowWithdrawDialog(false)
+      },
+    })
+  }
+
+  const handleTransfer = (e: React.FormEvent) => {
+    e.preventDefault()
+    transferForm.post(route('dashboard.finance.savings-goals.transfer', goal.id), {
+      onSuccess: () => {
+        transferForm.reset()
+        setShowTransferDialog(false)
       },
     })
   }
@@ -211,10 +240,14 @@ export default function ShowSavingsGoal({ goal, availableTransactions }: Props) 
 
               {/* Actions */}
               {!isCompleted && (
-                <div className="flex gap-3">
-                  <Button onClick={() => setShowContributeDialog(true)}>
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={() => setShowTransferDialog(true)}>
+                    <ArrowRightLeft className="mr-2 h-4 w-4" />
+                    Transfer to Goal
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowContributeDialog(true)}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Add Money
+                    Add Manual
                   </Button>
                   {goal.current_amount > 0 && (
                     <Button variant="outline" onClick={() => setShowWithdrawDialog(true)}>
@@ -350,12 +383,11 @@ export default function ShowSavingsGoal({ goal, availableTransactions }: Props) 
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contribute-date">Date</Label>
-                <Input
-                  id="contribute-date"
-                  type="date"
+                <Label>Date</Label>
+                <DatePicker
                   value={contributeForm.data.contribution_date}
-                  onChange={(e) => contributeForm.setData('contribution_date', e.target.value)}
+                  onChange={(date) => contributeForm.setData('contribution_date', date ? format(date, 'yyyy-MM-dd') : '')}
+                  placeholder="Select date"
                 />
               </div>
               <div className="space-y-2">
@@ -416,12 +448,11 @@ export default function ShowSavingsGoal({ goal, availableTransactions }: Props) 
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="withdraw-date">Date</Label>
-                <Input
-                  id="withdraw-date"
-                  type="date"
+                <Label>Date</Label>
+                <DatePicker
                   value={withdrawForm.data.contribution_date}
-                  onChange={(e) => withdrawForm.setData('contribution_date', e.target.value)}
+                  onChange={(date) => withdrawForm.setData('contribution_date', date ? format(date, 'yyyy-MM-dd') : '')}
+                  placeholder="Select date"
                 />
               </div>
               <div className="space-y-2">
@@ -440,6 +471,82 @@ export default function ShowSavingsGoal({ goal, availableTransactions }: Props) 
                 </Button>
                 <Button type="submit" variant="destructive" disabled={withdrawForm.processing}>
                   {withdrawForm.processing ? 'Processing...' : 'Withdraw'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Transfer to Goal Dialog */}
+        <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Transfer to Goal</DialogTitle>
+              <DialogDescription>
+                Transfer money from an account to "{goal.name}"
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleTransfer} className="space-y-4">
+              <div className="space-y-2">
+                <Label>From Account</Label>
+                <Select
+                  value={transferForm.data.from_account_id}
+                  onValueChange={(value) => transferForm.setData('from_account_id', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select source account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.map((account) => (
+                      <SelectItem key={account.id} value={String(account.id)}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {transferForm.errors.from_account_id && (
+                  <p className="text-sm text-red-600">{transferForm.errors.from_account_id}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="transfer-amount">Amount ({goal.currency_code})</Label>
+                <Input
+                  id="transfer-amount"
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={transferForm.data.amount}
+                  onChange={(e) => transferForm.setData('amount', e.target.value)}
+                  placeholder="0"
+                />
+                {transferForm.errors.amount && (
+                  <p className="text-sm text-red-600">{transferForm.errors.amount}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <DatePicker
+                  value={transferForm.data.transfer_date}
+                  onChange={(date) => transferForm.setData('transfer_date', date ? format(date, 'yyyy-MM-dd') : '')}
+                  placeholder="Select date"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="transfer-notes">Notes (Optional)</Label>
+                <Textarea
+                  id="transfer-notes"
+                  value={transferForm.data.notes}
+                  onChange={(e) => transferForm.setData('notes', e.target.value)}
+                  placeholder="Add a note..."
+                  rows={2}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowTransferDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={transferForm.processing}>
+                  {transferForm.processing ? 'Transferring...' : 'Transfer'}
                 </Button>
               </DialogFooter>
             </form>

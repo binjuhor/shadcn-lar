@@ -102,7 +102,7 @@ export default function AccountsIndex({ accounts, summary, currencies }: Props) 
         </div>
 
         {/* Summary */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3 mb-6">
+        <div className="mb-6 grid grid-cols-3 gap-4">
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm text-muted-foreground">Total Assets</p>
             <p className="text-2xl font-bold text-green-600">

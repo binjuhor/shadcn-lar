@@ -1,7 +1,9 @@
 import { Link, useForm } from '@inertiajs/react'
+import { format } from 'date-fns'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -146,12 +148,11 @@ export default function EditSavingsGoal({ goal, currencies, accounts }: Props) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="target_date">Target Date (Optional)</Label>
-                <Input
-                  id="target_date"
-                  type="date"
+                <Label>Target Date (Optional)</Label>
+                <DatePicker
                   value={data.target_date}
-                  onChange={(e) => setData('target_date', e.target.value)}
+                  onChange={(date) => setData('target_date', date ? format(date, 'yyyy-MM-dd') : '')}
+                  placeholder="Select target date"
                 />
                 {errors.target_date && (
                   <p className="text-sm text-red-600">{errors.target_date}</p>

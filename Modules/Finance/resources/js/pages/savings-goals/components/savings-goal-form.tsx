@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { useForm } from '@inertiajs/react'
+import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -193,12 +195,11 @@ export function SavingsGoalForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="target_date">Target Date (Optional)</Label>
-            <Input
-              id="target_date"
-              type="date"
+            <Label>Target Date (Optional)</Label>
+            <DatePicker
               value={data.target_date}
-              onChange={(e) => setData('target_date', e.target.value)}
+              onChange={(date) => setData('target_date', date ? format(date, 'yyyy-MM-dd') : '')}
+              placeholder="Select target date"
             />
             {errors.target_date && (
               <p className="text-sm text-red-600">{errors.target_date}</p>
@@ -208,14 +209,14 @@ export function SavingsGoalForm({
           <div className="space-y-2">
             <Label htmlFor="target_account_id">Target Account (Optional)</Label>
             <Select
-              value={data.target_account_id}
-              onValueChange={(value) => setData('target_account_id', value)}
+              value={data.target_account_id || 'none'}
+              onValueChange={(value) => setData('target_account_id', value === 'none' ? '' : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select account" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {accounts.map((account) => (
                   <SelectItem key={account.id} value={String(account.id)}>
                     {account.name}

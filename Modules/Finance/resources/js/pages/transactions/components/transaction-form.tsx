@@ -1,5 +1,7 @@
 import { useForm } from '@inertiajs/react'
+import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -203,12 +205,11 @@ export function TransactionForm({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="transaction_date">Date</Label>
-            <Input
-              id="transaction_date"
-              type="date"
+            <Label>Date</Label>
+            <DatePicker
               value={data.transaction_date}
-              onChange={(e) => setData('transaction_date', e.target.value)}
+              onChange={(date) => setData('transaction_date', date ? format(date, 'yyyy-MM-dd') : '')}
+              placeholder="Select date"
             />
             {errors.transaction_date && (
               <p className="text-sm text-red-600">{errors.transaction_date}</p>

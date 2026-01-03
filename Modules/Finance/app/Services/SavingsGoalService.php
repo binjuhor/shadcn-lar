@@ -152,6 +152,37 @@ class SavingsGoalService
         ]);
     }
 
+    /**
+     * Transfer money from an account to a savings goal.
+     * Creates a transaction and links it as a contribution.
+     */
+    public function transferToGoal(SavingsGoal $goal, array $data): SavingsContribution
+    {
+        return DB::transaction(function () use ($goal, $data) {
+            $amount = abs($data['amount']);
+
+            // Create expense transaction from source account
+            $transaction = Transaction::create([
+                'user_id' => $goal->user_id,
+                'account_id' => $data['from_account_id'],
+                'category_id' => $data['category_id'] ?? null,
+                'transaction_type' => 'expense',
+                'amount' => -$amount,
+                'currency_code' => $goal->currency_code,
+                'description' => $data['notes'] ?? "Transfer to savings: {$goal->name}",
+                'transaction_date' => $data['transfer_date'] ?? now()->toDateString(),
+            ]);
+
+            // Link transaction to savings goal as contribution
+            return $this->addContribution($goal, [
+                'transaction_id' => $transaction->id,
+                'amount' => $amount,
+                'contribution_date' => $transaction->transaction_date,
+                'notes' => $data['notes'] ?? "Transfer from account",
+            ]);
+        });
+    }
+
     public function unlinkContribution(SavingsContribution $contribution): void
     {
         DB::transaction(function () use ($contribution) {

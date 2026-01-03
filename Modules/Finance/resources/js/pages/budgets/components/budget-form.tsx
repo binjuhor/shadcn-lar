@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { useForm } from '@inertiajs/react'
+import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -246,22 +248,20 @@ export function BudgetForm({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="start_date">Start Date</Label>
-              <Input
-                id="start_date"
-                type="date"
+              <Label>Start Date</Label>
+              <DatePicker
                 value={data.start_date}
-                onChange={(e) => setData('start_date', e.target.value)}
+                onChange={(date) => setData('start_date', date ? format(date, 'yyyy-MM-dd') : '')}
+                placeholder="Select start date"
                 disabled={data.period_type !== 'custom'}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="end_date">End Date</Label>
-              <Input
-                id="end_date"
-                type="date"
+              <Label>End Date</Label>
+              <DatePicker
                 value={data.end_date}
-                onChange={(e) => setData('end_date', e.target.value)}
+                onChange={(date) => setData('end_date', date ? format(date, 'yyyy-MM-dd') : '')}
+                placeholder="Select end date"
                 disabled={data.period_type !== 'custom'}
               />
             </div>

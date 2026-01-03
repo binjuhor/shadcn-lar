@@ -45,6 +45,8 @@ Route::middleware(['auth', 'verified'])
                 ->name('contribute');
             Route::post('withdraw', [SavingsGoalController::class, 'withdraw'])
                 ->name('withdraw');
+            Route::post('transfer', [SavingsGoalController::class, 'transfer'])
+                ->name('transfer');
             Route::post('link-transaction', [SavingsGoalController::class, 'linkTransaction'])
                 ->name('link-transaction');
             Route::delete('contributions/{contribution}', [SavingsGoalController::class, 'unlinkContribution'])

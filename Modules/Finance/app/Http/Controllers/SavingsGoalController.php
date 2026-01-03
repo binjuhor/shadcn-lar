@@ -92,22 +92,30 @@ class SavingsGoalController extends Controller
     {
         $this->authorize('view', $savingsGoal);
 
+        $userId = auth()->id();
+
         $savingsGoal->load(['currency', 'targetAccount', 'contributions.transaction']);
 
         $linkedTransactionIds = $savingsGoal->contributions()
             ->whereNotNull('transaction_id')
             ->pluck('transaction_id');
 
-        $availableTransactions = Transaction::where('user_id', auth()->id())
+        $availableTransactions = Transaction::where('user_id', $userId)
             ->whereNotIn('id', $linkedTransactionIds)
             ->where('transaction_type', 'income')
             ->orderBy('transaction_date', 'desc')
             ->limit(50)
             ->get();
 
+        $accounts = Account::where('user_id', $userId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('Finance::savings-goals/show', [
             'goal' => $savingsGoal,
             'availableTransactions' => $availableTransactions,
+            'accounts' => $accounts,
         ]);
     }
 
@@ -240,5 +248,21 @@ class SavingsGoalController extends Controller
         $this->savingsGoalService->resumeGoal($savingsGoal);
 
         return Redirect::back()->with('success', 'Savings goal resumed');
+    }
+
+    public function transfer(Request $request, SavingsGoal $savingsGoal): RedirectResponse
+    {
+        $this->authorize('contribute', $savingsGoal);
+
+        $validated = $request->validate([
+            'from_account_id' => ['required', 'exists:finance_accounts,id'],
+            'amount' => ['required', 'integer', 'min:1'],
+            'transfer_date' => ['required', 'date'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $this->savingsGoalService->transferToGoal($savingsGoal, $validated);
+
+        return Redirect::back()->with('success', 'Transfer completed successfully');
     }
 }

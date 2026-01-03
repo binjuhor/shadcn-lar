@@ -1,5 +1,7 @@
 import { useForm } from '@inertiajs/react'
+import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -119,12 +121,11 @@ export function ContributionForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="contribution_date">Date</Label>
-            <Input
-              id="contribution_date"
-              type="date"
+            <Label>Date</Label>
+            <DatePicker
               value={data.contribution_date}
-              onChange={(e) => setData('contribution_date', e.target.value)}
+              onChange={(date) => setData('contribution_date', date ? format(date, 'yyyy-MM-dd') : '')}
+              placeholder="Select date"
             />
             {errors.contribution_date && (
               <p className="text-sm text-red-600">{errors.contribution_date}</p>
