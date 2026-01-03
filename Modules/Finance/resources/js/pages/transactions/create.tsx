@@ -95,13 +95,22 @@ export default function CreateTransaction({ accounts, categories }: Props) {
               {/* Transaction Type Tabs */}
               <Tabs value={data.type} onValueChange={(v) => handleTypeChange(v as TransactionType)}>
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="expense" className="text-red-600 data-[state=active]:bg-red-100">
+                  <TabsTrigger
+                    value="expense"
+                    className="data-[state=active]:bg-red-500 data-[state=active]:text-white data-[state=inactive]:text-red-600"
+                  >
                     Expense
                   </TabsTrigger>
-                  <TabsTrigger value="income" className="text-green-600 data-[state=active]:bg-green-100">
+                  <TabsTrigger
+                    value="income"
+                    className="data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=inactive]:text-green-600"
+                  >
                     Income
                   </TabsTrigger>
-                  <TabsTrigger value="transfer" className="text-blue-600 data-[state=active]:bg-blue-100">
+                  <TabsTrigger
+                    value="transfer"
+                    className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=inactive]:text-blue-600"
+                  >
                     Transfer
                   </TabsTrigger>
                 </TabsList>
