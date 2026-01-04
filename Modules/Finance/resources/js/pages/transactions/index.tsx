@@ -45,6 +45,7 @@ import {
   ArrowRight,
   Filter,
   Inbox,
+  Sparkles,
 } from 'lucide-react'
 import { TransactionForm } from './components/transaction-form'
 import type { Transaction, Account, Category, PaginatedData } from '@modules/Finance/types/finance'
@@ -157,6 +158,12 @@ export default function TransactionsIndex({
               <Filter className="mr-2 h-4 w-4" />
               {showFilters ? 'Hide' : 'Show'} Filters
             </Button>
+            <a href={route('dashboard.finance.transactions.create')}>
+              <Button variant="outline">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Smart Input
+              </Button>
+            </a>
             <Button onClick={() => setShowForm(true)}>
               <Plus className="mr-2 h-4 w-4" />
               New Transaction

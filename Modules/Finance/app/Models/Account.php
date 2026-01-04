@@ -50,7 +50,7 @@ class Account extends Model implements Auditable
 
     public function getBalanceAttribute(): int
     {
-        return $this->current_balance;
+        return $this->current_balance ?? 0;
     }
 
     public function user(): BelongsTo
@@ -70,7 +70,7 @@ class Account extends Model implements Auditable
 
     public function getBalanceMoney(): Money
     {
-        return new Money($this->current_balance, $this->currency_code);
+        return new Money($this->current_balance ?? 0, $this->currency_code);
     }
 
     public function updateBalance(int $amountInCents): void

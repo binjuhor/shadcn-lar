@@ -20,7 +20,7 @@ return new class extends Migration
             $table->date('start_date');
             $table->date('end_date');
             $table->boolean('is_active')->default(true);
-          $table->boolean('rollover')->default(false);
+            $table->boolean('rollover')->default(false);
             $table->timestamps();
 
             $table->foreign('currency_code')->references('code')->on('currencies')->cascadeOnDelete();

@@ -9,6 +9,7 @@ use Modules\Finance\Http\Controllers\FinanceDashboardController;
 use Modules\Finance\Http\Controllers\FinanceReportController;
 use Modules\Finance\Http\Controllers\FinancialPlanController;
 use Modules\Finance\Http\Controllers\SavingsGoalController;
+use Modules\Finance\Http\Controllers\SmartInputController;
 use Modules\Finance\Http\Controllers\TransactionController;
 
 Route::middleware(['auth', 'verified'])
@@ -61,4 +62,16 @@ Route::middleware(['auth', 'verified'])
         Route::resource('plans', FinancialPlanController::class);
         Route::get('plans/{plan}/compare', [FinancialPlanController::class, 'compare'])
             ->name('plans.compare');
+
+        // Smart Input routes
+        Route::get('smart-input', [SmartInputController::class, 'index'])
+            ->name('smart-input');
+        Route::post('smart-input/parse-voice', [SmartInputController::class, 'parseVoice'])
+            ->name('smart-input.parse-voice');
+        Route::post('smart-input/parse-receipt', [SmartInputController::class, 'parseReceipt'])
+            ->name('smart-input.parse-receipt');
+        Route::post('smart-input/parse-text', [SmartInputController::class, 'parseText'])
+            ->name('smart-input.parse-text');
+        Route::post('smart-input', [SmartInputController::class, 'store'])
+            ->name('smart-input.store');
     });

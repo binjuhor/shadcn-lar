@@ -16,6 +16,7 @@ import {
   IconPalette,
   IconServerOff,
   IconSettings,
+  IconSparkles,
   IconTool,
   IconUserCog,
   IconUserOff,
@@ -149,6 +150,11 @@ export const sidebarData: SidebarData = {
           title: 'Dashboard',
           url: '/dashboard/finance',
           icon: IconWallet,
+        },
+        {
+          title: 'Smart Input',
+          url: '/dashboard/finance/smart-input',
+          icon: IconSparkles,
         },
         {
           title: 'Reports',

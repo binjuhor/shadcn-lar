@@ -341,3 +341,31 @@ export interface PlanFormData {
   status: PlanStatus;
   periods: PlanFormPeriod[];
 }
+
+// Smart Input
+export interface ParsedTransaction {
+  type: TransactionType;
+  amount: number;
+  description: string;
+  suggested_category?: {
+    id: number;
+    name: string;
+  };
+  suggested_account?: {
+    id: number;
+    name: string;
+  };
+  transaction_date: string;
+  confidence: number;
+  raw_text?: string;
+}
+
+export interface SmartInputFormData {
+  type: TransactionType;
+  amount: number;
+  description: string;
+  account_id: number;
+  category_id?: number;
+  transaction_date: string;
+  notes?: string;
+}

@@ -36,7 +36,16 @@ export default defineConfig(({ mode }) => {
           manualChunks(id) {
             // Share vendor libs across all modules
             if (id.includes('node_modules')) {
-              if (id.includes('react') || id.includes('react-dom')) {
+              // React ecosystem packages must stay together
+              const reactPackages = [
+                'react',
+                'react-dom',
+                'scheduler',
+                'react-is',
+                'use-sync-external-store',
+                '@inertiajs',
+              ];
+              if (reactPackages.some(pkg => id.includes(`node_modules/${pkg}/`) || id.includes(`node_modules/${pkg}`))) {
                 return 'vendor-react';
               }
               if (id.includes('@radix-ui') || id.includes('lucide-react')) {
