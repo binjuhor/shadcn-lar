@@ -251,3 +251,93 @@ export interface SavingsContribution {
   created_at: string;
   updated_at: string;
 }
+
+// Financial Planning
+export type PlanStatus = 'draft' | 'active' | 'archived';
+
+export type PlanItemRecurrence = 'one_time' | 'monthly' | 'quarterly' | 'yearly';
+
+export type PlanItemType = 'income' | 'expense';
+
+export interface PlanItem {
+  id: number;
+  name: string;
+  type: PlanItemType;
+  planned_amount: number;
+  recurrence: PlanItemRecurrence;
+  category_id?: number;
+  category?: {
+    id: number;
+    name: string;
+    color?: string;
+  };
+  notes?: string;
+}
+
+export interface PlanPeriod {
+  id: number;
+  year: number;
+  planned_income: number;
+  planned_expense: number;
+  net_planned: number;
+  notes?: string;
+  items: PlanItem[];
+}
+
+export interface FinancialPlan {
+  id: number;
+  name: string;
+  description?: string;
+  start_year: number;
+  end_year: number;
+  year_span: number;
+  currency_code: string;
+  status: PlanStatus;
+  total_planned_income: number;
+  total_planned_expense: number;
+  net_planned: number;
+  periods?: PlanPeriod[];
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface PlanComparison {
+  year: number;
+  planned_income: number;
+  planned_expense: number;
+  actual_income: number;
+  actual_expense: number;
+  income_variance: number;
+  expense_variance: number;
+  income_variance_percent: number;
+  expense_variance_percent: number;
+}
+
+export interface PlanFormItem {
+  [key: string]: string | number | undefined;
+  id?: number;
+  name: string;
+  type: PlanItemType;
+  planned_amount: number;
+  recurrence: PlanItemRecurrence;
+  category_id?: number;
+  notes?: string;
+}
+
+export interface PlanFormPeriod {
+  [key: string]: number | PlanFormItem[] | undefined;
+  id?: number;
+  year: number;
+  items: PlanFormItem[];
+}
+
+export interface PlanFormData {
+  [key: string]: string | number | PlanFormPeriod[] | undefined;
+  name: string;
+  description?: string;
+  start_year: number;
+  end_year: number;
+  currency_code: string;
+  status: PlanStatus;
+  periods: PlanFormPeriod[];
+}

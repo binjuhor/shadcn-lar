@@ -7,6 +7,7 @@ use Modules\Finance\Http\Controllers\CategoryController;
 use Modules\Finance\Http\Controllers\ExchangeRateController;
 use Modules\Finance\Http\Controllers\FinanceDashboardController;
 use Modules\Finance\Http\Controllers\FinanceReportController;
+use Modules\Finance\Http\Controllers\FinancialPlanController;
 use Modules\Finance\Http\Controllers\SavingsGoalController;
 use Modules\Finance\Http\Controllers\TransactionController;
 
@@ -56,4 +57,8 @@ Route::middleware(['auth', 'verified'])
             Route::post('resume', [SavingsGoalController::class, 'resume'])
                 ->name('resume');
         });
+
+        Route::resource('plans', FinancialPlanController::class);
+        Route::get('plans/{plan}/compare', [FinancialPlanController::class, 'compare'])
+            ->name('plans.compare');
     });

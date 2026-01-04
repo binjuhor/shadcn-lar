@@ -2,6 +2,7 @@ import {
   IconBarrierBlock,
   IconBrowserCheck,
   IconBug,
+  IconCalendarEvent,
   IconChecklist,
   IconError404,
   IconFileInvoice,
@@ -173,6 +174,11 @@ export const sidebarData: SidebarData = {
           title: 'Savings Goals',
           url: '/dashboard/finance/savings-goals',
           icon: IconTarget,
+        },
+        {
+          title: 'Financial Plans',
+          url: '/dashboard/finance/plans',
+          icon: IconCalendarEvent,
         },
         {
           title: 'Categories',
