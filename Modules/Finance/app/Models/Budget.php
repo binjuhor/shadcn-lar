@@ -33,8 +33,8 @@ class Budget extends Model
     protected function casts(): array
     {
         return [
-            'allocated_amount' => 'integer',
-            'spent_amount' => 'integer',
+            'allocated_amount' => 'decimal:2',
+            'spent_amount' => 'decimal:2',
             'start_date' => 'date',
             'end_date' => 'date',
             'is_active' => 'boolean',
@@ -42,14 +42,14 @@ class Budget extends Model
         ];
     }
 
-    public function getAmountAttribute(): int
+    public function getAmountAttribute(): float
     {
-        return $this->allocated_amount;
+        return (float) $this->allocated_amount;
     }
 
-    public function getSpentAttribute(): int
+    public function getSpentAttribute(): float
     {
-        return $this->spent_amount;
+        return (float) $this->spent_amount;
     }
 
     public function user(): BelongsTo

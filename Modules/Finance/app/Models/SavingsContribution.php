@@ -30,7 +30,7 @@ class SavingsContribution extends Model implements Auditable
     protected function casts(): array
     {
         return [
-            'amount' => 'integer',
+            'amount' => 'decimal:2',
             'contribution_date' => 'date',
         ];
     }

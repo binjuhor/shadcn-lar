@@ -25,7 +25,7 @@ class PlanItem extends Model
     protected function casts(): array
     {
         return [
-            'planned_amount' => 'integer',
+            'planned_amount' => 'decimal:2',
         ];
     }
 

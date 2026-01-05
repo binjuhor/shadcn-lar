@@ -41,8 +41,8 @@ class Account extends Model implements Auditable
     protected function casts(): array
     {
         return [
-            'initial_balance' => 'integer',
-            'current_balance' => 'integer',
+            'initial_balance' => 'decimal:2',
+            'current_balance' => 'decimal:2',
             'is_active' => 'boolean',
             'is_default_payment' => 'boolean',
             'exclude_from_total' => 'boolean',
@@ -75,9 +75,9 @@ class Account extends Model implements Auditable
             ->first();
     }
 
-    public function getBalanceAttribute(): int
+    public function getBalanceAttribute(): float
     {
-        return $this->current_balance ?? 0;
+        return (float) ($this->current_balance ?? 0);
     }
 
     public function user(): BelongsTo
@@ -100,9 +100,9 @@ class Account extends Model implements Auditable
         return new Money($this->current_balance ?? 0, $this->currency_code);
     }
 
-    public function updateBalance(int $amountInCents): void
+    public function updateBalance(float $amount): void
     {
-        $this->current_balance += $amountInCents;
+        $this->current_balance += $amount;
         $this->save();
     }
 
