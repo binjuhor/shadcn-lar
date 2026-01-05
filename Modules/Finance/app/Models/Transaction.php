@@ -26,8 +26,11 @@ class Transaction extends Model implements Auditable
         'amount',
         'currency_code',
         'description',
+        'notes',
         'transaction_date',
         'reconciled_at',
+        'transfer_account_id',
+        'transfer_transaction_id',
     ];
 
     protected $appends = ['type'];
@@ -64,6 +67,21 @@ class Transaction extends Model implements Auditable
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_code', 'code');
+    }
+
+    public function transferAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'transfer_account_id');
+    }
+
+    public function transferTransaction(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'transfer_transaction_id');
+    }
+
+    public function isTransfer(): bool
+    {
+        return $this->transfer_transaction_id !== null;
     }
 
     public function getAmountMoney(): Money

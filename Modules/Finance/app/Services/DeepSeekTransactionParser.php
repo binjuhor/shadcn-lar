@@ -9,57 +9,30 @@ use Modules\Finance\Contracts\TransactionParserInterface;
 use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Category;
 
-class GeminiTransactionParser implements TransactionParserInterface
+class DeepSeekTransactionParser implements TransactionParserInterface
 {
     protected string $apiKey;
 
-    protected string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+    protected string $baseUrl = 'https://api.deepseek.com/v1';
 
     protected string $model;
 
     public function __construct()
     {
-        $this->apiKey = config('services.gemini.api_key');
-        $this->model = config('services.gemini.model', 'gemini-2.0-flash');
+        $this->apiKey = config('services.deepseek.api_key');
+        $this->model = config('services.deepseek.model', 'deepseek-chat');
     }
 
-    /**
-     * Parse voice audio to extract transaction details
-     */
     public function parseVoice(UploadedFile $audioFile, string $language = 'vi'): array
     {
-        $audioBase64 = base64_encode(file_get_contents($audioFile->getRealPath()));
-        $mimeType = $audioFile->getMimeType() ?: 'audio/webm';
-
-        $prompt = $this->getParsePrompt($language);
-
-        $response = $this->callGeminiApi([
-            'contents' => [
-                [
-                    'parts' => [
-                        ['text' => $prompt],
-                        [
-                            'inline_data' => [
-                                'mime_type' => $mimeType,
-                                'data' => $audioBase64,
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-            'generationConfig' => [
-                'temperature' => 0.1,
-                'topP' => 0.8,
-                'maxOutputTokens' => 1024,
-            ],
-        ]);
-
-        return $this->parseResponse($response);
+        // DeepSeek doesn't support audio directly, transcribe first or use text
+        return [
+            'success' => false,
+            'error' => 'DeepSeek does not support voice input. Please use text input instead.',
+            'confidence' => 0,
+        ];
     }
 
-    /**
-     * Parse receipt/bill image to extract transaction details
-     */
     public function parseReceipt(UploadedFile $imageFile, string $language = 'vi'): array
     {
         $imageBase64 = base64_encode(file_get_contents($imageFile->getRealPath()));
@@ -67,58 +40,49 @@ class GeminiTransactionParser implements TransactionParserInterface
 
         $prompt = $this->getReceiptPrompt($language);
 
-        $response = $this->callGeminiApi([
-            'contents' => [
+        $response = $this->callDeepSeekApi([
+            'model' => $this->model,
+            'max_tokens' => 1024,
+            'messages' => [
                 [
-                    'parts' => [
-                        ['text' => $prompt],
+                    'role' => 'user',
+                    'content' => [
                         [
-                            'inline_data' => [
-                                'mime_type' => $mimeType,
-                                'data' => $imageBase64,
+                            'type' => 'text',
+                            'text' => $prompt,
+                        ],
+                        [
+                            'type' => 'image_url',
+                            'image_url' => [
+                                'url' => "data:{$mimeType};base64,{$imageBase64}",
                             ],
                         ],
                     ],
                 ],
             ],
-            'generationConfig' => [
-                'temperature' => 0.1,
-                'topP' => 0.8,
-                'maxOutputTokens' => 1024,
-            ],
         ]);
 
         return $this->parseResponse($response);
     }
 
-    /**
-     * Parse text input (for voice-to-text scenarios)
-     */
     public function parseText(string $text, string $language = 'vi'): array
     {
         $prompt = $this->getParsePrompt($language)."\n\nInput: {$text}";
 
-        $response = $this->callGeminiApi([
-            'contents' => [
+        $response = $this->callDeepSeekApi([
+            'model' => $this->model,
+            'max_tokens' => 1024,
+            'messages' => [
                 [
-                    'parts' => [
-                        ['text' => $prompt],
-                    ],
+                    'role' => 'user',
+                    'content' => $prompt,
                 ],
-            ],
-            'generationConfig' => [
-                'temperature' => 0.1,
-                'topP' => 0.8,
-                'maxOutputTokens' => 1024,
             ],
         ]);
 
         return $this->parseResponse($response);
     }
 
-    /**
-     * Match category hint to user's categories
-     */
     public function matchCategory(string $hint, int $userId, string $type = 'expense'): ?array
     {
         $categories = Category::where(function ($q) use ($userId) {
@@ -132,14 +96,12 @@ class GeminiTransactionParser implements TransactionParserInterface
 
         $hintLower = mb_strtolower($hint);
 
-        // Direct name match
         foreach ($categories as $category) {
             if (mb_strtolower($category->name) === $hintLower) {
                 return ['id' => $category->id, 'name' => $category->name];
             }
         }
 
-        // Partial match
         foreach ($categories as $category) {
             if (str_contains(mb_strtolower($category->name), $hintLower) ||
                 str_contains($hintLower, mb_strtolower($category->name))) {
@@ -147,7 +109,6 @@ class GeminiTransactionParser implements TransactionParserInterface
             }
         }
 
-        // Common Vietnamese mappings
         $mappings = [
             'ăn' => ['food', 'ăn uống', 'thực phẩm'],
             'cafe' => ['food', 'ăn uống', 'coffee'],
@@ -176,9 +137,6 @@ class GeminiTransactionParser implements TransactionParserInterface
         return null;
     }
 
-    /**
-     * Match account hint to user's accounts
-     */
     public function matchAccount(string $hint, int $userId): ?array
     {
         $accounts = Account::where('user_id', $userId)
@@ -187,14 +145,12 @@ class GeminiTransactionParser implements TransactionParserInterface
 
         $hintLower = mb_strtolower($hint);
 
-        // Direct name match
         foreach ($accounts as $account) {
             if (mb_strtolower($account->name) === $hintLower) {
                 return ['id' => $account->id, 'name' => $account->name];
             }
         }
 
-        // Type-based match
         $typeMap = [
             'tiền mặt' => 'cash',
             'cash' => 'cash',
@@ -213,31 +169,38 @@ class GeminiTransactionParser implements TransactionParserInterface
             }
         }
 
-        // Return first active account as fallback
         $first = $accounts->first();
 
         return $first ? ['id' => $first->id, 'name' => $first->name] : null;
     }
 
-    protected function callGeminiApi(array $payload): array
+    protected function callDeepSeekApi(array $payload): array
     {
-        $url = "{$this->baseUrl}/models/{$this->model}:generateContent?key={$this->apiKey}";
+        $url = "{$this->baseUrl}/chat/completions";
 
         try {
             $response = Http::timeout(30)
+                ->withHeaders([
+                    'Authorization' => "Bearer {$this->apiKey}",
+                    'Content-Type' => 'application/json',
+                ])
                 ->post($url, $payload);
 
             if ($response->failed()) {
-                Log::error('Gemini API error', [
+                Log::error('DeepSeek API error', [
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
 
-                $errorMessage = match ($response->status()) {
-                    429 => 'AI service quota exceeded. Please try again later or check your API plan.',
-                    401, 403 => 'AI service authentication failed. Please check your API key.',
-                    500, 502, 503 => 'AI service temporarily unavailable. Please try again.',
-                    default => 'AI service error. Please try again.',
+                $body = $response->json();
+                $apiErrorMessage = $body['error']['message'] ?? null;
+
+                $errorMessage = match (true) {
+                    str_contains($apiErrorMessage ?? '', 'insufficient') => 'DeepSeek API balance insufficient. Please add credits.',
+                    $response->status() === 429 => 'AI service rate limited. Please try again later.',
+                    $response->status() === 401 || $response->status() === 403 => 'AI service authentication failed. Please check your API key.',
+                    $response->status() >= 500 => 'AI service temporarily unavailable. Please try again.',
+                    default => $apiErrorMessage ?? 'AI service error. Please try again.',
                 };
 
                 return ['error' => $errorMessage, 'status' => $response->status()];
@@ -245,7 +208,7 @@ class GeminiTransactionParser implements TransactionParserInterface
 
             return $response->json();
         } catch (\Exception $e) {
-            Log::error('Gemini API exception', ['message' => $e->getMessage()]);
+            Log::error('DeepSeek API exception', ['message' => $e->getMessage()]);
 
             return ['error' => $e->getMessage()];
         }
@@ -256,14 +219,13 @@ class GeminiTransactionParser implements TransactionParserInterface
         if (isset($response['error'])) {
             return [
                 'success' => false,
-                'error' => $response['error'],
+                'error' => is_string($response['error']) ? $response['error'] : ($response['error']['message'] ?? 'Unknown error'),
                 'confidence' => 0,
             ];
         }
 
-        $text = $response['candidates'][0]['content']['parts'][0]['text'] ?? '';
+        $text = $response['choices'][0]['message']['content'] ?? '';
 
-        // Extract JSON from response
         $json = $this->extractJson($text);
 
         if (! $json) {
@@ -290,7 +252,6 @@ class GeminiTransactionParser implements TransactionParserInterface
 
     protected function extractJson(string $text): ?array
     {
-        // Try to find JSON in the response
         if (preg_match('/\{[\s\S]*\}/', $text, $matches)) {
             $json = json_decode($matches[0], true);
             if (json_last_error() === JSON_ERROR_NONE) {
@@ -301,29 +262,28 @@ class GeminiTransactionParser implements TransactionParserInterface
         return null;
     }
 
-    protected function normalizeAmount($amount): int
+    protected function normalizeAmount($amount): float
     {
         if (is_numeric($amount)) {
-            return (int) $amount;
+            return (float) $amount;
         }
 
-        // Handle Vietnamese number shortcuts
         $amount = str_replace([',', '.', ' '], '', (string) $amount);
         $amount = mb_strtolower($amount);
 
         if (preg_match('/(\d+)\s*(k|nghìn|nghin)/i', $amount, $m)) {
-            return (int) $m[1] * 1000;
+            return (float) $m[1] * 1000;
         }
 
         if (preg_match('/(\d+)\s*(tr|triệu|trieu)/i', $amount, $m)) {
-            return (int) $m[1] * 1000000;
+            return (float) $m[1] * 1000000;
         }
 
         if (preg_match('/(\d+)\s*(tỷ|ty)/i', $amount, $m)) {
-            return (int) $m[1] * 1000000000;
+            return (float) $m[1] * 1000000000;
         }
 
-        return (int) preg_replace('/\D/', '', $amount);
+        return (float) preg_replace('/\D/', '', $amount);
     }
 
     protected function normalizeDate(?string $dateHint): string
@@ -334,7 +294,6 @@ class GeminiTransactionParser implements TransactionParserInterface
 
         $hint = mb_strtolower($dateHint);
 
-        // Vietnamese date hints
         if (str_contains($hint, 'hôm nay') || str_contains($hint, 'today')) {
             return now()->format('Y-m-d');
         }
@@ -351,7 +310,6 @@ class GeminiTransactionParser implements TransactionParserInterface
             return now()->subMonth()->format('Y-m-d');
         }
 
-        // Try to parse as date
         try {
             return \Carbon\Carbon::parse($dateHint)->format('Y-m-d');
         } catch (\Exception $e) {
@@ -366,7 +324,7 @@ class GeminiTransactionParser implements TransactionParserInterface
             : 'Input is in English.';
 
         return <<<PROMPT
-You are a financial transaction parser. Extract transaction details from voice/text input.
+You are a financial transaction parser. Extract transaction details from text input.
 
 {$langInstructions}
 

@@ -73,20 +73,29 @@ class AccountController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'account_type' => ['required', 'in:bank,credit_card,investment,cash,loan,other'],
+            'account_type' => ['required', 'in:bank,credit_card,investment,cash,loan,e_wallet,other'],
             'currency_code' => ['required', 'string', 'size:3', 'exists:currencies,code'],
-            'initial_balance' => ['required', 'integer'],
+            'rate_source' => ['nullable', 'string'],
+            'initial_balance' => ['required', 'numeric'],
             'description' => ['nullable', 'string', 'max:1000'],
             'color' => ['nullable', 'string', 'max:7'],
             'is_active' => ['boolean'],
+            'is_default_payment' => ['boolean'],
             'exclude_from_total' => ['boolean'],
         ]);
 
-        Account::create([
+        // Convert __default__ to null for rate_source
+        $rateSource = $validated['rate_source'] ?? null;
+        if ($rateSource === '__default__' || $rateSource === '') {
+            $rateSource = null;
+        }
+
+        $account = Account::create([
             'user_id' => auth()->id(),
             'name' => $validated['name'],
             'account_type' => $validated['account_type'],
             'currency_code' => $validated['currency_code'],
+            'rate_source' => $rateSource,
             'initial_balance' => $validated['initial_balance'],
             'current_balance' => $validated['initial_balance'],
             'description' => $validated['description'] ?? null,
@@ -94,6 +103,11 @@ class AccountController extends Controller
             'is_active' => $validated['is_active'] ?? true,
             'exclude_from_total' => $validated['exclude_from_total'] ?? false,
         ]);
+
+        // Set as default payment if requested
+        if ($validated['is_default_payment'] ?? false) {
+            $account->setAsDefaultPayment();
+        }
 
         return Redirect::route('dashboard.finance.accounts.index')
             ->with('success', 'Account created successfully');
@@ -148,21 +162,40 @@ class AccountController extends Controller
 
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
-            'account_type' => ['sometimes', 'in:bank,credit_card,investment,cash,loan,other'],
+            'account_type' => ['sometimes', 'in:bank,credit_card,investment,cash,loan,e_wallet,other'],
             'currency_code' => ['sometimes', 'string', 'size:3', 'exists:currencies,code'],
-            'initial_balance' => ['sometimes', 'integer'],
+            'rate_source' => ['nullable', 'string'],
+            'initial_balance' => ['sometimes', 'numeric'],
             'description' => ['nullable', 'string', 'max:1000'],
             'color' => ['nullable', 'string', 'max:7'],
             'is_active' => ['sometimes', 'boolean'],
+            'is_default_payment' => ['sometimes', 'boolean'],
             'exclude_from_total' => ['sometimes', 'boolean'],
         ]);
+
+        // Convert __default__ to null for rate_source
+        if (isset($validated['rate_source'])) {
+            if ($validated['rate_source'] === '__default__' || $validated['rate_source'] === '') {
+                $validated['rate_source'] = null;
+            }
+        }
 
         // Also update current_balance when initial_balance changes
         if (isset($validated['initial_balance'])) {
             $validated['current_balance'] = $validated['initial_balance'];
         }
 
+        // Handle default payment flag separately
+        $setAsDefault = $validated['is_default_payment'] ?? false;
+        unset($validated['is_default_payment']);
+
         $account->update($validated);
+
+        if ($setAsDefault) {
+            $account->setAsDefaultPayment();
+        } elseif ($account->is_default_payment && ! $setAsDefault) {
+            $account->update(['is_default_payment' => false]);
+        }
 
         return Redirect::back()->with('success', 'Account updated successfully');
     }

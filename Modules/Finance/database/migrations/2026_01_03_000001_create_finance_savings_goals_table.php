@@ -16,8 +16,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('icon')->nullable();
             $table->string('color', 7)->nullable();
-            $table->bigInteger('target_amount');
-            $table->bigInteger('current_amount')->default(0);
+            $table->decimal('target_amount', 15, 2);
+            $table->decimal('current_amount', 15, 2)->default(0);
             $table->char('currency_code', 3);
             $table->date('target_date')->nullable();
             $table->enum('status', ['active', 'completed', 'paused', 'cancelled'])->default('active');

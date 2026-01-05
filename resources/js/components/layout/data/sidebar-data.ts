@@ -119,30 +119,6 @@ export const sidebarData: SidebarData = {
       ],
     },
     {
-      title: 'Access Control',
-      collapsible: true,
-      items: [
-        {
-          title: 'Roles',
-          url: '/dashboard/roles',
-          icon: IconShield,
-          permission: 'roles.view',
-        },
-        {
-          title: 'Permissions',
-          url: '/dashboard/permissions',
-          icon: IconKey,
-          permission: 'permissions.view',
-        },
-        {
-          title: 'Users',
-          url: '/dashboard/users',
-          icon: IconUsers,
-          permission: 'users.view',
-        },
-      ],
-    },
-    {
       title: 'Finance',
       collapsible: true,
       items: [
@@ -195,6 +171,30 @@ export const sidebarData: SidebarData = {
           title: 'Exchange Rates',
           url: '/dashboard/finance/exchange-rates',
           icon: IconCurrencyDollar,
+        },
+      ],
+    },
+    {
+      title: 'Access Control',
+      collapsible: true,
+      items: [
+        {
+          title: 'Roles',
+          url: '/dashboard/roles',
+          icon: IconShield,
+          permission: 'roles.view',
+        },
+        {
+          title: 'Permissions',
+          url: '/dashboard/permissions',
+          icon: IconKey,
+          permission: 'permissions.view',
+        },
+        {
+          title: 'Users',
+          url: '/dashboard/users',
+          icon: IconUsers,
+          permission: 'users.view',
         },
       ],
     },

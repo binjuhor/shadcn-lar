@@ -5,16 +5,20 @@ namespace Modules\Finance\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Finance\Contracts\TransactionParserInterface;
 use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Category;
 use Modules\Finance\Models\Transaction;
-use Modules\Finance\Services\GeminiTransactionParser;
+use Modules\Finance\Services\TransactionParserFactory;
 
 class SmartInputApiController extends Controller
 {
-    public function __construct(
-        protected GeminiTransactionParser $parser
-    ) {}
+    protected TransactionParserInterface $parser;
+
+    public function __construct()
+    {
+        $this->parser = TransactionParserFactory::make();
+    }
 
     /**
      * Parse voice audio to extract transaction details

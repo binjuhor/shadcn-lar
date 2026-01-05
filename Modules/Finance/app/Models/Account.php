@@ -31,6 +31,7 @@ class Account extends Model implements Auditable
         'initial_balance',
         'current_balance',
         'is_active',
+        'is_default_payment',
         'exclude_from_total',
         'color',
     ];
@@ -43,9 +44,35 @@ class Account extends Model implements Auditable
             'initial_balance' => 'integer',
             'current_balance' => 'integer',
             'is_active' => 'boolean',
+            'is_default_payment' => 'boolean',
             'exclude_from_total' => 'boolean',
             'account_number' => 'encrypted',
         ];
+    }
+
+    /**
+     * Set this account as default payment, clearing others
+     */
+    public function setAsDefaultPayment(): void
+    {
+        // Clear other defaults for this user
+        static::where('user_id', $this->user_id)
+            ->where('id', '!=', $this->id)
+            ->update(['is_default_payment' => false]);
+
+        $this->is_default_payment = true;
+        $this->save();
+    }
+
+    /**
+     * Get the default payment account for a user
+     */
+    public static function getDefaultPayment(int $userId): ?self
+    {
+        return static::where('user_id', $userId)
+            ->where('is_default_payment', true)
+            ->where('is_active', true)
+            ->first();
     }
 
     public function getBalanceAttribute(): int

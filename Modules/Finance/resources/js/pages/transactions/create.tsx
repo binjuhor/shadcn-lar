@@ -1,5 +1,6 @@
 import { Link, useForm, router } from '@inertiajs/react'
 import { format } from 'date-fns'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -22,12 +23,23 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react'
 import type { Account, Category, TransactionType } from '@modules/Finance/types/finance'
 
 interface Props {
   accounts: Account[]
   categories: Category[]
+}
+
+interface ConversionPreview {
+  same_currency: boolean
+  amount: number
+  converted_amount: number
+  exchange_rate: number
+  from_currency: string
+  to_currency: string
+  rate_source?: string
+  error?: string
 }
 
 export default function CreateTransaction({ accounts, categories }: Props) {
@@ -42,9 +54,67 @@ export default function CreateTransaction({ accounts, categories }: Props) {
     transfer_account_id: '',
   })
 
+  const [conversionPreview, setConversionPreview] = useState<ConversionPreview | null>(null)
+  const [loadingPreview, setLoadingPreview] = useState(false)
+
   const incomeCategories = categories.filter((c) => c.type === 'income' || c.type === 'both')
   const expenseCategories = categories.filter((c) => c.type === 'expense' || c.type === 'both')
   const currentCategories = data.type === 'income' ? incomeCategories : expenseCategories
+
+  const fromAccount = useMemo(
+    () => accounts.find((a) => String(a.id) === data.account_id),
+    [accounts, data.account_id]
+  )
+  const toAccount = useMemo(
+    () => accounts.find((a) => String(a.id) === data.transfer_account_id),
+    [accounts, data.transfer_account_id]
+  )
+
+  const fetchConversionPreview = useCallback(async () => {
+    if (
+      data.type !== 'transfer' ||
+      !data.account_id ||
+      !data.transfer_account_id ||
+      !data.amount ||
+      parseFloat(data.amount) <= 0
+    ) {
+      setConversionPreview(null)
+      return
+    }
+
+    setLoadingPreview(true)
+    try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      const response = await fetch(route('dashboard.finance.transactions.conversion-preview'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-CSRF-TOKEN': csrfToken || '',
+        },
+        body: JSON.stringify({
+          from_account_id: parseInt(data.account_id),
+          to_account_id: parseInt(data.transfer_account_id),
+          amount: Math.round(parseFloat(data.amount)),
+        }),
+      })
+
+      if (response.ok) {
+        const preview = await response.json()
+        setConversionPreview(preview)
+      }
+    } catch (error) {
+      console.error('Failed to fetch conversion preview:', error)
+    } finally {
+      setLoadingPreview(false)
+    }
+  }, [data.type, data.account_id, data.transfer_account_id, data.amount])
+
+  // Debounce conversion preview fetch
+  useEffect(() => {
+    const timeout = setTimeout(fetchConversionPreview, 300)
+    return () => clearTimeout(timeout)
+  }, [fetchConversionPreview])
 
   transform((formData) => ({
     ...formData,
@@ -67,7 +137,16 @@ export default function CreateTransaction({ accounts, categories }: Props) {
     setData('category_id', '')
     if (type !== 'transfer') {
       setData('transfer_account_id', '')
+      setConversionPreview(null)
     }
+  }
+
+  const formatMoney = (amount: number, currency: string) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 0,
+    }).format(amount)
   }
 
   return (
@@ -147,7 +226,7 @@ export default function CreateTransaction({ accounts, categories }: Props) {
                   <SelectContent>
                     {accounts.filter(a => a.is_active).map((account) => (
                       <SelectItem key={account.id} value={String(account.id)}>
-                        {account.name}
+                        {account.name} ({account.currency_code})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -158,29 +237,60 @@ export default function CreateTransaction({ accounts, categories }: Props) {
               </div>
 
               {data.type === 'transfer' && (
-                <div className="space-y-2">
-                  <Label htmlFor="transfer_account_id">To Account</Label>
-                  <Select
-                    value={data.transfer_account_id}
-                    onValueChange={(value) => setData('transfer_account_id', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select destination account" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts
-                        .filter(a => a.is_active && String(a.id) !== data.account_id)
-                        .map((account) => (
-                          <SelectItem key={account.id} value={String(account.id)}>
-                            {account.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.transfer_account_id && (
-                    <p className="text-sm text-red-600">{errors.transfer_account_id}</p>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="transfer_account_id">To Account</Label>
+                    <Select
+                      value={data.transfer_account_id}
+                      onValueChange={(value) => setData('transfer_account_id', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select destination account" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts
+                          .filter(a => a.is_active && String(a.id) !== data.account_id)
+                          .map((account) => (
+                            <SelectItem key={account.id} value={String(account.id)}>
+                              {account.name} ({account.currency_code})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.transfer_account_id && (
+                      <p className="text-sm text-red-600">{errors.transfer_account_id}</p>
+                    )}
+                  </div>
+
+                  {/* Conversion Preview */}
+                  {conversionPreview && !conversionPreview.same_currency && (
+                    <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/30 p-4">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <RefreshCw className={`h-4 w-4 ${loadingPreview ? 'animate-spin' : ''}`} />
+                        <span>Currency Conversion</span>
+                      </div>
+                      {conversionPreview.error ? (
+                        <p className="text-sm text-red-600">{conversionPreview.error}</p>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3 text-lg font-semibold">
+                            <span>{formatMoney(conversionPreview.amount, conversionPreview.from_currency)}</span>
+                            <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-green-600">
+                              {formatMoney(conversionPreview.converted_amount, conversionPreview.to_currency)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Rate: 1 {conversionPreview.from_currency} = {conversionPreview.exchange_rate.toLocaleString('en-US', { maximumFractionDigits: 4 })} {conversionPreview.to_currency}
+                            {conversionPreview.rate_source && conversionPreview.rate_source !== 'default' && (
+                              <span className="ml-1">({conversionPreview.rate_source})</span>
+                            )}
+                          </p>
+                        </>
+                      )}
+                    </div>
                   )}
-                </div>
+                </>
               )}
 
               {data.type !== 'transfer' && (

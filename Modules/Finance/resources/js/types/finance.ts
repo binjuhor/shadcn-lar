@@ -9,7 +9,7 @@ export interface Currency {
   updated_at?: string;
 }
 
-export type AccountType = 'bank' | 'credit_card' | 'investment' | 'cash' | 'loan' | 'other';
+export type AccountType = 'bank' | 'credit_card' | 'investment' | 'cash' | 'loan' | 'e_wallet' | 'other';
 
 export type RateSource = 'exchangerate_api' | 'open_exchange_rates' | 'vietcombank' | 'payoneer' | null;
 
@@ -28,6 +28,7 @@ export interface Account {
   icon?: string;
   color?: string;
   is_active: boolean;
+  is_default_payment: boolean;
   exclude_from_total: boolean;
   created_at: string;
   updated_at: string;

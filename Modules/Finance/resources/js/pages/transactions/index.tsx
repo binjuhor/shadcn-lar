@@ -46,8 +46,10 @@ import {
   Filter,
   Inbox,
   Sparkles,
+  Download,
 } from 'lucide-react'
 import { TransactionForm } from './components/transaction-form'
+import { ExportDialog } from './components/export-dialog'
 import type { Transaction, Account, Category, PaginatedData } from '@modules/Finance/types/finance'
 
 interface Props {
@@ -78,6 +80,7 @@ export default function TransactionsIndex({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [showExportDialog, setShowExportDialog] = useState(false)
 
   const handleDelete = (transaction: Transaction) => {
     setSelectedTransaction(transaction)
@@ -158,7 +161,14 @@ export default function TransactionsIndex({
               <Filter className="mr-2 h-4 w-4" />
               {showFilters ? 'Hide' : 'Show'} Filters
             </Button>
-            <a href={route('dashboard.finance.transactions.create')}>
+            <Button
+              variant="outline"
+              onClick={() => setShowExportDialog(true)}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
+            <a href={route('dashboard.finance.smart-input')}>
               <Button variant="outline">
                 <Sparkles className="mr-2 h-4 w-4" />
                 Smart Input
@@ -412,6 +422,12 @@ export default function TransactionsIndex({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Export Dialog */}
+        <ExportDialog
+          open={showExportDialog}
+          onOpenChange={setShowExportDialog}
+        />
       </Main>
     </AuthenticatedLayout>
   )

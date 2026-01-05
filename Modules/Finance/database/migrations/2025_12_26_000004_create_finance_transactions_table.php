@@ -17,8 +17,15 @@ return new class extends Migration
             $table->bigInteger('amount');
             $table->char('currency_code', 3);
             $table->text('description')->nullable();
+            $table->text('notes')->nullable();
             $table->date('transaction_date');
             $table->timestamp('reconciled_at')->nullable();
+
+            // Transfer linking fields
+            $table->foreignId('transfer_account_id')->nullable()
+                ->constrained('finance_accounts')->nullOnDelete();
+            $table->foreignId('transfer_transaction_id')->nullable();
+
             $table->softDeletes();
             $table->timestamps();
 
@@ -26,6 +33,7 @@ return new class extends Migration
             $table->index(['user_id', 'transaction_date']);
             $table->index(['account_id', 'transaction_date']);
             $table->index('category_id');
+            $table->index('transfer_transaction_id');
         });
     }
 };

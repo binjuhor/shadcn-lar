@@ -10,7 +10,9 @@ import {
 } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Mic, Image, Sparkles, AlertCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Mic, Image, Sparkles, AlertCircle, MessageSquare, Loader2 } from 'lucide-react'
 import { VoiceRecorder } from './components/voice-recorder'
 import { ImageDropzone } from './components/image-dropzone'
 import { TransactionPreview } from './components/transaction-preview'
@@ -25,6 +27,46 @@ export default function SmartInputIndex({ accounts, categories }: Props) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [parsedTransaction, setParsedTransaction] = useState<ParsedTransaction | null>(null)
+  const [textInput, setTextInput] = useState('')
+
+  const handleTextSubmit = async () => {
+    if (!textInput.trim()) return
+
+    setIsProcessing(true)
+    setError(null)
+
+    try {
+      const response = await fetch(route('dashboard.finance.smart-input.parse-text'), {
+        method: 'POST',
+        body: JSON.stringify({ text: textInput, language: 'vi' }),
+        headers: {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        setError(errorData.error || `Server error: ${response.status}`)
+        return
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        setParsedTransaction(data.data)
+        setTextInput('')
+      } else {
+        setError(data.error || 'Failed to parse text input')
+      }
+    } catch (err) {
+      setError('Network error. Please try again.')
+      console.error('Text parse error:', err)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
 
   const handleVoiceRecording = async (audioBlob: Blob) => {
     setIsProcessing(true)
@@ -120,7 +162,7 @@ export default function SmartInputIndex({ accounts, categories }: Props) {
             <h1 className="text-2xl font-bold tracking-tight">Smart Input</h1>
           </div>
           <p className="text-muted-foreground">
-            Add transactions by voice or receipt photo using AI
+            Add transactions by text, voice, or receipt photo using AI
           </p>
         </div>
 
@@ -154,8 +196,12 @@ export default function SmartInputIndex({ accounts, categories }: Props) {
                 </Alert>
               )}
 
-              <Tabs defaultValue="voice" className="w-full">
-                <TabsList className="w-full grid grid-cols-2 mb-6">
+              <Tabs defaultValue="text" className="w-full">
+                <TabsList className="w-full grid grid-cols-3 mb-6">
+                  <TabsTrigger value="text" className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    Text
+                  </TabsTrigger>
                   <TabsTrigger value="voice" className="flex items-center gap-2">
                     <Mic className="h-4 w-4" />
                     Voice
@@ -165,6 +211,47 @@ export default function SmartInputIndex({ accounts, categories }: Props) {
                     Receipt
                   </TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="text" className="mt-0">
+                  <div className="space-y-4">
+                    <Textarea
+                      placeholder="Nhập giao dịch... VD: Đi chợ 50k, Cafe 30 nghìn, Lương tháng 15 triệu"
+                      value={textInput}
+                      onChange={(e) => setTextInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          handleTextSubmit()
+                        }
+                      }}
+                      rows={3}
+                      disabled={isProcessing}
+                    />
+                    <Button
+                      onClick={handleTextSubmit}
+                      disabled={isProcessing || !textInput.trim()}
+                      className="w-full"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        'Parse Transaction'
+                      )}
+                    </Button>
+                  </div>
+                  <div className="mt-6 p-4 rounded-lg bg-muted">
+                    <p className="text-sm font-medium mb-2">Examples:</p>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>"Đi chợ 50k" → Expense 50,000đ</li>
+                      <li>"Cafe 30 nghìn hôm qua" → Expense 30,000đ yesterday</li>
+                      <li>"Đổ xăng 200k" → Expense 200,000đ</li>
+                      <li>"Lương tháng 15 triệu" → Income 15,000,000đ</li>
+                    </ul>
+                  </div>
+                </TabsContent>
 
                 <TabsContent value="voice" className="mt-0">
                   <div className="py-8">

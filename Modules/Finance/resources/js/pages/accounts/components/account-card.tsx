@@ -24,6 +24,7 @@ import {
   Banknote,
   Building,
   HelpCircle,
+  Smartphone,
 } from 'lucide-react'
 import type { Account, AccountType } from '@modules/Finance/types/finance'
 
@@ -38,6 +39,7 @@ const accountTypeIcons: Record<AccountType, React.ElementType> = {
   credit_card: CreditCard,
   investment: TrendingUp,
   cash: Banknote,
+  e_wallet: Smartphone,
   loan: Wallet,
   other: HelpCircle,
 }
@@ -47,6 +49,7 @@ const accountTypeLabels: Record<AccountType, string> = {
   credit_card: 'Credit Card',
   investment: 'Investment',
   cash: 'Cash',
+  e_wallet: 'E-Wallet',
   loan: 'Loan',
   other: 'Other',
 }

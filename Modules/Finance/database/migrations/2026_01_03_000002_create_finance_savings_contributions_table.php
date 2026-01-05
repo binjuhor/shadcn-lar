@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('savings_goal_id')->constrained('finance_savings_goals')->cascadeOnDelete();
             $table->foreignId('transaction_id')->nullable()->constrained('finance_transactions')->nullOnDelete();
-            $table->bigInteger('amount');
+            $table->decimal('amount', 15, 2);
             $table->char('currency_code', 3);
             $table->date('contribution_date');
             $table->text('notes')->nullable();

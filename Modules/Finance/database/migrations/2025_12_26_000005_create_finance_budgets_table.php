@@ -14,8 +14,8 @@ return new class extends Migration
             $table->foreignId('category_id')->nullable()->constrained('finance_categories')->cascadeOnDelete();
             $table->string('name')->nullable();
             $table->enum('period_type', ['weekly', 'monthly', 'quarterly', 'yearly', 'custom']);
-            $table->bigInteger('allocated_amount');
-            $table->bigInteger('spent_amount')->default(0);
+            $table->decimal('allocated_amount', 15, 2);
+            $table->decimal('spent_amount', 15, 2)->default(0);
             $table->char('currency_code', 3);
             $table->date('start_date');
             $table->date('end_date');

@@ -26,6 +26,10 @@ Route::middleware(['auth', 'verified'])
         Route::resource('transactions', TransactionController::class)->except(['show', 'edit', 'update']);
         Route::post('transactions/{transaction}/reconcile', [TransactionController::class, 'reconcile'])
             ->name('transactions.reconcile');
+        Route::post('transactions/conversion-preview', [TransactionController::class, 'conversionPreview'])
+            ->name('transactions.conversion-preview');
+        Route::get('transactions/export', [TransactionController::class, 'export'])
+            ->name('transactions.export');
 
         Route::resource('budgets', BudgetController::class)->except(['show']);
         Route::post('budgets/{budget}/refresh', [BudgetController::class, 'refresh'])

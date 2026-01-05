@@ -6,16 +6,20 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Finance\Contracts\TransactionParserInterface;
 use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Category;
 use Modules\Finance\Models\Transaction;
-use Modules\Finance\Services\GeminiTransactionParser;
+use Modules\Finance\Services\TransactionParserFactory;
 
 class SmartInputController extends Controller
 {
-    public function __construct(
-        protected GeminiTransactionParser $parser
-    ) {}
+    protected TransactionParserInterface $parser;
+
+    public function __construct()
+    {
+        $this->parser = TransactionParserFactory::make();
+    }
 
     /**
      * Show smart input page
@@ -171,11 +175,18 @@ class SmartInputController extends Controller
         }
 
         if (! $suggestedAccount) {
-            $firstAccount = Account::where('user_id', $userId)
-                ->where('is_active', true)
-                ->first();
-            if ($firstAccount) {
-                $suggestedAccount = ['id' => $firstAccount->id, 'name' => $firstAccount->name];
+            // Try default payment account first
+            $defaultAccount = Account::getDefaultPayment($userId);
+            if ($defaultAccount) {
+                $suggestedAccount = ['id' => $defaultAccount->id, 'name' => $defaultAccount->name];
+            } else {
+                // Fall back to first active account
+                $firstAccount = Account::where('user_id', $userId)
+                    ->where('is_active', true)
+                    ->first();
+                if ($firstAccount) {
+                    $suggestedAccount = ['id' => $firstAccount->id, 'name' => $firstAccount->name];
+                }
             }
         }
 

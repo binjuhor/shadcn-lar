@@ -35,6 +35,7 @@ const accountTypes: { value: AccountType; label: string }[] = [
   { value: 'credit_card', label: 'Credit Card' },
   { value: 'investment', label: 'Investment' },
   { value: 'cash', label: 'Cash' },
+  { value: 'e_wallet', label: 'E-Wallet (Payoneer, PayPal, etc.)' },
   { value: 'loan', label: 'Loan' },
   { value: 'other', label: 'Other' },
 ]
@@ -65,6 +66,7 @@ export default function EditAccount({ account, currencies }: Props) {
     description: account.description || '',
     color: account.color || '#3b82f6',
     is_active: account.is_active ?? true,
+    is_default_payment: account.is_default_payment ?? false,
     exclude_from_total: account.exclude_from_total ?? false,
   })
 
@@ -79,13 +81,14 @@ export default function EditAccount({ account, currencies }: Props) {
       description: account.description || '',
       color: account.color || '#3b82f6',
       is_active: account.is_active ?? true,
+      is_default_payment: account.is_default_payment ?? false,
       exclude_from_total: account.exclude_from_total ?? false,
     })
   }, [account.id])
 
   transform((formData) => ({
     ...formData,
-    initial_balance: Math.round(parseFloat(formData.initial_balance || '0')),
+    initial_balance: parseFloat(formData.initial_balance || '0'),
     rate_source: formData.rate_source === '__default__' ? null : formData.rate_source,
   }))
 
@@ -252,6 +255,20 @@ export default function EditAccount({ account, currencies }: Props) {
                   id="is_active"
                   checked={data.is_active}
                   onCheckedChange={(checked) => setData('is_active', checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is_default_payment">Default Payment Account</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Use this account by default for smart input transactions
+                  </p>
+                </div>
+                <Switch
+                  id="is_default_payment"
+                  checked={data.is_default_payment}
+                  onCheckedChange={(checked) => setData('is_default_payment', checked)}
                 />
               </div>
 

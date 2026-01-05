@@ -14,6 +14,7 @@ use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Category;
 use Modules\Finance\Models\Transaction;
 use Modules\Finance\Services\TransactionService;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TransactionController extends Controller
 {
@@ -132,17 +133,27 @@ class TransactionController extends Controller
         $this->authorize('delete', $transaction);
 
         DB::transaction(function () use ($transaction) {
-            if ($transaction->type === 'income') {
-                $transaction->account->decrement('balance', $transaction->amount);
-            } elseif ($transaction->type === 'expense') {
-                $transaction->account->increment('balance', $transaction->amount);
-            } elseif ($transaction->type === 'transfer' && $transaction->transfer_account_id) {
-                $transaction->account->increment('balance', $transaction->amount);
-                Account::find($transaction->transfer_account_id)?->decrement('balance', $transaction->amount);
+            // Handle linked transfer transaction first
+            if ($transaction->transfer_transaction_id) {
+                $linkedTransaction = Transaction::find($transaction->transfer_transaction_id);
+
+                if ($linkedTransaction) {
+                    // Revert linked transaction's balance using its own amount
+                    if ($linkedTransaction->type === 'income') {
+                        $linkedTransaction->account->decrement('current_balance', $linkedTransaction->amount);
+                    } elseif ($linkedTransaction->type === 'expense') {
+                        $linkedTransaction->account->increment('current_balance', $linkedTransaction->amount);
+                    }
+
+                    $linkedTransaction->delete();
+                }
             }
 
-            if ($transaction->transfer_transaction_id) {
-                Transaction::find($transaction->transfer_transaction_id)?->delete();
+            // Revert this transaction's balance
+            if ($transaction->type === 'income') {
+                $transaction->account->decrement('current_balance', $transaction->amount);
+            } elseif ($transaction->type === 'expense') {
+                $transaction->account->increment('current_balance', $transaction->amount);
             }
 
             $transaction->delete();
@@ -158,5 +169,162 @@ class TransactionController extends Controller
         $this->transactionService->reconcileTransaction($transaction->id);
 
         return Redirect::back()->with('success', 'Transaction reconciled');
+    }
+
+    /**
+     * Get conversion preview for cross-currency transfer
+     */
+    public function conversionPreview(Request $request)
+    {
+        $validated = $request->validate([
+            'from_account_id' => ['required', 'exists:finance_accounts,id'],
+            'to_account_id' => ['required', 'exists:finance_accounts,id'],
+            'amount' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $fromAccount = Account::where('id', $validated['from_account_id'])
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        $toAccount = Account::where('id', $validated['to_account_id'])
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        $preview = $this->transactionService->getTransferConversionPreview(
+            $fromAccount->id,
+            $toAccount->id,
+            (int) $validated['amount']
+        );
+
+        return response()->json($preview);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $request->validate([
+            'format' => ['required', 'in:csv,excel'],
+            'period' => ['required', 'in:custom,month,year'],
+            'date_from' => ['required_if:period,custom', 'nullable', 'date'],
+            'date_to' => ['required_if:period,custom', 'nullable', 'date'],
+            'month' => ['required_if:period,month', 'nullable', 'date_format:Y-m'],
+            'year' => ['required_if:period,year', 'nullable', 'digits:4'],
+        ]);
+
+        $userId = auth()->id();
+        $query = Transaction::with(['account', 'category'])
+            ->whereHas('account', fn ($q) => $q->where('user_id', $userId));
+
+        $period = $request->input('period');
+        $filename = 'transactions';
+
+        if ($period === 'custom') {
+            $query->whereDate('transaction_date', '>=', $request->date_from)
+                ->whereDate('transaction_date', '<=', $request->date_to);
+            $filename .= "_{$request->date_from}_to_{$request->date_to}";
+        } elseif ($period === 'month') {
+            $yearMonth = $request->input('month');
+            [$year, $month] = explode('-', $yearMonth);
+            $query->whereYear('transaction_date', $year)
+                ->whereMonth('transaction_date', $month);
+            $filename .= "_{$yearMonth}";
+        } elseif ($period === 'year') {
+            $year = $request->input('year');
+            $query->whereYear('transaction_date', $year);
+            $filename .= "_{$year}";
+        }
+
+        $transactions = $query->orderBy('transaction_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $format = $request->input('format');
+        $extension = $format === 'excel' ? 'xlsx' : 'csv';
+        $filename .= ".{$extension}";
+
+        if ($format === 'excel') {
+            return $this->exportExcel($transactions, $filename);
+        }
+
+        return $this->exportCsv($transactions, $filename);
+    }
+
+    protected function exportCsv($transactions, string $filename): StreamedResponse
+    {
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        return response()->stream(function () use ($transactions) {
+            $handle = fopen('php://output', 'w');
+
+            // BOM for Excel UTF-8 compatibility
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            // Header row
+            fputcsv($handle, [
+                'Date',
+                'Type',
+                'Description',
+                'Category',
+                'Account',
+                'Amount',
+                'Currency',
+                'Notes',
+            ]);
+
+            foreach ($transactions as $transaction) {
+                fputcsv($handle, [
+                    $transaction->transaction_date->format('Y-m-d'),
+                    ucfirst($transaction->transaction_type),
+                    $transaction->description,
+                    $transaction->category?->name ?? '',
+                    $transaction->account?->name ?? '',
+                    $transaction->amount,
+                    $transaction->currency_code,
+                    $transaction->notes ?? '',
+                ]);
+            }
+
+            fclose($handle);
+        }, 200, $headers);
+    }
+
+    protected function exportExcel($transactions, string $filename): StreamedResponse
+    {
+        // Simple XML spreadsheet format (opens in Excel)
+        $headers = [
+            'Content-Type' => 'application/vnd.ms-excel',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        return response()->stream(function () use ($transactions) {
+            echo '<?xml version="1.0" encoding="UTF-8"?>';
+            echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+            echo '<Worksheet ss:Name="Transactions"><Table>';
+
+            // Header row
+            echo '<Row>';
+            foreach (['Date', 'Type', 'Description', 'Category', 'Account', 'Amount', 'Currency', 'Notes'] as $header) {
+                echo "<Cell><Data ss:Type=\"String\">{$header}</Data></Cell>";
+            }
+            echo '</Row>';
+
+            // Data rows
+            foreach ($transactions as $transaction) {
+                echo '<Row>';
+                echo '<Cell><Data ss:Type="String">'.$transaction->transaction_date->format('Y-m-d').'</Data></Cell>';
+                echo '<Cell><Data ss:Type="String">'.ucfirst($transaction->transaction_type).'</Data></Cell>';
+                echo '<Cell><Data ss:Type="String">'.htmlspecialchars($transaction->description).'</Data></Cell>';
+                echo '<Cell><Data ss:Type="String">'.htmlspecialchars($transaction->category?->name ?? '').'</Data></Cell>';
+                echo '<Cell><Data ss:Type="String">'.htmlspecialchars($transaction->account?->name ?? '').'</Data></Cell>';
+                echo '<Cell><Data ss:Type="Number">'.$transaction->amount.'</Data></Cell>';
+                echo '<Cell><Data ss:Type="String">'.$transaction->currency_code.'</Data></Cell>';
+                echo '<Cell><Data ss:Type="String">'.htmlspecialchars($transaction->notes ?? '').'</Data></Cell>';
+                echo '</Row>';
+            }
+
+            echo '</Table></Worksheet></Workbook>';
+        }, 200, $headers);
     }
 }
