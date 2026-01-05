@@ -10,6 +10,7 @@ use Modules\Finance\Http\Controllers\FinanceReportController;
 use Modules\Finance\Http\Controllers\FinancialPlanController;
 use Modules\Finance\Http\Controllers\SavingsGoalController;
 use Modules\Finance\Http\Controllers\SmartInputController;
+use Modules\Finance\Http\Controllers\RecurringTransactionController;
 use Modules\Finance\Http\Controllers\TransactionController;
 
 Route::middleware(['auth', 'verified'])
@@ -38,6 +39,16 @@ Route::middleware(['auth', 'verified'])
         Route::resource('exchange-rates', ExchangeRateController::class)
             ->parameters(['exchange-rates' => 'exchangeRate'])
             ->except(['show']);
+
+        Route::resource('recurring-transactions', RecurringTransactionController::class)
+            ->parameters(['recurring-transactions' => 'recurringTransaction'])
+            ->except(['show']);
+        Route::post('recurring-transactions/{recurringTransaction}/toggle', [RecurringTransactionController::class, 'toggle'])
+            ->name('recurring-transactions.toggle');
+        Route::get('recurring-transactions/{recurringTransaction}/preview', [RecurringTransactionController::class, 'preview'])
+            ->name('recurring-transactions.preview');
+        Route::post('recurring-transactions/process', [RecurringTransactionController::class, 'process'])
+            ->name('recurring-transactions.process');
         Route::post('exchange-rates/fetch', [ExchangeRateController::class, 'fetchRates'])
             ->name('exchange-rates.fetch');
         Route::post('exchange-rates/convert', [ExchangeRateController::class, 'convert'])

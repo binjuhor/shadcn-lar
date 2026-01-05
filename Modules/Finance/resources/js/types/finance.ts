@@ -395,3 +395,48 @@ export interface CashflowAnalysis {
   averages: CashflowAverages;
   financialFreedomProgress: number;
 }
+
+// Recurring Transactions
+export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export interface RecurringTransaction {
+  id: number;
+  user_id: number;
+  account_id: number;
+  account?: Account;
+  category_id?: number;
+  category?: Category;
+  name: string;
+  description?: string;
+  transaction_type: 'income' | 'expense';
+  amount: number;
+  currency_code: string;
+  frequency: RecurringFrequency;
+  day_of_week?: number;
+  day_of_month?: number;
+  month_of_year?: number;
+  start_date: string;
+  end_date?: string;
+  next_run_date: string;
+  last_run_date?: string;
+  is_active: boolean;
+  auto_create: boolean;
+  monthly_amount: number;
+  yearly_amount: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecurringPreview {
+  date: string;
+  amount: number;
+  type: 'income' | 'expense';
+}
+
+export interface MonthlyProjection {
+  monthly_income: number;
+  monthly_expense: number;
+  monthly_passive_income: number;
+  monthly_net: number;
+  passive_coverage: number;
+}

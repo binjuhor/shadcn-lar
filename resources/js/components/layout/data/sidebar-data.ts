@@ -39,6 +39,7 @@ import {
   IconPigMoney,
   IconCurrencyDollar,
   IconTarget,
+  IconRepeat,
 } from '@tabler/icons-react'
 import {
   AudioWaveform,
@@ -161,6 +162,11 @@ export const sidebarData: SidebarData = {
           title: 'Financial Plans',
           url: '/dashboard/finance/plans',
           icon: IconCalendarEvent,
+        },
+        {
+          title: 'Recurring',
+          url: '/dashboard/finance/recurring-transactions',
+          icon: IconRepeat,
         },
         {
           title: 'Categories',

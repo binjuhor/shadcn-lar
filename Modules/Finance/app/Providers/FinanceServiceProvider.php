@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Modules\Finance\Console\Commands\FetchExchangeRatesCommand;
+use Modules\Finance\Console\Commands\ProcessRecurringTransactionsCommand;
 use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Budget;
 use Modules\Finance\Models\SavingsGoal;
@@ -65,6 +66,7 @@ class FinanceServiceProvider extends ServiceProvider
     {
         $this->commands([
             FetchExchangeRatesCommand::class,
+            ProcessRecurringTransactionsCommand::class,
         ]);
     }
 
@@ -78,6 +80,11 @@ class FinanceServiceProvider extends ServiceProvider
 
             $schedule->command('finance:fetch-exchange-rates --provider=vietcombank')
                 ->dailyAt('08:00')
+                ->withoutOverlapping()
+                ->runInBackground();
+
+            $schedule->command('finance:process-recurring')
+                ->dailyAt('00:05')
                 ->withoutOverlapping()
                 ->runInBackground();
         });

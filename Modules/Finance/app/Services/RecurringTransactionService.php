@@ -1,0 +1,248 @@
+<?php
+
+namespace Modules\Finance\Services;
+
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Modules\Finance\Models\RecurringTransaction;
+
+class RecurringTransactionService
+{
+    public function __construct(
+        protected TransactionService $transactionService
+    ) {}
+
+    public function create(array $data): RecurringTransaction
+    {
+        $startDate = Carbon::parse($data['start_date']);
+
+        // Calculate initial next_run_date based on frequency
+        $nextRunDate = $this->calculateInitialNextRun($data, $startDate);
+
+        return RecurringTransaction::create([
+            'user_id' => auth()->id(),
+            'account_id' => $data['account_id'],
+            'category_id' => $data['category_id'] ?? null,
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
+            'transaction_type' => $data['transaction_type'],
+            'amount' => $data['amount'],
+            'currency_code' => $data['currency_code'],
+            'frequency' => $data['frequency'],
+            'day_of_week' => $data['day_of_week'] ?? null,
+            'day_of_month' => $data['day_of_month'] ?? null,
+            'month_of_year' => $data['month_of_year'] ?? null,
+            'start_date' => $startDate,
+            'end_date' => isset($data['end_date']) ? Carbon::parse($data['end_date']) : null,
+            'next_run_date' => $nextRunDate,
+            'is_active' => $data['is_active'] ?? true,
+            'auto_create' => $data['auto_create'] ?? true,
+        ]);
+    }
+
+    public function update(RecurringTransaction $recurring, array $data): RecurringTransaction
+    {
+        $updateData = array_filter([
+            'account_id' => $data['account_id'] ?? null,
+            'category_id' => array_key_exists('category_id', $data) ? $data['category_id'] : null,
+            'name' => $data['name'] ?? null,
+            'description' => $data['description'] ?? null,
+            'transaction_type' => $data['transaction_type'] ?? null,
+            'amount' => $data['amount'] ?? null,
+            'currency_code' => $data['currency_code'] ?? null,
+            'frequency' => $data['frequency'] ?? null,
+            'day_of_week' => $data['day_of_week'] ?? null,
+            'day_of_month' => $data['day_of_month'] ?? null,
+            'month_of_year' => $data['month_of_year'] ?? null,
+            'end_date' => isset($data['end_date']) ? Carbon::parse($data['end_date']) : null,
+            'is_active' => $data['is_active'] ?? null,
+            'auto_create' => $data['auto_create'] ?? null,
+        ], fn ($value) => $value !== null);
+
+        // Recalculate next_run_date if frequency changed
+        if (isset($data['frequency']) && $data['frequency'] !== $recurring->frequency) {
+            $updateData['next_run_date'] = $this->calculateInitialNextRun(
+                array_merge($recurring->toArray(), $data),
+                $recurring->start_date
+            );
+        }
+
+        $recurring->update($updateData);
+
+        return $recurring->fresh();
+    }
+
+    public function processDue(): array
+    {
+        $dueRecurrings = RecurringTransaction::due()
+            ->with(['account', 'category'])
+            ->get();
+
+        $processed = [];
+        $errors = [];
+
+        foreach ($dueRecurrings as $recurring) {
+            try {
+                if ($recurring->auto_create) {
+                    $this->generateTransaction($recurring);
+                }
+                $processed[] = $recurring->id;
+            } catch (\Exception $e) {
+                $errors[$recurring->id] = $e->getMessage();
+            }
+        }
+
+        return [
+            'processed' => count($processed),
+            'errors' => $errors,
+        ];
+    }
+
+    public function generateTransaction(RecurringTransaction $recurring): void
+    {
+        DB::transaction(function () use ($recurring) {
+            $transactionData = [
+                'account_id' => $recurring->account_id,
+                'category_id' => $recurring->category_id,
+                'amount' => $recurring->amount,
+                'description' => $recurring->name,
+                'transaction_date' => $recurring->next_run_date->format('Y-m-d'),
+            ];
+
+            if ($recurring->transaction_type === 'income') {
+                $this->transactionService->recordIncome($transactionData);
+            } else {
+                $this->transactionService->recordExpense($transactionData);
+            }
+
+            // Update recurring transaction
+            $recurring->update([
+                'last_run_date' => $recurring->next_run_date,
+                'next_run_date' => $recurring->calculateNextRunDate(),
+            ]);
+        });
+    }
+
+    public function pause(RecurringTransaction $recurring): RecurringTransaction
+    {
+        $recurring->update(['is_active' => false]);
+
+        return $recurring;
+    }
+
+    public function resume(RecurringTransaction $recurring): RecurringTransaction
+    {
+        // Recalculate next run date if it's in the past
+        $nextRun = $recurring->next_run_date;
+        while ($nextRun < now()) {
+            $nextRun = $recurring->calculateNextRunDate($nextRun);
+        }
+
+        $recurring->update([
+            'is_active' => true,
+            'next_run_date' => $nextRun,
+        ]);
+
+        return $recurring;
+    }
+
+    public function getUpcoming(int $userId, int $days = 30): Collection
+    {
+        return RecurringTransaction::forUser($userId)
+            ->upcoming($days)
+            ->with(['account', 'category'])
+            ->orderBy('next_run_date')
+            ->get();
+    }
+
+    public function getPreview(RecurringTransaction $recurring, int $count = 12): array
+    {
+        $previews = [];
+        $date = $recurring->next_run_date->copy();
+
+        for ($i = 0; $i < $count; $i++) {
+            if ($recurring->end_date && $date > $recurring->end_date) {
+                break;
+            }
+
+            $previews[] = [
+                'date' => $date->format('Y-m-d'),
+                'amount' => $recurring->amount,
+                'type' => $recurring->transaction_type,
+            ];
+
+            $date = $recurring->calculateNextRunDate($date);
+        }
+
+        return $previews;
+    }
+
+    public function getMonthlyProjection(int $userId): array
+    {
+        $recurrings = RecurringTransaction::forUser($userId)
+            ->active()
+            ->with(['category'])
+            ->get();
+
+        $income = 0;
+        $expense = 0;
+        $passiveIncome = 0;
+
+        foreach ($recurrings as $recurring) {
+            $monthlyAmount = $recurring->monthly_amount;
+
+            if ($recurring->transaction_type === 'income') {
+                $income += $monthlyAmount;
+                if ($recurring->category?->is_passive) {
+                    $passiveIncome += $monthlyAmount;
+                }
+            } else {
+                $expense += $monthlyAmount;
+            }
+        }
+
+        return [
+            'monthly_income' => $income,
+            'monthly_expense' => $expense,
+            'monthly_passive_income' => $passiveIncome,
+            'monthly_net' => $income - $expense,
+            'passive_coverage' => $expense > 0 ? round(($passiveIncome / $expense) * 100, 1) : 0,
+        ];
+    }
+
+    protected function calculateInitialNextRun(array $data, Carbon $startDate): Carbon
+    {
+        $frequency = $data['frequency'];
+        $today = now()->startOfDay();
+
+        // If start date is in the future, use it
+        if ($startDate > $today) {
+            return $startDate;
+        }
+
+        // Calculate next occurrence from today
+        $nextRun = $startDate->copy();
+
+        while ($nextRun <= $today) {
+            $nextRun = match ($frequency) {
+                'daily' => $nextRun->addDay(),
+                'weekly' => $nextRun->addWeek(),
+                'monthly' => $this->addMonth($nextRun, $data['day_of_month'] ?? $startDate->day),
+                'yearly' => $nextRun->addYear(),
+                default => $nextRun->addMonth(),
+            };
+        }
+
+        return $nextRun;
+    }
+
+    protected function addMonth(Carbon $date, int $dayOfMonth): Carbon
+    {
+        $next = $date->copy()->addMonth();
+        $maxDay = $next->daysInMonth;
+        $targetDay = min($dayOfMonth, $maxDay);
+
+        return $next->setDay($targetDay);
+    }
+}
