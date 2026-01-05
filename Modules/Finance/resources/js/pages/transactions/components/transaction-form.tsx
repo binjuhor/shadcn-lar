@@ -101,13 +101,13 @@ export function TransactionForm({
           {/* Transaction Type Tabs */}
           <Tabs value={data.type} onValueChange={(v) => handleTypeChange(v as TransactionType)}>
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="expense" className="text-red-600 data-[state=active]:bg-red-100">
+              <TabsTrigger value="expense" className="text-red-600 dark:text-red-400 data-[state=active]:bg-red-100 dark:data-[state=active]:bg-red-900/50 data-[state=active]:text-red-700 dark:data-[state=active]:text-red-300">
                 Expense
               </TabsTrigger>
-              <TabsTrigger value="income" className="text-green-600 data-[state=active]:bg-green-100">
+              <TabsTrigger value="income" className="text-green-600 dark:text-green-400 data-[state=active]:bg-green-100 dark:data-[state=active]:bg-green-900/50 data-[state=active]:text-green-700 dark:data-[state=active]:text-green-300">
                 Income
               </TabsTrigger>
-              <TabsTrigger value="transfer" className="text-blue-600 data-[state=active]:bg-blue-100">
+              <TabsTrigger value="transfer" className="text-blue-600 dark:text-blue-400 data-[state=active]:bg-blue-100 dark:data-[state=active]:bg-blue-900/50 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300">
                 Transfer
               </TabsTrigger>
             </TabsList>
