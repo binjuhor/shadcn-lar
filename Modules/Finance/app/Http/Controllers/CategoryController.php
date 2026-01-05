@@ -47,6 +47,7 @@ class CategoryController extends Controller
             'color' => ['nullable', 'string', 'max:7'],
             'parent_id' => ['nullable', 'exists:finance_categories,id'],
             'is_active' => ['boolean'],
+            'is_passive' => ['boolean'],
         ]);
 
         Category::create([
@@ -57,6 +58,7 @@ class CategoryController extends Controller
             'color' => $validated['color'] ?? null,
             'parent_id' => $validated['parent_id'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
+            'is_passive' => $validated['is_passive'] ?? false,
         ]);
 
         return Redirect::route('dashboard.finance.categories.index')
@@ -95,6 +97,7 @@ class CategoryController extends Controller
             'color' => ['nullable', 'string', 'max:7'],
             'parent_id' => ['nullable', 'exists:finance_categories,id'],
             'is_active' => ['sometimes', 'boolean'],
+            'is_passive' => ['sometimes', 'boolean'],
         ]);
 
         $category->update($validated);

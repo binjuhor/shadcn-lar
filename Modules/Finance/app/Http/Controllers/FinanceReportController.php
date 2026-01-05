@@ -34,7 +34,9 @@ class FinanceReportController extends Controller
 
         $incomeExpenseTrend = $this->getIncomeExpenseTrend($userId, $dateFrom, $dateTo, $groupBy, $defaultCode);
         $categoryBreakdown = $this->getCategoryBreakdown($userId, $dateFrom, $dateTo, $defaultCode);
+        $incomeCategoryBreakdown = $this->getIncomeCategoryBreakdown($userId, $dateFrom, $dateTo, $defaultCode);
         $accountDistribution = $this->getAccountDistribution($userId, $defaultCode);
+        $cashflowAnalysis = $this->getCashflowAnalysis($userId, $defaultCode);
         $summary = $this->getSummary($userId, $dateFrom, $dateTo, $defaultCode);
 
         return Inertia::render('Finance::reports/index', [
@@ -45,7 +47,9 @@ class FinanceReportController extends Controller
             ],
             'incomeExpenseTrend' => $incomeExpenseTrend,
             'categoryBreakdown' => $categoryBreakdown,
+            'incomeCategoryBreakdown' => $incomeCategoryBreakdown,
             'accountDistribution' => $accountDistribution,
+            'cashflowAnalysis' => $cashflowAnalysis,
             'summary' => $summary,
             'currencyCode' => $defaultCode,
         ]);
@@ -198,6 +202,159 @@ class FinanceReportController extends Controller
                 'percentage' => $grandTotal > 0 ? round(($cat['amount'] / $grandTotal) * 100, 1) : 0,
             ];
         }, $top);
+    }
+
+    protected function getIncomeCategoryBreakdown(int $userId, Carbon $dateFrom, Carbon $dateTo, string $defaultCode): array
+    {
+        $transactions = Transaction::select(
+            'category_id',
+            DB::raw('SUM(amount) as total'),
+            'currency_code'
+        )
+            ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
+            ->where('transaction_type', 'income')
+            ->whereBetween('transaction_date', [$dateFrom->startOfDay(), $dateTo->endOfDay()])
+            ->whereNotNull('category_id')
+            ->groupBy('category_id', 'currency_code')
+            ->get();
+
+        $categories = Category::whereIn('id', $transactions->pluck('category_id'))
+            ->get()
+            ->keyBy('id');
+
+        $categoryTotals = [];
+
+        foreach ($transactions as $tx) {
+            $catId = $tx->category_id;
+            $amount = $this->convertToDefault((float) $tx->total, $tx->currency_code, $defaultCode);
+
+            if (!isset($categoryTotals[$catId])) {
+                $category = $categories->get($catId);
+                $categoryTotals[$catId] = [
+                    'id' => $catId,
+                    'name' => $category?->name ?? 'Unknown',
+                    'color' => $category?->color ?? '#10b981',
+                    'amount' => 0,
+                ];
+            }
+
+            $categoryTotals[$catId]['amount'] += $amount;
+        }
+
+        usort($categoryTotals, fn ($a, $b) => $b['amount'] <=> $a['amount']);
+
+        $top = array_slice($categoryTotals, 0, 7);
+        $others = array_slice($categoryTotals, 7);
+
+        if (count($others) > 0) {
+            $othersTotal = array_sum(array_column($others, 'amount'));
+            $top[] = [
+                'id' => 0,
+                'name' => 'Others',
+                'color' => '#9ca3af',
+                'amount' => $othersTotal,
+            ];
+        }
+
+        $grandTotal = array_sum(array_column($top, 'amount'));
+
+        return array_map(function ($cat) use ($grandTotal) {
+            return [
+                ...$cat,
+                'percentage' => $grandTotal > 0 ? round(($cat['amount'] / $grandTotal) * 100, 1) : 0,
+            ];
+        }, $top);
+    }
+
+    protected function getCashflowAnalysis(int $userId, string $defaultCode): array
+    {
+        $now = Carbon::now();
+        $startDate = $now->copy()->subMonths(11)->startOfMonth();
+        $endDate = $now->copy()->endOfMonth();
+
+        $transactions = Transaction::select(
+            DB::raw("DATE_FORMAT(transaction_date, '%Y-%m') as period"),
+            'transaction_type',
+            'category_id',
+            DB::raw('SUM(amount) as total'),
+            'currency_code'
+        )
+            ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
+            ->whereIn('transaction_type', ['income', 'expense'])
+            ->whereBetween('transaction_date', [$startDate->startOfDay(), $endDate->endOfDay()])
+            ->groupBy('period', 'transaction_type', 'category_id', 'currency_code')
+            ->get();
+
+        $passiveCategories = Category::where(function ($q) use ($userId) {
+            $q->whereNull('user_id')->orWhere('user_id', $userId);
+        })
+            ->where('is_passive', true)
+            ->pluck('id')
+            ->toArray();
+
+        $periods = [];
+        $current = $startDate->copy();
+
+        while ($current <= $endDate) {
+            $periodKey = $current->format('Y-m');
+            $periods[$periodKey] = [
+                'period' => $periodKey,
+                'label' => $current->format('M Y'),
+                'passiveIncome' => 0,
+                'activeIncome' => 0,
+                'totalIncome' => 0,
+                'expense' => 0,
+                'surplus' => 0,
+                'passiveCoverage' => 0,
+            ];
+            $current = $current->addMonth();
+        }
+
+        foreach ($transactions as $tx) {
+            if (!isset($periods[$tx->period])) {
+                continue;
+            }
+
+            $amount = $this->convertToDefault((float) $tx->total, $tx->currency_code, $defaultCode);
+
+            if ($tx->transaction_type === 'income') {
+                $periods[$tx->period]['totalIncome'] += $amount;
+                if (in_array($tx->category_id, $passiveCategories)) {
+                    $periods[$tx->period]['passiveIncome'] += $amount;
+                } else {
+                    $periods[$tx->period]['activeIncome'] += $amount;
+                }
+            } else {
+                $periods[$tx->period]['expense'] += $amount;
+            }
+        }
+
+        foreach ($periods as &$p) {
+            $p['surplus'] = $p['passiveIncome'] - $p['expense'];
+            $p['passiveCoverage'] = $p['expense'] > 0
+                ? round(($p['passiveIncome'] / $p['expense']) * 100, 1)
+                : 0;
+        }
+
+        $monthlyData = array_values($periods);
+
+        $avgPassiveIncome = count($monthlyData) > 0
+            ? array_sum(array_column($monthlyData, 'passiveIncome')) / count($monthlyData)
+            : 0;
+        $avgExpense = count($monthlyData) > 0
+            ? array_sum(array_column($monthlyData, 'expense')) / count($monthlyData)
+            : 0;
+        $avgCoverage = $avgExpense > 0 ? round(($avgPassiveIncome / $avgExpense) * 100, 1) : 0;
+
+        return [
+            'monthlyData' => $monthlyData,
+            'averages' => [
+                'passiveIncome' => round($avgPassiveIncome),
+                'expense' => round($avgExpense),
+                'coverage' => $avgCoverage,
+            ],
+            'financialFreedomProgress' => min(100, $avgCoverage),
+        ];
     }
 
     protected function getAccountDistribution(int $userId, string $defaultCode): array

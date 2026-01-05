@@ -47,6 +47,7 @@ export interface Category {
   icon?: string;
   color?: string;
   is_active: boolean;
+  is_passive: boolean;
   _lft?: number;
   _rgt?: number;
   children?: Category[];
@@ -369,4 +370,28 @@ export interface SmartInputFormData {
   category_id?: number;
   transaction_date: string;
   notes?: string;
+}
+
+// Cashflow Analysis Types
+export interface CashflowMonthlyData {
+  period: string;
+  label: string;
+  passiveIncome: number;
+  activeIncome: number;
+  totalIncome: number;
+  expense: number;
+  surplus: number;
+  passiveCoverage: number;
+}
+
+export interface CashflowAverages {
+  passiveIncome: number;
+  expense: number;
+  coverage: number;
+}
+
+export interface CashflowAnalysis {
+  monthlyData: CashflowMonthlyData[];
+  averages: CashflowAverages;
+  financialFreedomProgress: number;
 }

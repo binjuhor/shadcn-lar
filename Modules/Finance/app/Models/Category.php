@@ -24,12 +24,14 @@ class Category extends Model
         'icon',
         'color',
         'is_active',
+        'is_passive',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'is_passive' => 'boolean',
         ];
     }
 

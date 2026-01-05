@@ -17,20 +17,25 @@ import {
 import { DateRangePicker } from './components/date-range-picker'
 import { IncomeExpenseTrend } from './components/income-expense-trend'
 import { CategoryBreakdown } from './components/category-breakdown'
+import { IncomeCategoryBreakdown } from './components/income-category-breakdown'
 import { AccountDistribution } from './components/account-distribution'
+import { CashflowChart } from './components/cashflow-chart'
 import type {
   ReportFilters,
   IncomeExpensePoint,
   CategoryBreakdownItem,
   AccountTypeBreakdown,
   ReportSummary,
+  CashflowAnalysis,
 } from '@modules/Finance/types/finance'
 
 interface Props {
   filters: ReportFilters
   incomeExpenseTrend: IncomeExpensePoint[]
   categoryBreakdown: CategoryBreakdownItem[]
+  incomeCategoryBreakdown: CategoryBreakdownItem[]
   accountDistribution: AccountTypeBreakdown[]
+  cashflowAnalysis: CashflowAnalysis
   summary: ReportSummary
   currencyCode: string
 }
@@ -102,7 +107,9 @@ export default function FinanceReports({
   filters,
   incomeExpenseTrend,
   categoryBreakdown,
+  incomeCategoryBreakdown,
   accountDistribution,
+  cashflowAnalysis,
   summary,
   currencyCode,
 }: Props) {
@@ -134,10 +141,14 @@ export default function FinanceReports({
 
           <IncomeExpenseTrend data={incomeExpenseTrend} currencyCode={currencyCode} />
 
+          <CashflowChart data={cashflowAnalysis} currencyCode={currencyCode} />
+
           <div className="grid gap-4 md:grid-cols-2">
+            <IncomeCategoryBreakdown data={incomeCategoryBreakdown} currencyCode={currencyCode} />
             <CategoryBreakdown data={categoryBreakdown} currencyCode={currencyCode} />
-            <AccountDistribution data={accountDistribution} currencyCode={currencyCode} />
           </div>
+
+          <AccountDistribution data={accountDistribution} currencyCode={currencyCode} />
         </div>
       </Main>
     </AuthenticatedLayout>

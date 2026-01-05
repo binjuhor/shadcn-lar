@@ -57,6 +57,7 @@ export function CategoryForm({
     icon: category?.icon || 'more-horizontal',
     color: category?.color || '#6b7280',
     is_active: category?.is_active ?? true,
+    is_passive: category?.is_passive ?? false,
   })
 
   const filteredParents = parentCategories.filter(
@@ -218,6 +219,22 @@ export function CategoryForm({
               onCheckedChange={(checked) => setData('is_active', checked)}
             />
           </div>
+
+          {data.type === 'income' && (
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="is_passive">Passive Income</Label>
+                <p className="text-xs text-muted-foreground">
+                  Income generated without active work (investments, dividends, etc.)
+                </p>
+              </div>
+              <Switch
+                id="is_passive"
+                checked={data.is_passive}
+                onCheckedChange={(checked) => setData('is_passive', checked)}
+              />
+            </div>
+          )}
 
           <SheetFooter className="gap-2 pt-4">
             <Button
