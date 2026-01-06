@@ -133,7 +133,7 @@ export default function RecurringTransactionsIndex({
               <ArrowDownLeft className="h-3 w-3 text-green-600" />
             </div>
             <div className="text-lg font-bold text-green-600 mt-1">
-              {formatMoney(projection.monthly_income)}
+              {formatMoney(projection.monthly_income, projection.currency_code)}
             </div>
           </Card>
 
@@ -143,7 +143,7 @@ export default function RecurringTransactionsIndex({
               <ArrowUpRight className="h-3 w-3 text-red-600" />
             </div>
             <div className="text-lg font-bold text-red-600 mt-1">
-              {formatMoney(projection.monthly_expense)}
+              {formatMoney(projection.monthly_expense, projection.currency_code)}
             </div>
           </Card>
 
@@ -157,7 +157,7 @@ export default function RecurringTransactionsIndex({
               )}
             </div>
             <div className={`text-lg font-bold mt-1 ${projection.monthly_net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {projection.monthly_net >= 0 ? '+' : ''}{formatMoney(projection.monthly_net)}
+              {projection.monthly_net >= 0 ? '+' : ''}{formatMoney(projection.monthly_net, projection.currency_code)}
             </div>
           </Card>
 
@@ -167,7 +167,7 @@ export default function RecurringTransactionsIndex({
               <Wallet className="h-3 w-3 text-blue-600" />
             </div>
             <div className="text-lg font-bold text-blue-600 mt-1">
-              {formatMoney(projection.monthly_passive_income)}
+              {formatMoney(projection.monthly_passive_income, projection.currency_code)}
             </div>
           </Card>
 

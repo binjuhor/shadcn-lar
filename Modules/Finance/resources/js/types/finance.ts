@@ -439,4 +439,5 @@ export interface MonthlyProjection {
   monthly_passive_income: number;
   monthly_net: number;
   passive_coverage: number;
+  currency_code: string;
 }

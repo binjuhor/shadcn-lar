@@ -315,19 +315,19 @@ function RecurringOverview({
           <div>
             <p className="text-xs text-muted-foreground">Monthly Income</p>
             <p className="text-lg font-semibold text-green-600">
-              {formatMoney(projection.monthly_income)}
+              {formatMoney(projection.monthly_income, projection.currency_code)}
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Monthly Expense</p>
             <p className="text-lg font-semibold text-red-600">
-              {formatMoney(projection.monthly_expense)}
+              {formatMoney(projection.monthly_expense, projection.currency_code)}
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Net Monthly</p>
             <p className={`text-lg font-semibold ${projection.monthly_net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {projection.monthly_net >= 0 ? '+' : ''}{formatMoney(projection.monthly_net)}
+              {projection.monthly_net >= 0 ? '+' : ''}{formatMoney(projection.monthly_net, projection.currency_code)}
             </p>
           </div>
           <div>

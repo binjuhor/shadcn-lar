@@ -5,12 +5,14 @@ namespace Modules\Finance\Services;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Modules\Finance\Models\Currency;
 use Modules\Finance\Models\RecurringTransaction;
 
 class RecurringTransactionService
 {
     public function __construct(
-        protected TransactionService $transactionService
+        protected TransactionService $transactionService,
+        protected ExchangeRateService $exchangeRateService
     ) {}
 
     public function create(array $data): RecurringTransaction
@@ -180,9 +182,12 @@ class RecurringTransactionService
 
     public function getMonthlyProjection(int $userId): array
     {
+        $defaultCurrency = Currency::where('is_default', true)->first();
+        $defaultCode = $defaultCurrency?->code ?? 'VND';
+
         $recurrings = RecurringTransaction::forUser($userId)
             ->active()
-            ->with(['category'])
+            ->with(['category', 'account'])
             ->get();
 
         $income = 0;
@@ -191,6 +196,16 @@ class RecurringTransactionService
 
         foreach ($recurrings as $recurring) {
             $monthlyAmount = $recurring->monthly_amount;
+
+            // Convert to default currency if different
+            if ($recurring->currency_code !== $defaultCode) {
+                $monthlyAmount = $this->convertToDefault(
+                    $monthlyAmount,
+                    $recurring->currency_code,
+                    $defaultCode,
+                    $recurring->account?->rate_source
+                );
+            }
 
             if ($recurring->transaction_type === 'income') {
                 $income += $monthlyAmount;
@@ -203,12 +218,26 @@ class RecurringTransactionService
         }
 
         return [
-            'monthly_income' => $income,
-            'monthly_expense' => $expense,
-            'monthly_passive_income' => $passiveIncome,
-            'monthly_net' => $income - $expense,
+            'monthly_income' => (int) $income,
+            'monthly_expense' => (int) $expense,
+            'monthly_passive_income' => (int) $passiveIncome,
+            'monthly_net' => (int) ($income - $expense),
             'passive_coverage' => $expense > 0 ? round(($passiveIncome / $expense) * 100, 1) : 0,
+            'currency_code' => $defaultCode,
         ];
+    }
+
+    protected function convertToDefault(float $amount, string $fromCurrency, string $defaultCurrency, ?string $source = null): float
+    {
+        if ($fromCurrency === $defaultCurrency) {
+            return $amount;
+        }
+
+        try {
+            return $this->exchangeRateService->convert($amount, $fromCurrency, $defaultCurrency, $source);
+        } catch (\Exception) {
+            return $amount;
+        }
     }
 
     protected function calculateInitialNextRun(array $data, Carbon $startDate): Carbon

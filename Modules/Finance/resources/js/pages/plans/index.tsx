@@ -147,19 +147,19 @@ export default function PlansIndex({ plans, recurringProjection, upcomingRecurri
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Monthly Income</p>
                 <p className="text-lg font-semibold text-green-600">
-                  {formatMoney(recurringProjection.monthly_income)}
+                  {formatMoney(recurringProjection.monthly_income, recurringProjection.currency_code)}
                 </p>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Monthly Expense</p>
                 <p className="text-lg font-semibold text-red-600">
-                  {formatMoney(recurringProjection.monthly_expense)}
+                  {formatMoney(recurringProjection.monthly_expense, recurringProjection.currency_code)}
                 </p>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Net Monthly</p>
                 <p className={`text-lg font-semibold ${recurringProjection.monthly_net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {recurringProjection.monthly_net >= 0 ? '+' : ''}{formatMoney(recurringProjection.monthly_net)}
+                  {recurringProjection.monthly_net >= 0 ? '+' : ''}{formatMoney(recurringProjection.monthly_net, recurringProjection.currency_code)}
                 </p>
               </div>
               <div className="space-y-1">
@@ -167,7 +167,7 @@ export default function PlansIndex({ plans, recurringProjection, upcomingRecurri
                   <Wallet className="h-3 w-3" /> Passive Income
                 </p>
                 <p className="text-lg font-semibold text-blue-600">
-                  {formatMoney(recurringProjection.monthly_passive_income)}
+                  {formatMoney(recurringProjection.monthly_passive_income, recurringProjection.currency_code)}
                 </p>
               </div>
               <div className="space-y-1">
