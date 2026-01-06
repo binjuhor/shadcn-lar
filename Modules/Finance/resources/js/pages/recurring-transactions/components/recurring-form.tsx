@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/react'
+import { useForm, router } from '@inertiajs/react'
 import { format } from 'date-fns'
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
@@ -76,7 +76,7 @@ export function RecurringForm({
 }: RecurringFormProps) {
   const isEditing = !!recurring
 
-  const { data, setData, post, put, processing, errors, reset } = useForm({
+  const { data, setData, processing, errors, reset } = useForm({
     name: '',
     description: '',
     account_id: '',
@@ -124,35 +124,37 @@ export function RecurringForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const formData = {
-      ...data,
-      amount: Math.round(parseFloat(data.amount || '0')),
+    // Transform data for submission
+    const submitData = {
+      name: data.name,
+      description: data.description || null,
       account_id: data.account_id ? parseInt(data.account_id) : null,
       category_id: data.category_id ? parseInt(data.category_id) : null,
+      transaction_type: data.transaction_type,
+      amount: Math.round(parseFloat(data.amount || '0')),
+      frequency: data.frequency,
       day_of_week: data.day_of_week ? parseInt(data.day_of_week) : null,
       day_of_month: data.day_of_month ? parseInt(data.day_of_month) : null,
       month_of_year: data.month_of_year ? parseInt(data.month_of_year) : null,
+      start_date: data.start_date,
       end_date: data.end_date || null,
+      is_active: data.is_active,
+      auto_create: data.auto_create,
+    }
+
+    const options = {
+      preserveScroll: true,
+      onSuccess: () => {
+        reset()
+        onOpenChange(false)
+        onSuccess?.()
+      },
     }
 
     if (isEditing && recurring) {
-      put(route('dashboard.finance.recurring-transactions.update', recurring.id), {
-        ...formData,
-        onSuccess: () => {
-          reset()
-          onOpenChange(false)
-          onSuccess?.()
-        },
-      })
+      router.put(route('dashboard.finance.recurring-transactions.update', recurring.id), submitData, options)
     } else {
-      post(route('dashboard.finance.recurring-transactions.store'), {
-        ...formData,
-        onSuccess: () => {
-          reset()
-          onOpenChange(false)
-          onSuccess?.()
-        },
-      })
+      router.post(route('dashboard.finance.recurring-transactions.store'), submitData, options)
     }
   }
 

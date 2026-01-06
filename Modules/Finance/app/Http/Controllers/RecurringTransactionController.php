@@ -80,7 +80,6 @@ class RecurringTransactionController extends Controller
             'category_id' => ['nullable', 'exists:finance_categories,id'],
             'transaction_type' => ['required', 'in:income,expense'],
             'amount' => ['required', 'integer', 'min:1'],
-            'currency_code' => ['required', 'string', 'size:3', 'exists:currencies,code'],
             'frequency' => ['required', 'in:daily,weekly,monthly,yearly'],
             'day_of_week' => ['nullable', 'integer', 'min:0', 'max:6'],
             'day_of_month' => ['nullable', 'integer', 'min:1', 'max:31'],
@@ -91,7 +90,7 @@ class RecurringTransactionController extends Controller
             'auto_create' => ['boolean'],
         ]);
 
-        // Verify account belongs to user
+        // Verify account belongs to user and get currency
         $account = Account::where('id', $validated['account_id'])
             ->where('user_id', auth()->id())
             ->firstOrFail();
