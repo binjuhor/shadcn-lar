@@ -9,13 +9,16 @@ use Inertia\Response;
 use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Budget;
 use Modules\Finance\Models\Currency;
+use Modules\Finance\Models\RecurringTransaction;
 use Modules\Finance\Models\Transaction;
 use Modules\Finance\Services\ExchangeRateService;
+use Modules\Finance\Services\RecurringTransactionService;
 
 class FinanceDashboardController extends Controller
 {
     public function __construct(
-        protected ExchangeRateService $exchangeRateService
+        protected ExchangeRateService $exchangeRateService,
+        protected RecurringTransactionService $recurringService
     ) {}
 
     public function index(): Response
@@ -72,6 +75,29 @@ class FinanceDashboardController extends Controller
                 'amount' => $item->amount,
             ]);
 
+        $recurringProjection = $this->recurringService->getMonthlyProjection($userId);
+
+        $upcomingRecurrings = RecurringTransaction::forUser($userId)
+            ->active()
+            ->upcoming(7)
+            ->with(['account', 'category'])
+            ->limit(5)
+            ->get()
+            ->map(fn ($r) => [
+                'id' => $r->id,
+                'name' => $r->name,
+                'transaction_type' => $r->transaction_type,
+                'amount' => $r->amount,
+                'currency_code' => $r->currency_code,
+                'frequency' => $r->frequency,
+                'next_run_date' => $r->next_run_date->toDateString(),
+                'category' => $r->category ? [
+                    'name' => $r->category->name,
+                    'color' => $r->category->color,
+                    'is_passive' => $r->category->is_passive,
+                ] : null,
+            ]);
+
         return Inertia::render('Finance::index', [
             'summary' => [
                 'total_assets' => $totalAssets,
@@ -84,6 +110,8 @@ class FinanceDashboardController extends Controller
             'recentTransactions' => $recentTransactions,
             'budgets' => $budgets,
             'spendingTrend' => $spendingTrend,
+            'recurringProjection' => $recurringProjection,
+            'upcomingRecurrings' => $upcomingRecurrings,
         ]);
     }
 

@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -20,19 +21,39 @@ import {
   ArrowRight,
   PiggyBank,
   BarChart3,
+  RefreshCw,
+  Target,
 } from 'lucide-react'
 import type {
   FinanceDashboardData,
   Transaction,
   Budget,
   AccountSummary,
+  MonthlyProjection,
 } from '@modules/Finance/types/finance'
+
+interface UpcomingRecurring {
+  id: number
+  name: string
+  transaction_type: 'income' | 'expense'
+  amount: number
+  currency_code: string
+  frequency: string
+  next_run_date: string
+  category?: {
+    name: string
+    color?: string
+    is_passive: boolean
+  }
+}
 
 interface Props {
   summary: AccountSummary
   recentTransactions: Transaction[]
   budgets: Budget[]
   spendingTrend: { date: string; amount: number }[]
+  recurringProjection: MonthlyProjection
+  upcomingRecurrings: UpcomingRecurring[]
 }
 
 function formatMoney(amount: number, currencyCode = 'VND'): string {
@@ -267,6 +288,81 @@ function BudgetStatus({ budgets }: { budgets: Budget[] }) {
   )
 }
 
+function RecurringOverview({
+  projection,
+  upcoming,
+}: {
+  projection: MonthlyProjection
+  upcoming: UpcomingRecurring[]
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-base">Recurring Overview</CardTitle>
+          </div>
+          <Link href={route('dashboard.finance.recurring-transactions.index')}>
+            <Button variant="ghost" size="sm">
+              Manage <ArrowRight className="ml-1 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Monthly Income</p>
+            <p className="text-lg font-semibold text-green-600">
+              {formatMoney(projection.monthly_income)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Monthly Expense</p>
+            <p className="text-lg font-semibold text-red-600">
+              {formatMoney(projection.monthly_expense)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Net Monthly</p>
+            <p className={`text-lg font-semibold ${projection.monthly_net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {projection.monthly_net >= 0 ? '+' : ''}{formatMoney(projection.monthly_net)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Target className="h-3 w-3" /> Passive Coverage
+            </p>
+            <p className="text-lg font-semibold text-purple-600">
+              {projection.passive_coverage}%
+            </p>
+          </div>
+        </div>
+
+        {upcoming.length > 0 && (
+          <div className="pt-3 border-t">
+            <p className="text-xs text-muted-foreground mb-2">Upcoming (7 days)</p>
+            <div className="space-y-1">
+              {upcoming.slice(0, 3).map((r) => (
+                <div key={r.id} className="flex items-center justify-between text-sm">
+                  <span className="truncate">{r.name}</span>
+                  <Badge
+                    variant="outline"
+                    className={`text-xs ${r.transaction_type === 'income' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}
+                  >
+                    {r.transaction_type === 'income' ? '+' : '-'}{formatMoney(r.amount, r.currency_code)}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 function EmptyDashboard() {
   return (
     <Card className="col-span-full">
@@ -299,6 +395,8 @@ export default function FinanceDashboard({
   summary,
   recentTransactions,
   budgets,
+  recurringProjection,
+  upcomingRecurrings,
 }: Props) {
   const hasData =
     recentTransactions?.length > 0 ||
@@ -341,7 +439,8 @@ export default function FinanceDashboard({
               <div className="lg:col-span-4">
                 <RecentTransactions transactions={recentTransactions} />
               </div>
-              <div className="lg:col-span-3">
+              <div className="lg:col-span-3 space-y-4">
+                <RecurringOverview projection={recurringProjection} upcoming={upcomingRecurrings} />
                 <BudgetStatus budgets={budgets} />
               </div>
             </div>
