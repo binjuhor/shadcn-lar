@@ -36,11 +36,32 @@ import {
   BarChart3,
   TrendingUp,
   TrendingDown,
+  RefreshCw,
+  Wallet,
+  Target,
+  ArrowRight,
 } from 'lucide-react'
-import type { FinancialPlan } from '@modules/Finance/types/finance'
+import type { FinancialPlan, MonthlyProjection } from '@modules/Finance/types/finance'
+
+interface UpcomingRecurring {
+  id: number
+  name: string
+  transaction_type: 'income' | 'expense'
+  amount: number
+  currency_code: string
+  frequency: string
+  next_run_date: string
+  category?: {
+    name: string
+    color?: string
+    is_passive: boolean
+  }
+}
 
 interface Props {
   plans: FinancialPlan[]
+  recurringProjection: MonthlyProjection
+  upcomingRecurrings: UpcomingRecurring[]
 }
 
 function formatMoney(amount: number, currencyCode = 'VND'): string {
@@ -60,7 +81,7 @@ function getStatusBadge(status: string) {
   return <Badge variant={config.variant}>{config.label}</Badge>
 }
 
-export default function PlansIndex({ plans }: Props) {
+export default function PlansIndex({ plans, recurringProjection, upcomingRecurrings }: Props) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<FinancialPlan | null>(null)
 
@@ -101,6 +122,83 @@ export default function PlansIndex({ plans }: Props) {
             </Link>
           </Button>
         </div>
+
+        {/* Recurring Overview Section */}
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="text-lg">Recurring Overview</CardTitle>
+              </div>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href={route('dashboard.finance.recurring-transactions.index')}>
+                  Manage
+                  <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <CardDescription>
+              Monthly projection from active recurring transactions
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Monthly Income</p>
+                <p className="text-lg font-semibold text-green-600">
+                  {formatMoney(recurringProjection.monthly_income)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Monthly Expense</p>
+                <p className="text-lg font-semibold text-red-600">
+                  {formatMoney(recurringProjection.monthly_expense)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Net Monthly</p>
+                <p className={`text-lg font-semibold ${recurringProjection.monthly_net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {recurringProjection.monthly_net >= 0 ? '+' : ''}{formatMoney(recurringProjection.monthly_net)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Wallet className="h-3 w-3" /> Passive Income
+                </p>
+                <p className="text-lg font-semibold text-blue-600">
+                  {formatMoney(recurringProjection.monthly_passive_income)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Target className="h-3 w-3" /> Passive Coverage
+                </p>
+                <p className="text-lg font-semibold text-purple-600">
+                  {recurringProjection.passive_coverage}%
+                </p>
+              </div>
+            </div>
+
+            {/* Upcoming Recurrings */}
+            {upcomingRecurrings.length > 0 && (
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-xs text-muted-foreground mb-2">Upcoming (Next 7 days)</p>
+                <div className="flex flex-wrap gap-2">
+                  {upcomingRecurrings.map((r) => (
+                    <Badge
+                      key={r.id}
+                      variant="outline"
+                      className={`text-xs ${r.transaction_type === 'income' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}
+                    >
+                      {r.name}: {r.transaction_type === 'income' ? '+' : '-'}{formatMoney(r.amount, r.currency_code)}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {plans.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">

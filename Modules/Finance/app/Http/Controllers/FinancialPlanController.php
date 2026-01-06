@@ -14,13 +14,17 @@ use Modules\Finance\Models\Currency;
 use Modules\Finance\Models\FinancialPlan;
 use Modules\Finance\Models\PlanItem;
 use Modules\Finance\Models\PlanPeriod;
+use Modules\Finance\Models\RecurringTransaction;
 use Modules\Finance\Models\Transaction;
+use Modules\Finance\Services\RecurringTransactionService;
 
 class FinancialPlanController extends Controller
 {
-    public function index(): Response
+    public function index(RecurringTransactionService $recurringService): Response
     {
-        $plans = FinancialPlan::forUser(auth()->id())
+        $userId = auth()->id();
+
+        $plans = FinancialPlan::forUser($userId)
             ->with('periods')
             ->orderByDesc('created_at')
             ->get()
@@ -39,8 +43,33 @@ class FinancialPlanController extends Controller
                 'created_at' => $plan->created_at,
             ]);
 
+        $recurringProjection = $recurringService->getMonthlyProjection($userId);
+
+        $upcomingRecurrings = RecurringTransaction::forUser($userId)
+            ->active()
+            ->upcoming(7)
+            ->with(['account', 'category'])
+            ->limit(5)
+            ->get()
+            ->map(fn ($r) => [
+                'id' => $r->id,
+                'name' => $r->name,
+                'transaction_type' => $r->transaction_type,
+                'amount' => $r->amount,
+                'currency_code' => $r->currency_code,
+                'frequency' => $r->frequency,
+                'next_run_date' => $r->next_run_date->toDateString(),
+                'category' => $r->category ? [
+                    'name' => $r->category->name,
+                    'color' => $r->category->color,
+                    'is_passive' => $r->category->is_passive,
+                ] : null,
+            ]);
+
         return Inertia::render('Finance::plans/index', [
             'plans' => $plans,
+            'recurringProjection' => $recurringProjection,
+            'upcomingRecurrings' => $upcomingRecurrings,
         ]);
     }
 
