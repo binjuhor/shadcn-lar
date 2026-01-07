@@ -51,6 +51,7 @@ class HandleInertiaRequests extends Middleware
             'locale' => app()->getLocale(),
             'translations' => fn () => $this->getTranslations(),
             'enabledModules' => fn () => collect(Module::allEnabled())->keys()->toArray(),
+            'sidebarSettings' => fn () => $user?->sidebar_settings ?? [],
         ];
     }
 

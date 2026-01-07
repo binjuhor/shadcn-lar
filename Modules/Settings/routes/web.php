@@ -29,6 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Modules (Super Admin only)
         Route::get('/modules', [ModulesController::class, 'index'])->name('modules');
         Route::patch('/modules/toggle', [ModulesController::class, 'toggle'])->name('modules.toggle');
+        Route::patch('/modules/reorder', [ModulesController::class, 'reorder'])->name('modules.reorder');
     });
 
     // Profile routes (user account management)

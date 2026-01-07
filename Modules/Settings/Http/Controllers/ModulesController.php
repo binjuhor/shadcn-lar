@@ -73,4 +73,22 @@ class ModulesController extends Controller
 
         return Redirect::back()->with('success', "Module {$moduleName} {$action} successfully.");
     }
+
+    public function reorder(Request $request): RedirectResponse
+    {
+        abort_unless(auth()->user()->hasRole('Super Admin'), 403);
+
+        $request->validate([
+            'order' => 'required|array',
+            'order.*' => 'required|string',
+        ]);
+
+        $request->user()->update([
+            'sidebar_settings' => [
+                'module_order' => $request->input('order'),
+            ],
+        ]);
+
+        return Redirect::back()->with('success', 'Module order saved successfully.');
+    }
 }

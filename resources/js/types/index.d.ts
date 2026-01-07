@@ -69,4 +69,7 @@ export type PageProps<
     locale: string;
     translations: Record<string, string>;
     enabledModules: string[];
+    sidebarSettings: {
+        module_order?: string[];
+    };
 };

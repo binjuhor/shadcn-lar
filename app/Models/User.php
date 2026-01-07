@@ -36,6 +36,7 @@ class User extends Authenticatable
         'notification_settings',
         'display_settings',
         'finance_settings',
+        'sidebar_settings',
     ];
 
     /**
@@ -64,6 +65,7 @@ class User extends Authenticatable
             'notification_settings' => 'array',
             'display_settings' => 'array',
             'finance_settings' => 'array',
+            'sidebar_settings' => 'array',
         ];
     }
 
