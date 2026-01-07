@@ -20,6 +20,7 @@ return new class extends Migration
             $table->json('appearance_settings')->nullable()->after('password');
             $table->json('notification_settings')->nullable()->after('appearance_settings');
             $table->json('display_settings')->nullable()->after('notification_settings');
+            $table->json('finance_settings')->nullable();
         });
     }
 

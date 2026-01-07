@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('name');
             $table->char('currency_code', 3);
             $table->string('rate_source')->nullable()
-            ->comment('Preferred exchange rate provider: null=default, payoneer, vietcombank, etc.');
+                ->comment('Preferred exchange rate provider: null=default, payoneer, vietcombank, etc.');
             $table->text('account_number')->nullable();
             $table->string('institution_name')->nullable();
             $table->text('description')->nullable();

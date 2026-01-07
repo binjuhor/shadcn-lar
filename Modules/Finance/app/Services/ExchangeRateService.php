@@ -23,10 +23,10 @@ class ExchangeRateService
     /**
      * Convert amount from one currency to another
      *
-     * @param float $amount Amount to convert
-     * @param string $from Source currency code
-     * @param string $to Target currency code
-     * @param string|null $source Preferred rate source (e.g., 'payoneer', 'vietcombank')
+     * @param  float  $amount  Amount to convert
+     * @param  string  $from  Source currency code
+     * @param  string  $to  Target currency code
+     * @param  string|null  $source  Preferred rate source (e.g., 'payoneer', 'vietcombank')
      */
     public function convert(float $amount, string $from, string $to, ?string $source = null): float
     {
@@ -36,7 +36,7 @@ class ExchangeRateService
 
         $rate = $this->getRate($from, $to, $source);
 
-        if (!$rate) {
+        if (! $rate) {
             throw new \RuntimeException("Exchange rate not found for {$from}/{$to}");
         }
 
@@ -46,9 +46,9 @@ class ExchangeRateService
     /**
      * Get exchange rate between two currencies
      *
-     * @param string $from Source currency code
-     * @param string $to Target currency code
-     * @param string|null $source Preferred rate source (null = best available)
+     * @param  string  $from  Source currency code
+     * @param  string  $to  Target currency code
+     * @param  string|null  $source  Preferred rate source (null = best available)
      */
     public function getRate(string $from, string $to, ?string $source = null): ?float
     {
@@ -75,15 +75,15 @@ class ExchangeRateService
     /**
      * Convert amount to default currency
      *
-     * @param float $amount Amount to convert
-     * @param string $from Source currency code
-     * @param string|null $source Preferred rate source
+     * @param  float  $amount  Amount to convert
+     * @param  string  $from  Source currency code
+     * @param  string|null  $source  Preferred rate source
      */
     public function convertToDefault(float $amount, string $from, ?string $source = null): float
     {
         $defaultCurrency = Currency::where('is_default', true)->first();
 
-        if (!$defaultCurrency || $defaultCurrency->code === $from) {
+        if (! $defaultCurrency || $defaultCurrency->code === $from) {
             return $amount;
         }
 
@@ -92,7 +92,7 @@ class ExchangeRateService
 
     public function fetchRates(string $provider = 'exchangerate_api'): array
     {
-        if (!isset($this->providers[$provider])) {
+        if (! isset($this->providers[$provider])) {
             throw new \InvalidArgumentException("Unknown provider: {$provider}");
         }
 
@@ -131,18 +131,20 @@ class ExchangeRateService
         $apiKey = config('services.exchangerate_api.key');
         $baseCurrency = config('services.exchangerate_api.base', 'USD');
 
-        if (!$apiKey) {
+        if (! $apiKey) {
             Log::warning('ExchangeRate API key not configured');
+
             return [];
         }
 
         $response = Http::get("https://v6.exchangerate-api.com/v6/{$apiKey}/latest/{$baseCurrency}");
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Failed to fetch exchange rates from ExchangeRate API', [
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
+
             return [];
         }
 
@@ -169,21 +171,23 @@ class ExchangeRateService
         $apiKey = config('services.open_exchange_rates.key');
         $baseCurrency = config('services.open_exchange_rates.base', 'USD');
 
-        if (!$apiKey) {
+        if (! $apiKey) {
             Log::warning('Open Exchange Rates API key not configured');
+
             return [];
         }
 
-        $response = Http::get("https://openexchangerates.org/api/latest.json", [
+        $response = Http::get('https://openexchangerates.org/api/latest.json', [
             'app_id' => $apiKey,
             'base' => $baseCurrency,
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Failed to fetch exchange rates from Open Exchange Rates', [
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
+
             return [];
         }
 
@@ -209,18 +213,20 @@ class ExchangeRateService
     {
         $response = Http::get('https://portal.vietcombank.com.vn/Usercontrols/TVPortal.TyGia/pXML.aspx');
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Failed to fetch exchange rates from Vietcombank', [
                 'status' => $response->status(),
             ]);
+
             return [];
         }
 
         $rates = [];
         $xml = simplexml_load_string($response->body());
 
-        if (!$xml) {
+        if (! $xml) {
             Log::error('Failed to parse Vietcombank XML response');
+
             return [];
         }
 
@@ -262,8 +268,9 @@ class ExchangeRateService
     {
         $apiKey = config('services.exchangerate_api.key');
 
-        if (!$apiKey) {
+        if (! $apiKey) {
             Log::warning('Payoneer rates: ExchangeRate API key not configured (needed for base rates)');
+
             return $this->calculatePayoneerRatesFromExisting();
         }
 
@@ -272,21 +279,22 @@ class ExchangeRateService
         $payoneerCurrencies = array_intersect(self::PAYONEER_CURRENCIES, $currencies);
 
         foreach (['USD', 'EUR'] as $baseCurrency) {
-            if (!in_array($baseCurrency, $payoneerCurrencies)) {
+            if (! in_array($baseCurrency, $payoneerCurrencies)) {
                 continue;
             }
 
             $response = Http::get("https://v6.exchangerate-api.com/v6/{$apiKey}/latest/{$baseCurrency}");
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning("Failed to fetch {$baseCurrency} rates for Payoneer calculation");
+
                 continue;
             }
 
             $data = $response->json();
 
             foreach ($data['conversion_rates'] ?? [] as $targetCurrency => $rate) {
-                if (!in_array($targetCurrency, $payoneerCurrencies) || $targetCurrency === $baseCurrency) {
+                if (! in_array($targetCurrency, $payoneerCurrencies) || $targetCurrency === $baseCurrency) {
                     continue;
                 }
 
@@ -319,7 +327,7 @@ class ExchangeRateService
             ->where('source', '!=', 'payoneer')
             ->latest('rate_date')
             ->get()
-            ->unique(fn ($r) => $r->base_currency . '-' . $r->target_currency);
+            ->unique(fn ($r) => $r->base_currency.'-'.$r->target_currency);
 
         foreach ($existingRates as $existingRate) {
             $rates[] = [

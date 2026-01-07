@@ -3,15 +3,43 @@
 namespace Modules\Finance\Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Finance\Models\Account;
+use Modules\Finance\Models\Currency;
 use Tests\TestCase;
 
 class SmartInputTest extends TestCase
 {
+    use RefreshDatabase;
+
+    private function createUserWithAccount(): array
+    {
+        $user = User::factory()->create();
+
+        Currency::create([
+            'code' => 'VND',
+            'name' => 'Vietnamese Dong',
+            'symbol' => '₫',
+            'decimal_places' => 0,
+            'is_default' => true,
+        ]);
+
+        $account = Account::create([
+            'user_id' => $user->id,
+            'name' => 'Test Account',
+            'account_type' => 'bank',
+            'currency_code' => 'VND',
+            'initial_balance' => 1000000,
+            'current_balance' => 1000000,
+            'is_active' => true,
+        ]);
+
+        return [$user, $account];
+    }
+
     public function test_smart_input_page_loads(): void
     {
-        $user = User::first();
+        [$user] = $this->createUserWithAccount();
 
         $response = $this->actingAs($user)
             ->get(route('dashboard.finance.smart-input'));
@@ -21,7 +49,7 @@ class SmartInputTest extends TestCase
 
     public function test_parse_text_endpoint_returns_json(): void
     {
-        $user = User::first();
+        [$user] = $this->createUserWithAccount();
 
         $response = $this->actingAs($user)
             ->postJson(route('dashboard.finance.smart-input.parse-text'), [
@@ -36,7 +64,7 @@ class SmartInputTest extends TestCase
 
     public function test_store_transaction_requires_account(): void
     {
-        $user = User::first();
+        [$user] = $this->createUserWithAccount();
 
         $response = $this->actingAs($user)
             ->postJson(route('dashboard.finance.smart-input.store'), [
@@ -46,17 +74,12 @@ class SmartInputTest extends TestCase
                 'transaction_date' => now()->format('Y-m-d'),
             ]);
 
-        $response->assertStatus(422); // Validation error - missing account_id
+        $response->assertStatus(422);
     }
 
     public function test_store_transaction_creates_transaction(): void
     {
-        $user = User::first();
-        $account = Account::where('user_id', $user->id)->first();
-
-        if (! $account) {
-            $this->markTestSkipped('No account available for testing');
-        }
+        [$user, $account] = $this->createUserWithAccount();
 
         $response = $this->actingAs($user)
             ->postJson(route('dashboard.finance.smart-input.store'), [

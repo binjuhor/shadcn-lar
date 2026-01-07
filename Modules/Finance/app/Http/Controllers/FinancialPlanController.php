@@ -127,7 +127,7 @@ class FinancialPlanController extends Controller
                     'planned_expense' => 0,
                 ]);
 
-                if (!empty($periodData['items'])) {
+                if (! empty($periodData['items'])) {
                     foreach ($periodData['items'] as $itemData) {
                         $period->items()->create([
                             'name' => $itemData['name'],
@@ -199,7 +199,7 @@ class FinancialPlanController extends Controller
 
             $existingPeriodIds = [];
             foreach ($validated['periods'] as $periodData) {
-                if (!empty($periodData['id'])) {
+                if (! empty($periodData['id'])) {
                     $period = PlanPeriod::find($periodData['id']);
                     $existingPeriodIds[] = $period->id;
                 } else {
@@ -212,9 +212,9 @@ class FinancialPlanController extends Controller
                 }
 
                 $existingItemIds = [];
-                if (!empty($periodData['items'])) {
+                if (! empty($periodData['items'])) {
                     foreach ($periodData['items'] as $itemData) {
-                        if (!empty($itemData['id'])) {
+                        if (! empty($itemData['id'])) {
                             $item = PlanItem::find($itemData['id']);
                             $item->update([
                                 'name' => $itemData['name'],

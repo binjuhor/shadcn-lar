@@ -12,6 +12,7 @@ class TransactionService
     public function __construct(
         protected ExchangeRateService $exchangeRateService
     ) {}
+
     public function recordIncome(array $data): Transaction
     {
         return DB::transaction(function () use ($data) {
@@ -104,7 +105,7 @@ class TransactionService
 
             $description = $data['description'] ?? "Transfer to {$toAccount->name}";
             if ($exchangeRate) {
-                $description .= " (Rate: " . number_format($exchangeRate, 4) . ")";
+                $description .= ' (Rate: '.number_format($exchangeRate, 4).')';
             }
 
             $debitTransaction = $this->recordExpense([
@@ -117,7 +118,7 @@ class TransactionService
 
             $creditDescription = $data['description'] ?? "Transfer from {$fromAccount->name}";
             if ($exchangeRate) {
-                $creditDescription .= " (Rate: " . number_format($exchangeRate, 4) . ")";
+                $creditDescription .= ' (Rate: '.number_format($exchangeRate, 4).')';
             }
 
             $creditTransaction = $this->recordIncome([

@@ -66,4 +66,7 @@ export type PageProps<
         success?: string;
         error?: string;
     };
+    locale: string;
+    translations: Record<string, string>;
+    enabledModules: string[];
 };

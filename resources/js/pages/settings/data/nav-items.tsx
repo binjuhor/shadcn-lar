@@ -1,5 +1,6 @@
 import {
   IconBrowserCheck,
+  IconCurrencyDollar,
   IconNotification,
   IconPackages,
   IconPalette,
@@ -12,6 +13,7 @@ export interface SettingsNavItem {
   icon: React.ReactNode
   href: string
   superAdminOnly?: boolean
+  requiresModule?: string
 }
 
 export const settingsNavItems: SettingsNavItem[] = [
@@ -39,6 +41,12 @@ export const settingsNavItems: SettingsNavItem[] = [
     title: 'Display',
     icon: <IconBrowserCheck size={18} />,
     href: '/dashboard/settings/display',
+  },
+  {
+    title: 'Finance',
+    icon: <IconCurrencyDollar size={18} />,
+    href: '/dashboard/settings/finance',
+    requiresModule: 'Finance',
   },
   {
     title: 'Modules',

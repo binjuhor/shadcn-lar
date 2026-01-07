@@ -7,11 +7,14 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Finance\Models\Currency;
 use Modules\Settings\Http\Requests\UpdateAccountRequest;
 use Modules\Settings\Http\Requests\UpdateAppearanceRequest;
 use Modules\Settings\Http\Requests\UpdateDisplayRequest;
+use Modules\Settings\Http\Requests\UpdateFinanceSettingsRequest;
 use Modules\Settings\Http\Requests\UpdateNotificationsRequest;
 use Modules\Settings\Http\Requests\UpdateProfileRequest;
+use Nwidart\Modules\Facades\Module;
 
 class SettingsController extends Controller
 {
@@ -120,5 +123,40 @@ class SettingsController extends Controller
         ]);
 
         return Redirect::back()->with('success', 'Display settings updated successfully.');
+    }
+
+    public function finance(): Response
+    {
+        if (! Module::has('Finance') || ! Module::isEnabled('Finance')) {
+            abort(404);
+        }
+
+        $user = auth()->user();
+        $currencies = Currency::orderBy('code')->get(['code', 'name', 'symbol']);
+
+        $defaultSettings = [
+            'default_currency' => 'VND',
+            'default_exchange_rate_source' => null,
+            'fiscal_year_start' => 1,
+            'number_format' => 'thousand_comma',
+        ];
+
+        return Inertia::render('settings/finance/index', [
+            'settings' => array_merge($defaultSettings, $user->finance_settings ?? []),
+            'currencies' => $currencies,
+        ]);
+    }
+
+    public function updateFinance(UpdateFinanceSettingsRequest $request): RedirectResponse
+    {
+        if (! Module::has('Finance') || ! Module::isEnabled('Finance')) {
+            abort(404);
+        }
+
+        $request->user()->update([
+            'finance_settings' => $request->validated(),
+        ]);
+
+        return Redirect::back()->with('success', 'Finance settings updated successfully.');
     }
 }

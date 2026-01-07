@@ -3,7 +3,9 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Inertia\Middleware;
+use Nwidart\Modules\Facades\Module;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -46,6 +48,25 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'locale' => app()->getLocale(),
+            'translations' => fn () => $this->getTranslations(),
+            'enabledModules' => fn () => collect(Module::allEnabled())->keys()->toArray(),
         ];
+    }
+
+    protected function getTranslations(): array
+    {
+        $locale = app()->getLocale();
+        $path = lang_path("{$locale}.json");
+
+        if (! File::exists($path)) {
+            $path = lang_path('en.json');
+        }
+
+        if (! File::exists($path)) {
+            return [];
+        }
+
+        return json_decode(File::get($path), true) ?? [];
     }
 }

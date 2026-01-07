@@ -3,7 +3,7 @@ import { Header } from '@/components/layout/header'
 import { TopNav } from '@/components/layout/top-nav'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
-import { Head } from '@inertiajs/react'
+import { Head, usePage } from '@inertiajs/react'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { Separator } from '@/components/ui/separator'
@@ -11,6 +11,7 @@ import SidebarNav from '@/pages/settings/components/sidebar-nav'
 import { Main } from '@/components/layout'
 import { settingsNavItems } from '@/pages/settings/data/nav-items'
 import { usePermission } from '@/hooks/use-permission'
+import { PageProps } from '@/types'
 
 const topNav = [
   {
@@ -41,10 +42,24 @@ const topNav = [
 
 export function SettingLayout({ children, title }: { children: React.ReactNode; title?: string }) {
   const { isSuperAdmin } = usePermission()
+  const { enabledModules } = usePage<PageProps>().props
 
-  const filteredNavItems = settingsNavItems.filter(
-    item => !item.superAdminOnly || isSuperAdmin()
-  )
+  const filteredNavItems = settingsNavItems.filter(item => {
+    if (item.superAdminOnly && !isSuperAdmin()) {
+      return false
+    }
+
+    if (item.requiresModule) {
+      const moduleEnabled = enabledModules.some(
+        m => m.toLowerCase() === item.requiresModule?.toLowerCase()
+      )
+      if (!moduleEnabled) {
+        return false
+      }
+    }
+
+    return true
+  })
 
   return (
     <>

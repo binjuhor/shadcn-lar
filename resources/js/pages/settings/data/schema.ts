@@ -77,6 +77,7 @@ export const displayItems = [
 // Languages constant
 export const languages = [
   { label: 'English', value: 'en' },
+  { label: 'Vietnamese', value: 'vi' },
   { label: 'French', value: 'fr' },
   { label: 'German', value: 'de' },
   { label: 'Spanish', value: 'es' },
@@ -85,4 +86,46 @@ export const languages = [
   { label: 'Japanese', value: 'ja' },
   { label: 'Korean', value: 'ko' },
   { label: 'Chinese', value: 'zh' },
+] as const
+
+// Finance Settings Schema
+export const financeSettingsFormSchema = z.object({
+  default_currency: z.string().length(3, 'Currency code must be 3 characters'),
+  default_exchange_rate_source: z.string().nullable(),
+  fiscal_year_start: z.number().min(1).max(12),
+  number_format: z.enum(['thousand_comma', 'thousand_dot', 'space_dot', 'space_comma']),
+})
+export type FinanceSettingsFormValues = z.infer<typeof financeSettingsFormSchema>
+
+// Exchange rate sources constant
+export const exchangeRateSources = [
+  { label: 'Default (Best Available)', value: '__default__' },
+  { label: 'Vietcombank', value: 'vietcombank' },
+  { label: 'Payoneer', value: 'payoneer' },
+  { label: 'ExchangeRate API', value: 'exchangerate_api' },
+  { label: 'Open Exchange Rates', value: 'open_exchange_rates' },
+] as const
+
+// Number format options
+export const numberFormatOptions = [
+  { label: '1,234.56 (US/UK)', value: 'thousand_comma', preview: '1,234,567.89' },
+  { label: '1.234,56 (EU)', value: 'thousand_dot', preview: '1.234.567,89' },
+  { label: '1 234.56 (International)', value: 'space_dot', preview: '1 234 567.89' },
+  { label: '1 234,56 (French)', value: 'space_comma', preview: '1 234 567,89' },
+] as const
+
+// Months constant
+export const months = [
+  { label: 'January', value: 1 },
+  { label: 'February', value: 2 },
+  { label: 'March', value: 3 },
+  { label: 'April', value: 4 },
+  { label: 'May', value: 5 },
+  { label: 'June', value: 6 },
+  { label: 'July', value: 7 },
+  { label: 'August', value: 8 },
+  { label: 'September', value: 9 },
+  { label: 'October', value: 10 },
+  { label: 'November', value: 11 },
+  { label: 'December', value: 12 },
 ] as const

@@ -126,7 +126,7 @@ class FinanceReportController extends Controller
         }
 
         foreach ($transactions as $tx) {
-            if (!isset($periods[$tx->period])) {
+            if (! isset($periods[$tx->period])) {
                 continue;
             }
 
@@ -166,7 +166,7 @@ class FinanceReportController extends Controller
             $catId = $tx->category_id;
             $amount = $this->convertToDefault((float) $tx->total, $tx->currency_code, $defaultCode);
 
-            if (!isset($categoryTotals[$catId])) {
+            if (! isset($categoryTotals[$catId])) {
                 $category = $categories->get($catId);
                 $categoryTotals[$catId] = [
                     'id' => $catId,
@@ -228,7 +228,7 @@ class FinanceReportController extends Controller
             $catId = $tx->category_id;
             $amount = $this->convertToDefault((float) $tx->total, $tx->currency_code, $defaultCode);
 
-            if (!isset($categoryTotals[$catId])) {
+            if (! isset($categoryTotals[$catId])) {
                 $category = $categories->get($catId);
                 $categoryTotals[$catId] = [
                     'id' => $catId,
@@ -311,7 +311,7 @@ class FinanceReportController extends Controller
         }
 
         foreach ($transactions as $tx) {
-            if (!isset($periods[$tx->period])) {
+            if (! isset($periods[$tx->period])) {
                 continue;
             }
 
@@ -395,7 +395,7 @@ class FinanceReportController extends Controller
                 $account->rate_source
             );
 
-            if (!isset($distribution[$type])) {
+            if (! isset($distribution[$type])) {
                 $distribution[$type] = [
                     'type' => $type,
                     'label' => $typeLabels[$type] ?? ucfirst($type),

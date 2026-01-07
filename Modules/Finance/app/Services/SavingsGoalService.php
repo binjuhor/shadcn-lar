@@ -178,7 +178,7 @@ class SavingsGoalService
                 'transaction_id' => $transaction->id,
                 'amount' => $amount,
                 'contribution_date' => $transaction->transaction_date,
-                'notes' => $data['notes'] ?? "Transfer from account",
+                'notes' => $data['notes'] ?? 'Transfer from account',
             ]);
         });
     }

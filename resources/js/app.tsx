@@ -6,6 +6,7 @@ import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import { AppLayout } from './layouts';
 import { Providers } from './providers';
+import { initI18n } from './lib/i18n';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Shadcn Laravel Admin';
 
@@ -93,6 +94,12 @@ createInertiaApp({
   title: (title) => `${title} - ${appName}`,
   resolve: resolvePageComponent,
   setup({ el, App, props }) {
+    const initialPage = props.initialPage;
+    const locale = initialPage.props.locale as string || 'en';
+    const translations = initialPage.props.translations as Record<string, string> || {};
+
+    initI18n(locale, translations);
+
     const root = createRoot(el);
 
     root.render(
