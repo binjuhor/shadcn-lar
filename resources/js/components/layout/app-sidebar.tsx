@@ -14,12 +14,12 @@ import { usePermission } from '@/hooks/use-permission'
 import { useCollapsibleGroups } from '@/hooks/use-collapsible-groups'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { filterNavGroups } = usePermission()
+  const { filterNavGroups, enabledModules } = usePermission()
   const { isCollapsed, toggleGroup } = useCollapsibleGroups()
 
   const filteredNavGroups = useMemo(
     () => filterNavGroups(sidebarData.navGroups),
-    [filterNavGroups]
+    [filterNavGroups, enabledModules]
   )
 
   return (

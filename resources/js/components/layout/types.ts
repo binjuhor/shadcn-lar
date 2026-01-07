@@ -35,6 +35,7 @@ interface NavGroup {
   title: string
   items: NavItem[]
   collapsible?: boolean
+  requiresModule?: string
 }
 
 interface SidebarData {

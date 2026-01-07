@@ -122,6 +122,7 @@ export const sidebarData: SidebarData = {
     {
       title: 'Finance',
       collapsible: true,
+      requiresModule: 'Finance',
       items: [
         {
           title: 'Dashboard',
@@ -207,6 +208,7 @@ export const sidebarData: SidebarData = {
     {
       title: 'Ecommerce',
       collapsible: true,
+      requiresModule: 'Ecommerce',
       items: [
         {
           title: 'Products',
@@ -243,6 +245,7 @@ export const sidebarData: SidebarData = {
     {
       title: 'Blog',
       collapsible: true,
+      requiresModule: 'Blog',
       items: [
         {
           title: 'Posts',

@@ -3,7 +3,7 @@ import { PageProps } from '@/types'
 import { type NavGroup, type NavItem } from '@/components/layout/types'
 
 export function usePermission() {
-  const { auth } = usePage<PageProps>().props
+  const { auth, enabledModules } = usePage<PageProps>().props
 
   const can = (permission: string): boolean => {
     if (!auth.permissions) return false
@@ -34,6 +34,14 @@ export function usePermission() {
     return hasRole('Super Admin')
   }
 
+  const isModuleEnabled = (moduleName?: string): boolean => {
+    if (!moduleName) return true
+    if (!enabledModules) return false
+    return enabledModules.some(
+      m => m.toLowerCase() === moduleName.toLowerCase()
+    )
+  }
+
   const checkPermission = (permission?: string | string[]): boolean => {
     if (!permission) return true
     if (hasRole('Super Admin')) return true
@@ -58,6 +66,7 @@ export function usePermission() {
 
   const filterNavGroups = (groups: NavGroup[]): NavGroup[] => {
     return groups
+      .filter(group => isModuleEnabled(group.requiresModule))
       .map(group => ({
         ...group,
         items: group.items
@@ -74,9 +83,11 @@ export function usePermission() {
     hasRole,
     hasAnyRole,
     isSuperAdmin,
+    isModuleEnabled,
     checkPermission,
     filterNavGroups,
     permissions: auth.permissions || [],
     roles: auth.roles || [],
+    enabledModules: enabledModules || [],
   }
 }
