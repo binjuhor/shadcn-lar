@@ -58,10 +58,32 @@ const statusOptions: { value: PlanStatus; label: string }[] = [
 ]
 
 function formatMoney(amount: number, currencyCode = 'VND'): string {
+  if (isNaN(amount) || !isFinite(amount)) {
+    amount = 0
+  }
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: currencyCode,
   }).format(amount)
+}
+
+// Calculate yearly amount from recurrence
+// - one_time: once per year = amount * 1
+// - monthly: 12 times per year = amount * 12
+// - quarterly: 4 times per year = amount * 4
+// - yearly: once per year = amount * 1
+function getYearlyAmount(amount: number, recurrence: PlanItemRecurrence): number {
+  const safeAmount = Number(amount) || 0
+  switch (recurrence) {
+    case 'monthly':
+      return safeAmount * 12
+    case 'quarterly':
+      return safeAmount * 4
+    case 'yearly':
+    case 'one_time':
+    default:
+      return safeAmount
+  }
 }
 
 function generatePeriods(startYear: number, endYear: number): PlanFormPeriod[] {
@@ -187,10 +209,10 @@ export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
   const calculatePeriodTotals = (period: PlanFormPeriod) => {
     const income = period.items
       .filter((i) => i.type === 'income')
-      .reduce((sum, i) => sum + (i.planned_amount || 0), 0)
+      .reduce((sum, i) => sum + getYearlyAmount(i.planned_amount || 0, i.recurrence), 0)
     const expense = period.items
       .filter((i) => i.type === 'expense')
-      .reduce((sum, i) => sum + (i.planned_amount || 0), 0)
+      .reduce((sum, i) => sum + getYearlyAmount(i.planned_amount || 0, i.recurrence), 0)
     return { income, expense, net: income - expense }
   }
 
