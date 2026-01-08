@@ -19,6 +19,7 @@
         "laravel/tinker": "^2.9",
         "nwidart/laravel-modules": "^12.0",
         "owen-it/laravel-auditing": "^14.0",
+        "phpoffice/phpspreadsheet": "^5.3",
         "spatie/laravel-medialibrary": "^11.15",
         "spatie/laravel-permission": "^6.24",
         "tightenco/ziggy": "^2.0"

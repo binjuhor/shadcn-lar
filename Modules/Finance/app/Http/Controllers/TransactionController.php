@@ -28,7 +28,7 @@ class TransactionController extends Controller
     {
         $userId = auth()->id();
 
-        $query = Transaction::with(['account', 'category'])
+        $query = Transaction::with(['account', 'category', 'transferAccount'])
             ->whereHas('account', fn ($q) => $q->where('user_id', $userId));
 
         if ($request->account_id) {
@@ -128,6 +128,44 @@ class TransactionController extends Controller
             ->with('success', 'Transaction recorded successfully');
     }
 
+    public function update(Request $request, Transaction $transaction): RedirectResponse
+    {
+        $this->authorize('update', $transaction);
+
+        // Transfer transactions cannot be edited
+        if ($transaction->transfer_transaction_id) {
+            return Redirect::back()->with('error', 'Transfer transactions cannot be edited. Please delete and create a new transfer.');
+        }
+
+        $validated = $request->validate([
+            'category_id' => ['nullable', 'exists:finance_categories,id'],
+            'amount' => ['sometimes', 'numeric', 'min:0.01'],
+            'description' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'transaction_date' => ['sometimes', 'date'],
+        ]);
+
+        DB::transaction(function () use ($transaction, $validated) {
+            $oldAmount = (float) $transaction->amount;
+            $newAmount = isset($validated['amount']) ? (float) $validated['amount'] : $oldAmount;
+
+            // Adjust account balance if amount changed
+            if ($oldAmount !== $newAmount) {
+                $difference = $newAmount - $oldAmount;
+
+                if ($transaction->transaction_type === 'income') {
+                    $transaction->account->increment('current_balance', $difference);
+                } elseif ($transaction->transaction_type === 'expense') {
+                    $transaction->account->decrement('current_balance', $difference);
+                }
+            }
+
+            $transaction->update($validated);
+        });
+
+        return Redirect::back()->with('success', 'Transaction updated successfully');
+    }
+
     public function destroy(Transaction $transaction): RedirectResponse
     {
         $this->authorize('delete', $transaction);
@@ -169,6 +207,15 @@ class TransactionController extends Controller
         $this->transactionService->reconcileTransaction($transaction->id);
 
         return Redirect::back()->with('success', 'Transaction reconciled');
+    }
+
+    public function unreconcile(Transaction $transaction): RedirectResponse
+    {
+        $this->authorize('update', $transaction);
+
+        $transaction->update(['reconciled_at' => null]);
+
+        return Redirect::back()->with('success', 'Transaction unreconciled');
     }
 
     /**

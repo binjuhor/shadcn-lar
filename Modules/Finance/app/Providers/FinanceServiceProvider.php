@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Modules\Finance\Console\Commands\FetchExchangeRatesCommand;
+use Modules\Finance\Console\Commands\ImportTransactionsCommand;
 use Modules\Finance\Console\Commands\ProcessRecurringTransactionsCommand;
+use Modules\Finance\Console\Commands\RecalculatePlanTotalsCommand;
 use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Budget;
 use Modules\Finance\Models\SavingsGoal;
@@ -66,7 +68,9 @@ class FinanceServiceProvider extends ServiceProvider
     {
         $this->commands([
             FetchExchangeRatesCommand::class,
+            ImportTransactionsCommand::class,
             ProcessRecurringTransactionsCommand::class,
+            RecalculatePlanTotalsCommand::class,
         ]);
     }
 

@@ -45,29 +45,56 @@ class RecurringTransactionService
 
     public function update(RecurringTransaction $recurring, array $data): RecurringTransaction
     {
-        $updateData = array_filter([
-            'account_id' => $data['account_id'] ?? null,
-            'category_id' => array_key_exists('category_id', $data) ? $data['category_id'] : null,
-            'name' => $data['name'] ?? null,
-            'description' => $data['description'] ?? null,
-            'transaction_type' => $data['transaction_type'] ?? null,
-            'amount' => $data['amount'] ?? null,
-            'currency_code' => $data['currency_code'] ?? null,
-            'frequency' => $data['frequency'] ?? null,
-            'day_of_week' => $data['day_of_week'] ?? null,
-            'day_of_month' => $data['day_of_month'] ?? null,
-            'month_of_year' => $data['month_of_year'] ?? null,
-            'end_date' => isset($data['end_date']) ? Carbon::parse($data['end_date']) : null,
-            'is_active' => $data['is_active'] ?? null,
-            'auto_create' => $data['auto_create'] ?? null,
-        ], fn ($value) => $value !== null);
+        $updateData = [];
 
-        // Recalculate next_run_date if frequency changed
-        if (isset($data['frequency']) && $data['frequency'] !== $recurring->frequency) {
-            $updateData['next_run_date'] = $this->calculateInitialNextRun(
-                array_merge($recurring->toArray(), $data),
-                $recurring->start_date
-            );
+        // Handle simple fields
+        $simpleFields = ['account_id', 'name', 'transaction_type', 'amount', 'currency_code', 'is_active', 'auto_create'];
+        foreach ($simpleFields as $field) {
+            if (array_key_exists($field, $data) && $data[$field] !== null) {
+                $updateData[$field] = $data[$field];
+            }
+        }
+
+        // Handle nullable fields (allow setting to null)
+        $nullableFields = ['category_id', 'description', 'day_of_week', 'day_of_month', 'month_of_year'];
+        foreach ($nullableFields as $field) {
+            if (array_key_exists($field, $data)) {
+                $updateData[$field] = $data[$field];
+            }
+        }
+
+        // Handle frequency
+        if (array_key_exists('frequency', $data)) {
+            $updateData['frequency'] = $data['frequency'];
+        }
+
+        // Handle date fields
+        if (array_key_exists('start_date', $data) && $data['start_date']) {
+            $updateData['start_date'] = Carbon::parse($data['start_date']);
+        }
+
+        if (array_key_exists('end_date', $data)) {
+            $updateData['end_date'] = $data['end_date'] ? Carbon::parse($data['end_date']) : null;
+        }
+
+        // Check if schedule-related fields changed - recalculate next_run_date
+        $scheduleFields = ['frequency', 'day_of_week', 'day_of_month', 'month_of_year', 'start_date'];
+        $scheduleChanged = false;
+        foreach ($scheduleFields as $field) {
+            if (array_key_exists($field, $data)) {
+                $oldValue = $recurring->$field;
+                $newValue = $data[$field];
+                if ($oldValue != $newValue) {
+                    $scheduleChanged = true;
+                    break;
+                }
+            }
+        }
+
+        if ($scheduleChanged) {
+            $mergedData = array_merge($recurring->toArray(), $data);
+            $startDate = isset($data['start_date']) ? Carbon::parse($data['start_date']) : $recurring->start_date;
+            $updateData['next_run_date'] = $this->calculateInitialNextRun($mergedData, $startDate);
         }
 
         $recurring->update($updateData);

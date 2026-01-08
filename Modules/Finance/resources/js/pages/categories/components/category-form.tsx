@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -50,15 +51,27 @@ export function CategoryForm({
 }: CategoryFormProps) {
   const isEditing = !!category
 
-  const { data, setData, post, put, processing, errors, reset } = useForm({
+  const getFormDefaults = () => ({
     name: category?.name || '',
-    type: category?.type || 'expense',
+    type: (category?.type || 'expense') as 'income' | 'expense',
     parent_id: category?.parent_id ? String(category.parent_id) : '',
     icon: category?.icon || 'more-horizontal',
     color: category?.color || '#6b7280',
     is_active: category?.is_active ?? true,
     is_passive: category?.is_passive ?? false,
   })
+
+  const { data, setData, post, put, processing, errors, reset } = useForm(getFormDefaults())
+
+  // Update form data when category changes (for edit mode)
+  useEffect(() => {
+    if (open) {
+      reset()
+      Object.entries(getFormDefaults()).forEach(([key, value]) => {
+        setData(key as keyof typeof data, value)
+      })
+    }
+  }, [open, category?.id])
 
   const filteredParents = parentCategories.filter(
     (p) => p.type === data.type && p.id !== category?.id

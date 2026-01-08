@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from '@inertiajs/react'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
@@ -21,13 +22,14 @@ import {
   SheetFooter,
 } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { Account, Category, TransactionType } from '@modules/Finance/types/finance'
+import type { Account, Category, Transaction, TransactionType } from '@modules/Finance/types/finance'
 
 interface TransactionFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   accounts: Account[]
   categories: Category[]
+  transaction?: Transaction | null
   onSuccess?: () => void
 }
 
@@ -36,9 +38,12 @@ export function TransactionForm({
   onOpenChange,
   accounts,
   categories,
+  transaction,
   onSuccess,
 }: TransactionFormProps) {
-  const { data, setData, post, processing, errors, reset } = useForm({
+  const isEditing = !!transaction
+
+  const { data, setData, post, put, processing, errors, reset } = useForm({
     type: 'expense' as TransactionType,
     account_id: '',
     category_id: '',
@@ -49,6 +54,24 @@ export function TransactionForm({
     transfer_account_id: '',
   })
 
+  // Populate form when editing
+  useEffect(() => {
+    if (transaction && open) {
+      setData({
+        type: transaction.type,
+        account_id: String(transaction.account_id),
+        category_id: transaction.category_id ? String(transaction.category_id) : '',
+        amount: String(transaction.amount),
+        description: transaction.description || '',
+        notes: transaction.notes || '',
+        transaction_date: transaction.transaction_date,
+        transfer_account_id: transaction.transfer_account_id ? String(transaction.transfer_account_id) : '',
+      })
+    } else if (!open) {
+      reset()
+    }
+  }, [transaction, open])
+
   const incomeCategories = categories.filter((c) => c.type === 'income')
   const expenseCategories = categories.filter((c) => c.type === 'expense')
   const currentCategories = data.type === 'income' ? incomeCategories : expenseCategories
@@ -56,22 +79,32 @@ export function TransactionForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const formData = {
-      ...data,
-      amount: Math.round(parseFloat(data.amount || '0')),
-      account_id: parseInt(data.account_id),
-      category_id: data.category_id ? parseInt(data.category_id) : null,
-      transfer_account_id: data.transfer_account_id ? parseInt(data.transfer_account_id) : null,
+    const onSuccessCallback = () => {
+      reset()
+      onOpenChange(false)
+      onSuccess?.()
     }
 
-    post(route('dashboard.finance.transactions.store'), {
-      ...formData,
-      onSuccess: () => {
-        reset()
-        onOpenChange(false)
-        onSuccess?.()
-      },
-    })
+    if (isEditing) {
+      // Update existing transaction
+      put(route('dashboard.finance.transactions.update', transaction.id), {
+        onSuccess: onSuccessCallback,
+      })
+    } else {
+      // Create new transaction
+      const formData = {
+        ...data,
+        amount: Math.round(parseFloat(data.amount || '0')),
+        account_id: parseInt(data.account_id),
+        category_id: data.category_id ? parseInt(data.category_id) : null,
+        transfer_account_id: data.transfer_account_id ? parseInt(data.transfer_account_id) : null,
+      }
+
+      post(route('dashboard.finance.transactions.store'), {
+        ...formData,
+        onSuccess: onSuccessCallback,
+      })
+    }
   }
 
   const handleClose = () => {
@@ -91,27 +124,29 @@ export function TransactionForm({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>New Transaction</SheetTitle>
+          <SheetTitle>{isEditing ? 'Edit Transaction' : 'New Transaction'}</SheetTitle>
           <SheetDescription>
-            Record a new financial transaction
+            {isEditing ? 'Update transaction details' : 'Record a new financial transaction'}
           </SheetDescription>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          {/* Transaction Type Tabs */}
-          <Tabs value={data.type} onValueChange={(v) => handleTypeChange(v as TransactionType)}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="expense" className="text-red-600 dark:text-red-400 data-[state=active]:bg-red-100 dark:data-[state=active]:bg-red-900/50 data-[state=active]:text-red-700 dark:data-[state=active]:text-red-300">
-                Expense
-              </TabsTrigger>
-              <TabsTrigger value="income" className="text-green-600 dark:text-green-400 data-[state=active]:bg-green-100 dark:data-[state=active]:bg-green-900/50 data-[state=active]:text-green-700 dark:data-[state=active]:text-green-300">
-                Income
-              </TabsTrigger>
-              <TabsTrigger value="transfer" className="text-blue-600 dark:text-blue-400 data-[state=active]:bg-blue-100 dark:data-[state=active]:bg-blue-900/50 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300">
-                Transfer
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {/* Transaction Type Tabs - disabled when editing */}
+          {!isEditing && (
+            <Tabs value={data.type} onValueChange={(v) => handleTypeChange(v as TransactionType)}>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="expense" className="text-red-600 dark:text-red-400 data-[state=active]:bg-red-100 dark:data-[state=active]:bg-red-900/50 data-[state=active]:text-red-700 dark:data-[state=active]:text-red-300">
+                  Expense
+                </TabsTrigger>
+                <TabsTrigger value="income" className="text-green-600 dark:text-green-400 data-[state=active]:bg-green-100 dark:data-[state=active]:bg-green-900/50 data-[state=active]:text-green-700 dark:data-[state=active]:text-green-300">
+                  Income
+                </TabsTrigger>
+                <TabsTrigger value="transfer" className="text-blue-600 dark:text-blue-400 data-[state=active]:bg-blue-100 dark:data-[state=active]:bg-blue-900/50 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300">
+                  Transfer
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="amount">Amount</Label>
@@ -250,7 +285,7 @@ export function TransactionForm({
               Cancel
             </Button>
             <Button type="submit" disabled={processing}>
-              {processing ? 'Saving...' : 'Save Transaction'}
+              {processing ? 'Saving...' : isEditing ? 'Update Transaction' : 'Save Transaction'}
             </Button>
           </SheetFooter>
         </form>

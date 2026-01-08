@@ -144,6 +144,7 @@ class RecurringTransactionController extends Controller
             'day_of_week' => ['nullable', 'integer', 'min:0', 'max:6'],
             'day_of_month' => ['nullable', 'integer', 'min:1', 'max:31'],
             'month_of_year' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'start_date' => ['sometimes', 'date'],
             'end_date' => ['nullable', 'date'],
             'is_active' => ['sometimes', 'boolean'],
             'auto_create' => ['sometimes', 'boolean'],

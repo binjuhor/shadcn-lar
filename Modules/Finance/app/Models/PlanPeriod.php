@@ -57,8 +57,27 @@ class PlanPeriod extends Model
 
     public function recalculateTotals(): void
     {
-        $this->planned_income = $this->incomeItems()->sum('planned_amount');
-        $this->planned_expense = $this->expenseItems()->sum('planned_amount');
+        $this->planned_income = $this->calculateYearlyTotal('income');
+        $this->planned_expense = $this->calculateYearlyTotal('expense');
         $this->save();
+    }
+
+    protected function calculateYearlyTotal(string $type): int
+    {
+        $items = $this->items()->where('type', $type)->get();
+
+        return (int) $items->sum(function ($item) {
+            return $this->getYearlyAmount($item->planned_amount, $item->recurrence);
+        });
+    }
+
+    protected function getYearlyAmount(float $amount, string $recurrence): float
+    {
+        return match ($recurrence) {
+            'monthly' => $amount * 12,
+            'quarterly' => $amount * 4,
+            'yearly', 'one_time' => $amount,
+            default => $amount,
+        };
     }
 }

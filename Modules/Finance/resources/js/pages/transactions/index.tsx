@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { router } from '@inertiajs/react'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -46,7 +47,14 @@ import {
   Filter,
   Inbox,
   Sparkles,
+  Search,
   Download,
+  Pencil,
+  XCircle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react'
 import { TransactionForm } from './components/transaction-form'
 import { ExportDialog } from './components/export-dialog'
@@ -60,6 +68,9 @@ interface Props {
     account_id?: string
     category_id?: string
     type?: string
+    search?: string
+    date_from?: string
+    date_to?: string
   }
 }
 
@@ -79,8 +90,42 @@ export default function TransactionsIndex({
   const [showForm, setShowForm] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
+  const [searchQuery, setSearchQuery] = useState(filters.search || '')
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Debounced search effect
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    // Skip if search matches current filter (initial load)
+    if (searchQuery === (filters.search || '')) return
+
+    searchTimeoutRef.current = setTimeout(() => {
+      router.get(
+        route('dashboard.finance.transactions.index'),
+        {
+          ...filters,
+          search: searchQuery || undefined,
+          page: 1,
+        },
+        {
+          preserveState: true,
+          preserveScroll: true,
+        }
+      )
+    }, 500)
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [searchQuery])
 
   const handleDelete = (transaction: Transaction) => {
     setSelectedTransaction(transaction)
@@ -101,9 +146,25 @@ export default function TransactionsIndex({
     }
   }
 
+  const handleEdit = (transaction: Transaction) => {
+    setEditingTransaction(transaction)
+    setShowForm(true)
+  }
+
   const handleReconcile = (transaction: Transaction) => {
     router.post(
       route('dashboard.finance.transactions.reconcile', transaction.id),
+      {},
+      {
+        preserveState: true,
+        preserveScroll: true,
+      }
+    )
+  }
+
+  const handleUnreconcile = (transaction: Transaction) => {
+    router.post(
+      route('dashboard.finance.transactions.unreconcile', transaction.id),
       {},
       {
         preserveState: true,
@@ -127,7 +188,15 @@ export default function TransactionsIndex({
   }
 
   const handleSuccess = () => {
+    setEditingTransaction(null)
     router.reload({ only: ['transactions'] })
+  }
+
+  const handleFormClose = (open: boolean) => {
+    setShowForm(open)
+    if (!open) {
+      setEditingTransaction(null)
+    }
   }
 
   const getTypeIcon = (type: string) => {
@@ -179,6 +248,17 @@ export default function TransactionsIndex({
               New Transaction
             </Button>
           </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search transactions by description..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
         </div>
 
         {/* Filters */}
@@ -241,6 +321,44 @@ export default function TransactionsIndex({
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">From Date</label>
+              <Input
+                type="date"
+                value={filters.date_from || ''}
+                onChange={(e) => handleFilterChange('date_from', e.target.value || 'all')}
+                className="w-40"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">To Date</label>
+              <Input
+                type="date"
+                value={filters.date_to || ''}
+                onChange={(e) => handleFilterChange('date_to', e.target.value || 'all')}
+                className="w-40"
+              />
+            </div>
+
+            {(filters.account_id || filters.category_id || filters.type || filters.date_from || filters.date_to) && (
+              <div className="flex flex-col gap-1.5 justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    router.get(
+                      route('dashboard.finance.transactions.index'),
+                      { search: filters.search },
+                      { preserveState: true, preserveScroll: true }
+                    )
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -331,12 +449,27 @@ export default function TransactionsIndex({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {!transaction.is_reconciled && (
+                            {transaction.type !== 'transfer' && !transaction.transfer_transaction_id && (
+                              <DropdownMenuItem
+                                onClick={() => handleEdit(transaction)}
+                              >
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                            )}
+                            {!transaction.is_reconciled ? (
                               <DropdownMenuItem
                                 onClick={() => handleReconcile(transaction)}
                               >
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Mark Reconciled
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => handleUnreconcile(transaction)}
+                              >
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Unreconcile
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem
@@ -357,24 +490,98 @@ export default function TransactionsIndex({
 
             {/* Pagination */}
             {transactions.last_page > 1 && (
-              <div className="flex justify-center mt-4 gap-2">
-                {Array.from({ length: transactions.last_page }, (_, i) => i + 1).map(
-                  (page) => (
-                    <Button
-                      key={page}
-                      variant={page === transactions.current_page ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() =>
-                        router.get(route('dashboard.finance.transactions.index'), {
-                          ...filters,
-                          page,
-                        })
-                      }
-                    >
-                      {page}
-                    </Button>
-                  )
-                )}
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Showing {transactions.from} to {transactions.to} of {transactions.total} transactions
+                </p>
+                <div className="flex items-center gap-1">
+                  {/* First & Previous */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={transactions.current_page === 1}
+                    onClick={() => router.get(route('dashboard.finance.transactions.index'), { ...filters, page: 1 })}
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={transactions.current_page === 1}
+                    onClick={() => router.get(route('dashboard.finance.transactions.index'), { ...filters, page: transactions.current_page - 1 })}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+
+                  {/* Page numbers */}
+                  {(() => {
+                    const pages: (number | string)[] = []
+                    const current = transactions.current_page
+                    const last = transactions.last_page
+                    const delta = 2
+
+                    // Always show first page
+                    pages.push(1)
+
+                    // Left ellipsis
+                    if (current - delta > 2) {
+                      pages.push('...')
+                    }
+
+                    // Pages around current
+                    for (let i = Math.max(2, current - delta); i <= Math.min(last - 1, current + delta); i++) {
+                      if (!pages.includes(i)) pages.push(i)
+                    }
+
+                    // Right ellipsis
+                    if (current + delta < last - 1) {
+                      pages.push('...')
+                    }
+
+                    // Always show last page
+                    if (last > 1 && !pages.includes(last)) {
+                      pages.push(last)
+                    }
+
+                    return pages.map((page, idx) =>
+                      page === '...' ? (
+                        <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+                      ) : (
+                        <Button
+                          key={page}
+                          variant={page === current ? 'default' : 'outline'}
+                          size="sm"
+                          className="h-8 w-8"
+                          onClick={() => router.get(route('dashboard.finance.transactions.index'), { ...filters, page })}
+                        >
+                          {page}
+                        </Button>
+                      )
+                    )
+                  })()}
+
+                  {/* Next & Last */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={transactions.current_page === transactions.last_page}
+                    onClick={() => router.get(route('dashboard.finance.transactions.index'), { ...filters, page: transactions.current_page + 1 })}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={transactions.current_page === transactions.last_page}
+                    onClick={() => router.get(route('dashboard.finance.transactions.index'), { ...filters, page: transactions.last_page })}
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
           </>
@@ -395,9 +602,10 @@ export default function TransactionsIndex({
         {/* Transaction Form */}
         <TransactionForm
           open={showForm}
-          onOpenChange={setShowForm}
+          onOpenChange={handleFormClose}
           accounts={accounts}
           categories={categories}
+          transaction={editingTransaction}
           onSuccess={handleSuccess}
         />
 

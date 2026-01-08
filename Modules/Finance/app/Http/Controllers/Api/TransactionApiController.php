@@ -141,6 +141,52 @@ class TransactionApiController extends Controller
         ]);
     }
 
+    public function update(Request $request, Transaction $transaction): JsonResponse
+    {
+        $this->authorize('update', $transaction);
+
+        // Transfer transactions cannot be edited - delete and recreate instead
+        if ($transaction->transfer_transaction_id) {
+            return response()->json([
+                'message' => 'Transfer transactions cannot be edited. Please delete and create a new transfer.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'category_id' => ['nullable', 'exists:finance_categories,id'],
+            'amount' => ['sometimes', 'numeric', 'min:0.01'],
+            'description' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'transaction_date' => ['sometimes', 'date'],
+        ]);
+
+        DB::transaction(function () use ($transaction, $validated) {
+            $oldAmount = (float) $transaction->amount;
+            $newAmount = isset($validated['amount']) ? (float) $validated['amount'] : $oldAmount;
+
+            // Adjust account balance if amount changed
+            if ($oldAmount !== $newAmount) {
+                $difference = $newAmount - $oldAmount;
+
+                if ($transaction->transaction_type === 'income') {
+                    $transaction->account->updateBalance($difference);
+                } elseif ($transaction->transaction_type === 'expense') {
+                    $transaction->account->updateBalance(-$difference);
+                }
+            }
+
+            $transaction->update($validated);
+        });
+
+        $transaction->refresh();
+        $transaction->load(['account', 'category']);
+
+        return response()->json([
+            'message' => 'Transaction updated successfully',
+            'data' => new TransactionResource($transaction),
+        ]);
+    }
+
     public function destroy(Transaction $transaction): JsonResponse
     {
         $this->authorize('delete', $transaction);
@@ -193,6 +239,20 @@ class TransactionApiController extends Controller
                 'message' => $e->getMessage(),
             ], 422);
         }
+    }
+
+    public function unreconcile(Transaction $transaction): JsonResponse
+    {
+        $this->authorize('update', $transaction);
+
+        $transaction->update(['reconciled_at' => null]);
+
+        $transaction->load(['account', 'category']);
+
+        return response()->json([
+            'message' => 'Transaction unreconciled successfully',
+            'data' => new TransactionResource($transaction),
+        ]);
     }
 
     public function summary(Request $request): JsonResponse

@@ -20,9 +20,11 @@ Route::middleware(['auth:sanctum'])->prefix('v1/finance')->group(function () {
     Route::apiResource('categories', CategoryApiController::class);
 
     // Transaction API
-    Route::apiResource('transactions', TransactionApiController::class)->except(['update']);
+    Route::apiResource('transactions', TransactionApiController::class);
     Route::post('transactions/{transaction}/reconcile', [TransactionApiController::class, 'reconcile'])
         ->name('api.finance.transactions.reconcile');
+    Route::post('transactions/{transaction}/unreconcile', [TransactionApiController::class, 'unreconcile'])
+        ->name('api.finance.transactions.unreconcile');
     Route::get('transactions-summary', [TransactionApiController::class, 'summary'])
         ->name('api.finance.transactions.summary');
 
