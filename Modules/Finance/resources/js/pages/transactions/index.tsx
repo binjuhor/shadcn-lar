@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
+import { formatDateDisplay } from '@/lib/date-utils'
 import {
   Table,
   TableBody,
@@ -425,7 +426,7 @@ export default function TransactionsIndex({
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {new Date(transaction.transaction_date).toLocaleDateString()}
+                          {formatDateDisplay(transaction.transaction_date)}
                           {transaction.is_reconciled && (
                             <CheckCircle className="h-4 w-4 text-green-600" />
                           )}

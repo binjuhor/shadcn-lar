@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react'
+import { formatDateDisplay } from '@/lib/date-utils'
 import {
   Card,
   CardContent,
@@ -44,13 +45,6 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
   }).format(amount)
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('vi-VN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
 
 function getDaysRemaining(targetDate: string): number {
   const target = new Date(targetDate)
@@ -220,13 +214,13 @@ export function SavingsGoalCard({
             {daysRemaining !== null && daysRemaining >= 0 ? (
               <span>{daysRemaining} days left</span>
             ) : (
-              <span>{formatDate(goal.target_date)}</span>
+              <span>{formatDateDisplay(goal.target_date)}</span>
             )}
           </div>
         )}
         {isCompleted && goal.completed_at && (
           <span className="text-xs text-muted-foreground">
-            Completed {formatDate(goal.completed_at)}
+            Completed {formatDateDisplay(goal.completed_at)}
           </span>
         )}
       </CardFooter>

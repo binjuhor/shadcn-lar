@@ -55,3 +55,14 @@ export function emailDateFormat(time: any) {
   }
   return ""
 }
+
+// Standard date display format for the application
+export const DATE_DISPLAY_FORMAT = "DD/MM/YYYY"
+
+/**
+ * Format a date for display in UI (dd/MM/yyyy)
+ */
+export function formatDateDisplay(date: DateLike | null | undefined): string {
+  if (!date || !isValidDate(date)) return ""
+  return dayjs(date).format(DATE_DISPLAY_FORMAT)
+}

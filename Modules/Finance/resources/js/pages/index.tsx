@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react'
+import { formatDateDisplay } from '@/lib/date-utils'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -192,7 +193,7 @@ function RecentTransactions({ transactions }: { transactions: Transaction[] }) {
                     {transaction.description || transaction.category?.name || 'Uncategorized'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {transaction.account?.name} • {new Date(transaction.transaction_date).toLocaleDateString()}
+                    {transaction.account?.name} • {formatDateDisplay(transaction.transaction_date)}
                   </p>
                 </div>
               </div>

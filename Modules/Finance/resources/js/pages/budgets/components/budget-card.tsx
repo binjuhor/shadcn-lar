@@ -1,3 +1,4 @@
+import { formatDateDisplay } from '@/lib/date-utils'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -145,7 +146,7 @@ export function BudgetCard({
       <CardFooter className="flex justify-between text-xs text-muted-foreground pt-0">
         <span>{periodLabels[budget.period_type]}</span>
         <span>
-          {new Date(budget.start_date).toLocaleDateString()} - {new Date(budget.end_date).toLocaleDateString()}
+          {formatDateDisplay(budget.start_date)} - {formatDateDisplay(budget.end_date)}
         </span>
       </CardFooter>
     </Card>

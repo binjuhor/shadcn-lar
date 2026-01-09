@@ -27,7 +27,7 @@ export function DatePicker({
   placeholder = 'Pick a date',
   disabled = false,
   className,
-  dateFormat = 'PPP',
+  dateFormat = 'dd/MM/yyyy',
   fromYear = 2000,
   toYear = new Date().getFullYear() + 10,
 }: DatePickerProps) {

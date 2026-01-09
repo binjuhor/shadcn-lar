@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, router, useForm } from '@inertiajs/react'
 import { format } from 'date-fns'
+import { formatDateDisplay } from '@/lib/date-utils'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -77,13 +78,6 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
   }).format(amount)
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('vi-VN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
 
 export default function ShowSavingsGoal({ goal, availableTransactions, accounts }: Props) {
   const [showContributeDialog, setShowContributeDialog] = useState(false)
@@ -234,7 +228,7 @@ export default function ShowSavingsGoal({ goal, availableTransactions, accounts 
               {goal.target_date && (
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>Target: {formatDate(goal.target_date)}</span>
+                  <span>Target: {formatDateDisplay(goal.target_date)}</span>
                 </div>
               )}
 
@@ -272,12 +266,12 @@ export default function ShowSavingsGoal({ goal, availableTransactions, accounts 
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Created</p>
-                <p className="font-medium">{formatDate(goal.created_at)}</p>
+                <p className="font-medium">{formatDateDisplay(goal.created_at)}</p>
               </div>
               {goal.completed_at && (
                 <div>
                   <p className="text-sm text-muted-foreground">Completed</p>
-                  <p className="font-medium">{formatDate(goal.completed_at)}</p>
+                  <p className="font-medium">{formatDateDisplay(goal.completed_at)}</p>
                 </div>
               )}
             </CardContent>
@@ -307,7 +301,7 @@ export default function ShowSavingsGoal({ goal, availableTransactions, accounts 
                 <TableBody>
                   {goal.contributions.map((contribution) => (
                     <TableRow key={contribution.id}>
-                      <TableCell>{formatDate(contribution.contribution_date)}</TableCell>
+                      <TableCell>{formatDateDisplay(contribution.contribution_date)}</TableCell>
                       <TableCell
                         className={
                           contribution.amount >= 0 ? 'text-green-600' : 'text-red-600'
