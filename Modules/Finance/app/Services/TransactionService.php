@@ -27,6 +27,7 @@ class TransactionService
                 'amount' => $amount,
                 'currency_code' => $account->currency_code,
                 'description' => $data['description'] ?? null,
+                'notes' => $data['notes'] ?? null,
                 'transaction_date' => $data['transaction_date'],
             ]);
 
@@ -44,11 +45,8 @@ class TransactionService
             $account = Account::findOrFail($data['account_id']);
             $amount = $data['amount'];
 
-            if ($account->account_type !== 'credit_card') {
-                if ($account->current_balance < $amount) {
-                    throw new \Exception('Insufficient funds');
-                }
-            }
+            // Allow recording expenses regardless of balance
+            // Users may record historical transactions or track overdrafts
 
             $transaction = Transaction::create([
                 'user_id' => auth()->id(),
@@ -58,6 +56,7 @@ class TransactionService
                 'amount' => $amount,
                 'currency_code' => $account->currency_code,
                 'description' => $data['description'] ?? null,
+                'notes' => $data['notes'] ?? null,
                 'transaction_date' => $data['transaction_date'],
             ]);
 
@@ -76,9 +75,8 @@ class TransactionService
             $toAccount = Account::findOrFail($data['to_account_id']);
             $amount = $data['amount'];
 
-            if ($fromAccount->current_balance < $amount) {
-                throw new \Exception('Insufficient funds');
-            }
+            // Allow transfers regardless of balance for historical tracking
+            // Users may record past transfers or track overdraft scenarios
 
             // Calculate converted amount for cross-currency transfers
             $convertedAmount = $amount;
