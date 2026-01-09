@@ -139,7 +139,11 @@ export function MailDisplay({ mail }: MailDisplayProps) {
                   </div>
                 </div>
                 <div className="p-2">
-                  <Calendar />
+                  <Calendar
+                    captionLayout="dropdown"
+                    fromYear={new Date().getFullYear()}
+                    toYear={new Date().getFullYear() + 5}
+                  />
                 </div>
               </PopoverContent>
             </Popover>

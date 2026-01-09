@@ -205,6 +205,9 @@ export function InvoiceForm({ invoice }: Props) {
                     selected={invoiceDate}
                     onSelect={handleInvoiceDateChange}
                     initialFocus
+                    captionLayout="dropdown"
+                    fromYear={2000}
+                    toYear={new Date().getFullYear() + 10}
                   />
                 </PopoverContent>
               </Popover>
@@ -231,6 +234,9 @@ export function InvoiceForm({ invoice }: Props) {
                     selected={dueDate}
                     onSelect={handleDueDateChange}
                     initialFocus
+                    captionLayout="dropdown"
+                    fromYear={2000}
+                    toYear={new Date().getFullYear() + 10}
                   />
                 </PopoverContent>
               </Popover>

@@ -312,6 +312,9 @@ export default function CreateBlogPost({ categories, tags }: CreateBlogPostPageP
                                   selected={publishedDate}
                                   onSelect={setPublishedDate}
                                   initialFocus
+                                  captionLayout="dropdown"
+                                  fromYear={2000}
+                                  toYear={new Date().getFullYear() + 10}
                                 />
                               </PopoverContent>
                             </Popover>

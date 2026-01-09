@@ -99,6 +99,9 @@ export function DateRangePicker({ filters }: DateRangePickerProps) {
                 selected={startDate}
                 onSelect={setStartDate}
                 disabled={(date) => endDate ? date > endDate : false}
+                captionLayout="dropdown"
+                fromYear={2000}
+                toYear={new Date().getFullYear() + 1}
               />
             </PopoverContent>
           </Popover>
@@ -125,6 +128,9 @@ export function DateRangePicker({ filters }: DateRangePickerProps) {
                 selected={endDate}
                 onSelect={setEndDate}
                 disabled={(date) => startDate ? date < startDate : false}
+                captionLayout="dropdown"
+                fromYear={2000}
+                toYear={new Date().getFullYear() + 1}
               />
             </PopoverContent>
           </Popover>

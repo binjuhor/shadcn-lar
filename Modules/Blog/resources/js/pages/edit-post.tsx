@@ -405,6 +405,9 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                                   selected={publishedDate}
                                   onSelect={setPublishedDate}
                                   initialFocus
+                                  captionLayout="dropdown"
+                                  fromYear={2000}
+                                  toYear={new Date().getFullYear() + 10}
                                 />
                               </PopoverContent>
                             </Popover>
