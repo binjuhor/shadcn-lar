@@ -63,7 +63,9 @@ export function AccountForm({
 
   const defaultCurrency = currencies.find(c => c.is_default)?.code || 'VND'
 
-  const { data, setData, post, put, processing, errors, reset } = useForm({
+  const MAX_BALANCE = 999999999999999999
+
+  const { data, setData, post, put, processing, errors, reset, setError, clearErrors } = useForm({
     name: '',
     account_type: 'bank' as AccountType,
     currency_code: defaultCurrency,
@@ -98,10 +100,18 @@ export function AccountForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    clearErrors()
+
+    const balanceValue = parseFloat(data.initial_balance || '0')
+
+    if (isNaN(balanceValue) || Math.abs(balanceValue) > MAX_BALANCE) {
+      setError('initial_balance', `Balance must be between -${MAX_BALANCE.toLocaleString()} and ${MAX_BALANCE.toLocaleString()}`)
+      return
+    }
 
     const formData = {
       ...data,
-      initial_balance: Math.round(parseFloat(data.initial_balance || '0')),
+      initial_balance: Math.round(balanceValue),
       rate_source: data.rate_source === '__default__' ? null : data.rate_source,
     }
 
@@ -236,6 +246,8 @@ export function AccountForm({
               id="initial_balance"
               type="number"
               step="0.01"
+              min="-999999999999999999"
+              max="999999999999999999"
               value={data.initial_balance}
               onChange={(e) => setData('initial_balance', e.target.value)}
               placeholder="0.00"
