@@ -38,7 +38,7 @@ class Transaction extends Model implements Auditable
     protected function casts(): array
     {
         return [
-            'amount' => 'decimal:2',
+            'amount' => 'float',
             'transaction_date' => 'date',
             'reconciled_at' => 'datetime',
         ];

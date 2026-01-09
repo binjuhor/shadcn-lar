@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useForm } from '@inertiajs/react'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
@@ -94,9 +94,37 @@ export function BudgetForm({
   })
 
   const expenseCategories = categories.filter((c) => c.type === 'expense')
+  const isInitialLoad = useRef(true)
 
+  // Sync form data when budget prop changes (for editing)
   useEffect(() => {
-    if (data.period_type !== 'custom') {
+    if (budget) {
+      setData({
+        name: budget.name || '',
+        category_id: budget.category_id ? String(budget.category_id) : '',
+        amount: budget.amount ? String(budget.amount) : '',
+        currency_code: budget.currency_code || currencies.find(c => c.is_default)?.code || 'VND',
+        period_type: budget.period_type || 'monthly',
+        start_date: budget.start_date?.split('T')[0] || defaultDates.start,
+        end_date: budget.end_date?.split('T')[0] || defaultDates.end,
+        is_active: budget.is_active ?? true,
+        rollover: budget.rollover ?? false,
+      })
+      isInitialLoad.current = true // Mark as initial load for editing
+    } else if (open) {
+      // Reset to defaults when creating new budget
+      reset()
+      isInitialLoad.current = false // New budget, allow date auto-update
+    }
+  }, [budget, open])
+
+  // Auto-update dates when period type changes (only for new budgets)
+  useEffect(() => {
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false
+      return
+    }
+    if (!budget && data.period_type !== 'custom') {
       const dates = getDefaultDates(data.period_type as BudgetPeriod)
       setData((prev) => ({
         ...prev,

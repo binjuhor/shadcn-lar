@@ -40,8 +40,8 @@ class SavingsGoal extends Model implements Auditable
     protected function casts(): array
     {
         return [
-            'target_amount' => 'decimal:2',
-            'current_amount' => 'decimal:2',
+            'target_amount' => 'float',
+            'current_amount' => 'float',
             'target_date' => 'date',
             'is_active' => 'boolean',
             'completed_at' => 'datetime',

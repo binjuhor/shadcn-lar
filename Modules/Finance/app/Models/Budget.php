@@ -33,8 +33,8 @@ class Budget extends Model
     protected function casts(): array
     {
         return [
-            'allocated_amount' => 'decimal:2',
-            'spent_amount' => 'decimal:2',
+            'allocated_amount' => 'float',
+            'spent_amount' => 'float',
             'start_date' => 'date',
             'end_date' => 'date',
             'is_active' => 'boolean',

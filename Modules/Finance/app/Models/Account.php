@@ -41,8 +41,8 @@ class Account extends Model implements Auditable
     protected function casts(): array
     {
         return [
-            'initial_balance' => 'decimal:2',
-            'current_balance' => 'decimal:2',
+            'initial_balance' => 'float',
+            'current_balance' => 'float',
             'is_active' => 'boolean',
             'is_default_payment' => 'boolean',
             'exclude_from_total' => 'boolean',

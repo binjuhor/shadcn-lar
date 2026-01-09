@@ -25,8 +25,8 @@ class PlanPeriod extends Model
     {
         return [
             'year' => 'integer',
-            'planned_income' => 'decimal:2',
-            'planned_expense' => 'decimal:2',
+            'planned_income' => 'float',
+            'planned_expense' => 'float',
         ];
     }
 
