@@ -17,6 +17,8 @@ interface DatePickerProps {
   disabled?: boolean
   className?: string
   dateFormat?: string
+  fromYear?: number
+  toYear?: number
 }
 
 export function DatePicker({
@@ -26,6 +28,8 @@ export function DatePicker({
   disabled = false,
   className,
   dateFormat = 'PPP',
+  fromYear = 2000,
+  toYear = new Date().getFullYear() + 10,
 }: DatePickerProps) {
   const date = React.useMemo(() => {
     if (!value) return undefined
@@ -55,6 +59,9 @@ export function DatePicker({
           mode="single"
           selected={date}
           onSelect={onChange}
+          captionLayout="dropdown"
+          fromYear={fromYear}
+          toYear={toYear}
         />
       </PopoverContent>
     </Popover>

@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { router } from '@inertiajs/react'
+import { format } from 'date-fns'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Table,
   TableBody,
@@ -324,20 +326,22 @@ export default function TransactionsIndex({
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">From Date</label>
-              <Input
-                type="date"
-                value={filters.date_from || ''}
-                onChange={(e) => handleFilterChange('date_from', e.target.value || 'all')}
+              <DatePicker
+                value={filters.date_from || undefined}
+                onChange={(date) => handleFilterChange('date_from', date ? format(date, 'yyyy-MM-dd') : 'all')}
+                placeholder="Select date"
+                dateFormat="yyyy-MM-dd"
                 className="w-40"
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">To Date</label>
-              <Input
-                type="date"
-                value={filters.date_to || ''}
-                onChange={(e) => handleFilterChange('date_to', e.target.value || 'all')}
+              <DatePicker
+                value={filters.date_to || undefined}
+                onChange={(date) => handleFilterChange('date_to', date ? format(date, 'yyyy-MM-dd') : 'all')}
+                placeholder="Select date"
+                dateFormat="yyyy-MM-dd"
                 className="w-40"
               />
             </div>
