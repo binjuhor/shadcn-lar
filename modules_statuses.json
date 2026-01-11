@@ -1,10 +1,10 @@
 {
-    "Blog": true,
-    "Ecommerce": true,
+    "Blog": false,
+    "Ecommerce": false,
     "Permission": true,
-    "Notification": true,
+    "Notification": false,
     "Invoice": true,
     "Settings": true,
     "Finance": true,
-    "ModuleGenerator": true
+    "ModuleGenerator": false
 }

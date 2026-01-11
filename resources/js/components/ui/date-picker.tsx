@@ -31,6 +31,8 @@ export function DatePicker({
   fromYear = 2000,
   toYear = new Date().getFullYear() + 10,
 }: DatePickerProps) {
+  const [open, setOpen] = React.useState(false)
+
   const date = React.useMemo(() => {
     if (!value) return undefined
     if (value instanceof Date) return value
@@ -38,8 +40,13 @@ export function DatePicker({
     return isNaN(parsed.getTime()) ? undefined : parsed
   }, [value])
 
+  const handleSelect = (selectedDate: Date | undefined) => {
+    onChange?.(selectedDate)
+    setOpen(false)
+  }
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -58,7 +65,7 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={date}
-          onSelect={onChange}
+          onSelect={handleSelect}
           captionLayout="dropdown"
           fromYear={fromYear}
           toYear={toYear}

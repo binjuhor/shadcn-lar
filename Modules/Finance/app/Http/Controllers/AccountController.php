@@ -5,10 +5,11 @@ namespace Modules\Finance\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Finance\Http\Requests\Account\StoreAccountRequest;
+use Modules\Finance\Http\Requests\Account\UpdateAccountRequest;
 use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Currency;
 use Modules\Finance\Services\ExchangeRateService;
@@ -69,33 +70,16 @@ class AccountController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreAccountRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'account_type' => ['required', 'in:bank,credit_card,investment,cash,loan,e_wallet,other'],
-            'currency_code' => ['required', 'string', 'size:3', 'exists:currencies,code'],
-            'rate_source' => ['nullable', 'string'],
-            'initial_balance' => ['required', 'numeric', 'between:-999999999999999999,999999999999999999'],
-            'description' => ['nullable', 'string', 'max:1000'],
-            'color' => ['nullable', 'string', 'max:7'],
-            'is_active' => ['boolean'],
-            'is_default_payment' => ['boolean'],
-            'exclude_from_total' => ['boolean'],
-        ]);
-
-        // Convert __default__ to null for rate_source
-        $rateSource = $validated['rate_source'] ?? null;
-        if ($rateSource === '__default__' || $rateSource === '') {
-            $rateSource = null;
-        }
+        $validated = $request->validated();
 
         $account = Account::create([
             'user_id' => auth()->id(),
             'name' => $validated['name'],
             'account_type' => $validated['account_type'],
             'currency_code' => $validated['currency_code'],
-            'rate_source' => $rateSource,
+            'rate_source' => $validated['rate_source'] ?? null,
             'initial_balance' => $validated['initial_balance'],
             'current_balance' => $validated['initial_balance'],
             'description' => $validated['description'] ?? null,
@@ -104,7 +88,6 @@ class AccountController extends Controller
             'exclude_from_total' => $validated['exclude_from_total'] ?? false,
         ]);
 
-        // Set as default payment if requested
         if ($validated['is_default_payment'] ?? false) {
             $account->setAsDefaultPayment();
         }
@@ -156,36 +139,14 @@ class AccountController extends Controller
         ]);
     }
 
-    public function update(Request $request, Account $account): RedirectResponse
+    public function update(UpdateAccountRequest $request, Account $account): RedirectResponse
     {
-        $this->authorize('update', $account);
+        $validated = $request->validated();
 
-        $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'account_type' => ['sometimes', 'in:bank,credit_card,investment,cash,loan,e_wallet,other'],
-            'currency_code' => ['sometimes', 'string', 'size:3', 'exists:currencies,code'],
-            'rate_source' => ['nullable', 'string'],
-            'initial_balance' => ['sometimes', 'numeric', 'between:-999999999999999999,999999999999999999'],
-            'description' => ['nullable', 'string', 'max:1000'],
-            'color' => ['nullable', 'string', 'max:7'],
-            'is_active' => ['sometimes', 'boolean'],
-            'is_default_payment' => ['sometimes', 'boolean'],
-            'exclude_from_total' => ['sometimes', 'boolean'],
-        ]);
-
-        // Convert __default__ to null for rate_source
-        if (isset($validated['rate_source'])) {
-            if ($validated['rate_source'] === '__default__' || $validated['rate_source'] === '') {
-                $validated['rate_source'] = null;
-            }
-        }
-
-        // Also update current_balance when initial_balance changes
         if (isset($validated['initial_balance'])) {
             $validated['current_balance'] = $validated['initial_balance'];
         }
 
-        // Handle default payment flag separately
         $setAsDefault = $validated['is_default_payment'] ?? false;
         unset($validated['is_default_payment']);
 

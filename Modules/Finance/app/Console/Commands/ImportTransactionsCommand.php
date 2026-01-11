@@ -72,7 +72,7 @@ class ImportTransactionsCommand extends Command
             $allTransactions = array_merge($allTransactions, $transactions);
         }
 
-        $this->info("Total transactions found: ".count($allTransactions));
+        $this->info('Total transactions found: '.count($allTransactions));
 
         if (empty($allTransactions)) {
             $this->warn('No transactions to import');
@@ -254,6 +254,7 @@ class ImportTransactionsCommand extends Command
                 if ($skipDuplicates && $this->isDuplicate($txn, $account->id)) {
                     $this->skipped++;
                     $bar->advance();
+
                     continue;
                 }
 

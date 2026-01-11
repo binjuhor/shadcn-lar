@@ -4,12 +4,17 @@ namespace Modules\Finance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Finance\Http\Requests\Transaction\ConversionPreviewRequest;
+use Modules\Finance\Http\Requests\Transaction\ExportTransactionRequest;
+use Modules\Finance\Http\Requests\Transaction\IndexTransactionRequest;
+use Modules\Finance\Http\Requests\Transaction\StoreTransactionRequest;
+use Modules\Finance\Http\Requests\Transaction\UpdateTransactionRequest;
 use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Category;
 use Modules\Finance\Models\Transaction;
@@ -24,7 +29,7 @@ class TransactionController extends Controller
         private TransactionService $transactionService
     ) {}
 
-    public function index(Request $request): Response
+    public function index(IndexTransactionRequest $request): Response
     {
         $userId = auth()->id();
 
@@ -74,7 +79,7 @@ class TransactionController extends Controller
             'transactions' => $transactions,
             'accounts' => $accounts,
             'categories' => $categories,
-            'filters' => $request->only(['account_id', 'category_id', 'type', 'date_from', 'date_to', 'search']),
+            'filters' => $request->filters(),
         ]);
     }
 
@@ -98,21 +103,9 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreTransactionRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'type' => ['required', 'in:income,expense,transfer'],
-            'account_id' => ['required', 'exists:finance_accounts,id'],
-            'category_id' => ['nullable', 'exists:finance_categories,id'],
-            'amount' => ['required', 'integer', 'min:1'],
-            'description' => ['nullable', 'string', 'max:255'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-            'transaction_date' => ['required', 'date'],
-            'transfer_account_id' => ['nullable', 'exists:finance_accounts,id', 'different:account_id'],
-        ]);
-
-        $account = Account::findOrFail($validated['account_id']);
-        $this->authorize('view', $account);
+        $validated = $request->validated();
 
         if ($validated['type'] === 'transfer') {
             $validated['from_account_id'] = $validated['account_id'];
@@ -128,28 +121,18 @@ class TransactionController extends Controller
             ->with('success', 'Transaction recorded successfully');
     }
 
-    public function update(Request $request, Transaction $transaction): RedirectResponse
+    public function update(UpdateTransactionRequest $request, Transaction $transaction): RedirectResponse
     {
-        $this->authorize('update', $transaction);
-
-        // Transfer transactions cannot be edited
         if ($transaction->transfer_transaction_id) {
             return Redirect::back()->with('error', 'Transfer transactions cannot be edited. Please delete and create a new transfer.');
         }
 
-        $validated = $request->validate([
-            'category_id' => ['nullable', 'exists:finance_categories,id'],
-            'amount' => ['sometimes', 'numeric', 'min:0.01'],
-            'description' => ['nullable', 'string', 'max:255'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-            'transaction_date' => ['sometimes', 'date'],
-        ]);
+        $validated = $request->validated();
 
         DB::transaction(function () use ($transaction, $validated) {
             $oldAmount = (float) $transaction->amount;
             $newAmount = isset($validated['amount']) ? (float) $validated['amount'] : $oldAmount;
 
-            // Adjust account balance if amount changed
             if ($oldAmount !== $newAmount) {
                 $difference = $newAmount - $oldAmount;
 
@@ -171,12 +154,10 @@ class TransactionController extends Controller
         $this->authorize('delete', $transaction);
 
         DB::transaction(function () use ($transaction) {
-            // Handle linked transfer transaction first
             if ($transaction->transfer_transaction_id) {
                 $linkedTransaction = Transaction::find($transaction->transfer_transaction_id);
 
                 if ($linkedTransaction) {
-                    // Revert linked transaction's balance using its own amount
                     if ($linkedTransaction->type === 'income') {
                         $linkedTransaction->account->decrement('current_balance', $linkedTransaction->amount);
                     } elseif ($linkedTransaction->type === 'expense') {
@@ -187,7 +168,6 @@ class TransactionController extends Controller
                 }
             }
 
-            // Revert this transaction's balance
             if ($transaction->type === 'income') {
                 $transaction->account->decrement('current_balance', $transaction->amount);
             } elseif ($transaction->type === 'expense') {
@@ -218,64 +198,42 @@ class TransactionController extends Controller
         return Redirect::back()->with('success', 'Transaction unreconciled');
     }
 
-    /**
-     * Get conversion preview for cross-currency transfer
-     */
-    public function conversionPreview(Request $request)
+    public function conversionPreview(ConversionPreviewRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'from_account_id' => ['required', 'exists:finance_accounts,id'],
-            'to_account_id' => ['required', 'exists:finance_accounts,id'],
-            'amount' => ['required', 'numeric', 'min:0'],
-        ]);
-
-        $fromAccount = Account::where('id', $validated['from_account_id'])
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
-
-        $toAccount = Account::where('id', $validated['to_account_id'])
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
+        $validated = $request->validated();
 
         $preview = $this->transactionService->getTransferConversionPreview(
-            $fromAccount->id,
-            $toAccount->id,
+            $validated['from_account_id'],
+            $validated['to_account_id'],
             (int) $validated['amount']
         );
 
         return response()->json($preview);
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(ExportTransactionRequest $request): StreamedResponse
     {
-        $request->validate([
-            'format' => ['required', 'in:csv,excel'],
-            'period' => ['required', 'in:custom,month,year'],
-            'date_from' => ['required_if:period,custom', 'nullable', 'date'],
-            'date_to' => ['required_if:period,custom', 'nullable', 'date'],
-            'month' => ['required_if:period,month', 'nullable', 'date_format:Y-m'],
-            'year' => ['required_if:period,year', 'nullable', 'digits:4'],
-        ]);
-
+        $validated = $request->validated();
         $userId = auth()->id();
+
         $query = Transaction::with(['account', 'category'])
             ->whereHas('account', fn ($q) => $q->where('user_id', $userId));
 
-        $period = $request->input('period');
+        $period = $validated['period'];
         $filename = 'transactions';
 
         if ($period === 'custom') {
-            $query->whereDate('transaction_date', '>=', $request->date_from)
-                ->whereDate('transaction_date', '<=', $request->date_to);
-            $filename .= "_{$request->date_from}_to_{$request->date_to}";
+            $query->whereDate('transaction_date', '>=', $validated['date_from'])
+                ->whereDate('transaction_date', '<=', $validated['date_to']);
+            $filename .= "_{$validated['date_from']}_to_{$validated['date_to']}";
         } elseif ($period === 'month') {
-            $yearMonth = $request->input('month');
+            $yearMonth = $validated['month'];
             [$year, $month] = explode('-', $yearMonth);
             $query->whereYear('transaction_date', $year)
                 ->whereMonth('transaction_date', $month);
             $filename .= "_{$yearMonth}";
         } elseif ($period === 'year') {
-            $year = $request->input('year');
+            $year = $validated['year'];
             $query->whereYear('transaction_date', $year);
             $filename .= "_{$year}";
         }
@@ -284,7 +242,7 @@ class TransactionController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $format = $request->input('format');
+        $format = $validated['format'];
         $extension = $format === 'excel' ? 'xlsx' : 'csv';
         $filename .= ".{$extension}";
 
@@ -305,10 +263,8 @@ class TransactionController extends Controller
         return response()->stream(function () use ($transactions) {
             $handle = fopen('php://output', 'w');
 
-            // BOM for Excel UTF-8 compatibility
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
-            // Header row
             fputcsv($handle, [
                 'Date',
                 'Type',
@@ -339,7 +295,6 @@ class TransactionController extends Controller
 
     protected function exportExcel($transactions, string $filename): StreamedResponse
     {
-        // Simple XML spreadsheet format (opens in Excel)
         $headers = [
             'Content-Type' => 'application/vnd.ms-excel',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
@@ -350,14 +305,12 @@ class TransactionController extends Controller
             echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
             echo '<Worksheet ss:Name="Transactions"><Table>';
 
-            // Header row
             echo '<Row>';
             foreach (['Date', 'Type', 'Description', 'Category', 'Account', 'Amount', 'Currency', 'Notes'] as $header) {
                 echo "<Cell><Data ss:Type=\"String\">{$header}</Data></Cell>";
             }
             echo '</Row>';
 
-            // Data rows
             foreach ($transactions as $transaction) {
                 echo '<Row>';
                 echo '<Cell><Data ss:Type="String">'.$transaction->transaction_date->format('Y-m-d').'</Data></Cell>';
