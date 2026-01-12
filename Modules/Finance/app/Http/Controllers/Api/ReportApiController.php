@@ -103,35 +103,46 @@ class ReportApiController extends Controller
         $userId = auth()->id();
         $defaultCode = $this->getDefaultCurrency();
 
-        $accounts = Account::where('user_id', $userId)
+        $allAccounts = Account::where('user_id', $userId)
             ->where('is_active', true)
-            ->where('exclude_from_total', false)
             ->get();
 
-        $totalAssets = 0;
-        $totalLiabilities = 0;
+        $includedAccounts = $allAccounts->where('exclude_from_total', false);
 
-        foreach ($accounts as $account) {
-            $balance = $this->convertToDefault(
+        // Assets: only from accounts where exclude_from_total = false
+        $totalAssets = $includedAccounts
+            ->whereIn('account_type', ['bank', 'investment', 'cash', 'e_wallet'])
+            ->where('current_balance', '>', 0)
+            ->sum(fn ($account) => $this->convertToDefault(
                 (float) $account->current_balance,
                 $account->currency_code,
                 $defaultCode,
                 $account->rate_source
-            );
+            ));
 
-            if (in_array($account->account_type, ['credit_card', 'loan'])) {
-                $totalLiabilities += abs($balance);
-            } else {
-                $totalAssets += $balance;
-            }
-        }
+        // Liabilities: from ALL credit cards/loans (debt is always tracked)
+        $totalLiabilities = $allAccounts
+            ->whereIn('account_type', ['credit_card', 'loan'])
+            ->sum(function ($account) use ($defaultCode) {
+                $amountOwed = $account->initial_balance - $account->current_balance;
+                if ($amountOwed <= 0) {
+                    return 0;
+                }
+
+                return $this->convertToDefault(
+                    $amountOwed,
+                    $account->currency_code,
+                    $defaultCode,
+                    $account->rate_source
+                );
+            });
 
         return response()->json([
             'data' => [
                 'total_assets' => $totalAssets,
                 'total_liabilities' => $totalLiabilities,
                 'net_worth' => $totalAssets - $totalLiabilities,
-                'accounts_count' => $accounts->count(),
+                'accounts_count' => $includedAccounts->count(),
             ],
             'currency_code' => $defaultCode,
         ]);

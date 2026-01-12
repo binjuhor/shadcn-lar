@@ -141,19 +141,26 @@ class AccountApiController extends Controller
     public function summary(): JsonResponse
     {
         $userId = auth()->id();
-        $accounts = Account::where('user_id', $userId)
+        $allAccounts = Account::where('user_id', $userId)
             ->where('is_active', true)
-            ->where('exclude_from_total', false)
             ->get();
 
-        $totalAssets = $accounts
+        $includedAccounts = $allAccounts->where('exclude_from_total', false);
+
+        // Assets: only from accounts where exclude_from_total = false
+        $totalAssets = $includedAccounts
             ->whereIn('account_type', ['bank', 'investment', 'cash', 'e_wallet'])
             ->where('current_balance', '>', 0)
             ->sum('current_balance');
 
-        $totalLiabilities = abs($accounts
+        // Liabilities: from ALL credit cards/loans (debt is always tracked)
+        $totalLiabilities = $allAccounts
             ->whereIn('account_type', ['credit_card', 'loan'])
-            ->sum('current_balance'));
+            ->sum(function ($account) {
+                $amountOwed = $account->initial_balance - $account->current_balance;
+
+                return $amountOwed > 0 ? $amountOwed : 0;
+            });
 
         return response()->json([
             'data' => [

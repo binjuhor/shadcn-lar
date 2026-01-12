@@ -27,22 +27,32 @@ class FinanceDashboardController extends Controller
         $defaultCurrency = Currency::where('is_default', true)->first();
         $defaultCode = $defaultCurrency?->code ?? 'VND';
 
-        $accounts = Account::where('user_id', $userId)
+        $allAccounts = Account::where('user_id', $userId)
             ->where('is_active', true)
-            ->where('exclude_from_total', false)
             ->get();
 
-        $totalAssets = $accounts
-            ->whereIn('account_type', ['bank', 'investment', 'cash'])
+        $includedAccounts = $allAccounts->where('exclude_from_total', false);
+
+        // Assets: only from accounts where exclude_from_total = false
+        $totalAssets = $includedAccounts
+            ->whereIn('account_type', ['bank', 'investment', 'cash', 'e_wallet'])
             ->where('current_balance', '>', 0)
             ->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode, $account->rate_source));
 
-        $totalLiabilities = abs($accounts
+        // Liabilities: from ALL credit cards/loans (debt is always tracked)
+        $totalLiabilities = $allAccounts
             ->whereIn('account_type', ['credit_card', 'loan'])
-            ->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode, $account->rate_source)));
+            ->sum(function ($account) use ($defaultCode) {
+                $amountOwed = $account->initial_balance - $account->current_balance;
+                if ($amountOwed <= 0) {
+                    return 0;
+                }
+
+                return $this->convertToDefault($amountOwed, $account->currency_code, $defaultCode, $account->rate_source);
+            });
 
         $netWorth = $totalAssets - $totalLiabilities;
-        $totalBalance = $accounts->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode, $account->rate_source));
+        $totalBalance = $includedAccounts->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode, $account->rate_source));
 
         $recentTransactions = Transaction::with(['account', 'category'])
             ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
@@ -105,7 +115,7 @@ class FinanceDashboardController extends Controller
                 'net_worth' => $netWorth,
                 'total_balance' => $totalBalance,
                 'currency_code' => $defaultCurrency?->code ?? 'VND',
-                'accounts_count' => $accounts->count(),
+                'accounts_count' => $allAccounts->count(),
             ],
             'recentTransactions' => $recentTransactions,
             'budgets' => $budgets,

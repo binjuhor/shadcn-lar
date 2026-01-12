@@ -34,16 +34,27 @@ class AccountController extends Controller
             ->orderBy('name')
             ->get();
 
-        $activeAccounts = $accounts->where('exclude_from_total', false);
+        $includedAccounts = $accounts->where('exclude_from_total', false);
 
-        $totalAssets = $activeAccounts
-            ->whereIn('account_type', ['bank', 'investment', 'cash'])
+        // Assets: only from accounts where exclude_from_total = false
+        $totalAssets = $includedAccounts
+            ->whereIn('account_type', ['bank', 'investment', 'cash', 'e_wallet'])
             ->where('current_balance', '>', 0)
             ->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode));
 
-        $totalLiabilities = abs($activeAccounts
+        // Liabilities: from ALL credit cards/loans (debt is always tracked regardless of exclude_from_total)
+        $totalLiabilities = $accounts
             ->whereIn('account_type', ['credit_card', 'loan'])
-            ->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode)));
+            ->sum(function ($account) use ($defaultCode) {
+                // Calculate amount owed: initial_balance - current_balance
+                $amountOwed = $account->initial_balance - $account->current_balance;
+
+                if ($amountOwed <= 0) {
+                    return 0;
+                }
+
+                return $this->convertToDefault($amountOwed, $account->currency_code, $defaultCode);
+            });
 
         $netWorth = $totalAssets - $totalLiabilities;
 

@@ -4,6 +4,7 @@ namespace Modules\Finance\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Currency;
 use Modules\Finance\Models\ExchangeRate;
 
@@ -90,7 +91,36 @@ class ExchangeRateService
         return $this->convert($amount, $from, $defaultCurrency->code, $source);
     }
 
-    public function fetchRates(string $provider = 'exchangerate_api'): array
+    /**
+     * Get currencies used by user's accounts
+     *
+     * @param  int|null  $userId  User ID, null for all users
+     * @param  bool  $includeDefault  Include default currency
+     */
+    public function getAccountCurrencies(?int $userId = null, bool $includeDefault = true): array
+    {
+        $query = Account::query();
+
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        $currencies = $query->distinct()->pluck('currency_code')->toArray();
+
+        if ($includeDefault) {
+            $defaultCurrency = Currency::where('is_default', true)->value('code');
+            if ($defaultCurrency && ! in_array($defaultCurrency, $currencies)) {
+                $currencies[] = $defaultCurrency;
+            }
+        }
+
+        return array_unique($currencies);
+    }
+
+    /**
+     * @param  array|null  $currencies  Only fetch rates for these currencies (null = all)
+     */
+    public function fetchRates(string $provider = 'exchangerate_api', ?array $currencies = null): array
     {
         if (! isset($this->providers[$provider])) {
             throw new \InvalidArgumentException("Unknown provider: {$provider}");
@@ -98,12 +128,26 @@ class ExchangeRateService
 
         $method = $this->providers[$provider];
 
-        return $this->$method();
+        return $this->$method($currencies);
     }
 
-    public function updateRates(string $provider = 'exchangerate_api'): int
+    /**
+     * @param  bool  $accountOnly  Only fetch rates for currencies used in accounts
+     * @param  int|null  $userId  Filter by user's accounts (null for all users)
+     */
+    public function updateRates(string $provider = 'exchangerate_api', bool $accountOnly = false, ?int $userId = null): int
     {
-        $rates = $this->fetchRates($provider);
+        $currencies = null;
+
+        if ($accountOnly) {
+            $currencies = $this->getAccountCurrencies($userId);
+
+            if (empty($currencies)) {
+                return 0;
+            }
+        }
+
+        $rates = $this->fetchRates($provider, $currencies);
         $count = 0;
 
         foreach ($rates as $rateData) {
@@ -126,7 +170,7 @@ class ExchangeRateService
         return $count;
     }
 
-    protected function fetchFromExchangeRateApi(): array
+    protected function fetchFromExchangeRateApi(?array $filterCurrencies = null): array
     {
         $apiKey = config('services.exchangerate_api.key');
         $baseCurrency = config('services.exchangerate_api.base', 'USD');
@@ -150,10 +194,10 @@ class ExchangeRateService
 
         $data = $response->json();
         $rates = [];
-        $currencies = Currency::pluck('code')->toArray();
+        $allowedCurrencies = $filterCurrencies ?? Currency::pluck('code')->toArray();
 
         foreach ($data['conversion_rates'] ?? [] as $currency => $rate) {
-            if (in_array($currency, $currencies) && $currency !== $baseCurrency) {
+            if (in_array($currency, $allowedCurrencies) && $currency !== $baseCurrency) {
                 $rates[] = [
                     'base' => $baseCurrency,
                     'target' => $currency,
@@ -166,7 +210,7 @@ class ExchangeRateService
         return $rates;
     }
 
-    protected function fetchFromOpenExchangeRates(): array
+    protected function fetchFromOpenExchangeRates(?array $filterCurrencies = null): array
     {
         $apiKey = config('services.open_exchange_rates.key');
         $baseCurrency = config('services.open_exchange_rates.base', 'USD');
@@ -193,10 +237,10 @@ class ExchangeRateService
 
         $data = $response->json();
         $rates = [];
-        $currencies = Currency::pluck('code')->toArray();
+        $allowedCurrencies = $filterCurrencies ?? Currency::pluck('code')->toArray();
 
         foreach ($data['rates'] ?? [] as $currency => $rate) {
-            if (in_array($currency, $currencies) && $currency !== $baseCurrency) {
+            if (in_array($currency, $allowedCurrencies) && $currency !== $baseCurrency) {
                 $rates[] = [
                     'base' => $baseCurrency,
                     'target' => $currency,
@@ -209,7 +253,7 @@ class ExchangeRateService
         return $rates;
     }
 
-    protected function fetchFromVietcombank(): array
+    protected function fetchFromVietcombank(?array $filterCurrencies = null): array
     {
         $response = Http::get('https://portal.vietcombank.com.vn/Usercontrols/TVPortal.TyGia/pXML.aspx');
 
@@ -230,7 +274,7 @@ class ExchangeRateService
             return [];
         }
 
-        $currencies = Currency::pluck('code')->toArray();
+        $allowedCurrencies = $filterCurrencies ?? Currency::pluck('code')->toArray();
 
         foreach ($xml->Exrate as $exrate) {
             $currency = (string) $exrate['CurrencyCode'];
@@ -238,7 +282,7 @@ class ExchangeRateService
             $transfer = str_replace(',', '', (string) $exrate['Transfer']);
             $sell = str_replace(',', '', (string) $exrate['Sell']);
 
-            if ($currency && $transfer && in_array($currency, $currencies) && in_array('VND', $currencies)) {
+            if ($currency && $transfer && in_array($currency, $allowedCurrencies) && in_array('VND', $allowedCurrencies)) {
                 $rates[] = [
                     'base' => $currency,
                     'target' => 'VND',
@@ -264,19 +308,19 @@ class ExchangeRateService
      *
      * @see https://www.payoneer.com/manage-currencies/
      */
-    protected function fetchFromPayoneer(): array
+    protected function fetchFromPayoneer(?array $filterCurrencies = null): array
     {
         $apiKey = config('services.exchangerate_api.key');
 
         if (! $apiKey) {
             Log::warning('Payoneer rates: ExchangeRate API key not configured (needed for base rates)');
 
-            return $this->calculatePayoneerRatesFromExisting();
+            return $this->calculatePayoneerRatesFromExisting($filterCurrencies);
         }
 
         $rates = [];
-        $currencies = Currency::pluck('code')->toArray();
-        $payoneerCurrencies = array_intersect(self::PAYONEER_CURRENCIES, $currencies);
+        $allowedCurrencies = $filterCurrencies ?? Currency::pluck('code')->toArray();
+        $payoneerCurrencies = array_intersect(self::PAYONEER_CURRENCIES, $allowedCurrencies);
 
         foreach (['USD', 'EUR'] as $baseCurrency) {
             if (! in_array($baseCurrency, $payoneerCurrencies)) {
@@ -317,10 +361,11 @@ class ExchangeRateService
         return $rate * (1 - self::PAYONEER_FEE_PERCENT / 100);
     }
 
-    protected function calculatePayoneerRatesFromExisting(): array
+    protected function calculatePayoneerRatesFromExisting(?array $filterCurrencies = null): array
     {
         $rates = [];
-        $payoneerCurrencies = self::PAYONEER_CURRENCIES;
+        $allowedCurrencies = $filterCurrencies ?? Currency::pluck('code')->toArray();
+        $payoneerCurrencies = array_intersect(self::PAYONEER_CURRENCIES, $allowedCurrencies);
 
         $existingRates = ExchangeRate::whereIn('base_currency', $payoneerCurrencies)
             ->whereIn('target_currency', $payoneerCurrencies)

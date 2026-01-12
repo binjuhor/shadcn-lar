@@ -50,6 +50,10 @@ import {
   Trash2,
   ArrowRightLeft,
   TrendingUp,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react'
 import type {
   ExchangeRate,
@@ -61,6 +65,7 @@ interface Props {
   rates: PaginatedData<ExchangeRate>
   currentRates: ExchangeRate[]
   currencies: Currency[]
+  accountCurrencies: string[]
   filters: {
     base_currency?: string
     target_currency?: string
@@ -388,39 +393,90 @@ export default function ExchangeRatesIndex({
             {rates.last_page > 1 && (
               <div className="flex items-center justify-between mt-4 pt-4 border-t">
                 <p className="text-sm text-muted-foreground">
-                  Page {rates.current_page} of {rates.last_page}
+                  Showing {rates.from} to {rates.to} of {rates.total} rates
                 </p>
-                <div className="flex gap-2">
-                  {rates.current_page > 1 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        router.get(
-                          route('dashboard.finance.exchange-rates.index'),
-                          { ...filters, page: rates.current_page - 1 },
-                          { preserveState: true }
-                        )
-                      }
-                    >
-                      Previous
-                    </Button>
-                  )}
-                  {rates.current_page < rates.last_page && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        router.get(
-                          route('dashboard.finance.exchange-rates.index'),
-                          { ...filters, page: rates.current_page + 1 },
-                          { preserveState: true }
-                        )
-                      }
-                    >
-                      Next
-                    </Button>
-                  )}
+                <div className="flex items-center gap-1">
+                  {/* First & Previous */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={rates.current_page === 1}
+                    onClick={() => router.get(route('dashboard.finance.exchange-rates.index'), { ...filters, page: 1 }, { preserveState: true })}
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={rates.current_page === 1}
+                    onClick={() => router.get(route('dashboard.finance.exchange-rates.index'), { ...filters, page: rates.current_page - 1 }, { preserveState: true })}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+
+                  {/* Page numbers */}
+                  {(() => {
+                    const pages: (number | string)[] = []
+                    const current = rates.current_page
+                    const last = rates.last_page
+                    const delta = 2
+
+                    pages.push(1)
+
+                    if (current - delta > 2) {
+                      pages.push('...')
+                    }
+
+                    for (let i = Math.max(2, current - delta); i <= Math.min(last - 1, current + delta); i++) {
+                      if (!pages.includes(i)) pages.push(i)
+                    }
+
+                    if (current + delta < last - 1) {
+                      pages.push('...')
+                    }
+
+                    if (last > 1 && !pages.includes(last)) {
+                      pages.push(last)
+                    }
+
+                    return pages.map((page, idx) =>
+                      page === '...' ? (
+                        <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+                      ) : (
+                        <Button
+                          key={page}
+                          variant={page === current ? 'default' : 'outline'}
+                          size="sm"
+                          className="h-8 w-8"
+                          onClick={() => router.get(route('dashboard.finance.exchange-rates.index'), { ...filters, page }, { preserveState: true })}
+                        >
+                          {page}
+                        </Button>
+                      )
+                    )
+                  })()}
+
+                  {/* Next & Last */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={rates.current_page === rates.last_page}
+                    onClick={() => router.get(route('dashboard.finance.exchange-rates.index'), { ...filters, page: rates.current_page + 1 }, { preserveState: true })}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={rates.current_page === rates.last_page}
+                    onClick={() => router.get(route('dashboard.finance.exchange-rates.index'), { ...filters, page: rates.last_page }, { preserveState: true })}
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             )}

@@ -14,6 +14,10 @@ use Modules\Finance\Services\ExchangeRateService;
 
 class ExchangeRateController extends Controller
 {
+    public function __construct(
+        protected ExchangeRateService $exchangeRateService
+    ) {}
+
     public function index(Request $request): Response
     {
         $query = ExchangeRate::with(['baseCurrencyInfo', 'targetCurrencyInfo'])
@@ -33,6 +37,7 @@ class ExchangeRateController extends Controller
 
         $rates = $query->paginate(50)->withQueryString();
         $currencies = Currency::orderBy('code')->get();
+        $accountCurrencies = $this->exchangeRateService->getAccountCurrencies(auth()->id());
 
         $latestRates = ExchangeRate::selectRaw('base_currency, target_currency, MAX(id) as latest_id')
             ->groupBy('base_currency', 'target_currency')
@@ -48,6 +53,7 @@ class ExchangeRateController extends Controller
             'rates' => $rates,
             'currentRates' => $currentRates,
             'currencies' => $currencies,
+            'accountCurrencies' => $accountCurrencies,
             'filters' => $request->only(['base_currency', 'target_currency', 'source']),
             'providers' => ['manual', 'exchangerate_api', 'open_exchange_rates', 'vietcombank', 'payoneer'],
         ]);
@@ -125,7 +131,11 @@ class ExchangeRateController extends Controller
     {
         $validated = $request->validate([
             'provider' => ['required', 'in:exchangerate_api,open_exchange_rates,vietcombank,payoneer,all'],
+            'account_only' => ['nullable', 'boolean'],
         ]);
+
+        $accountOnly = $validated['account_only'] ?? false;
+        $userId = $accountOnly ? auth()->id() : null;
 
         try {
             if ($validated['provider'] === 'all') {
@@ -133,16 +143,19 @@ class ExchangeRateController extends Controller
                 $totalCount = 0;
 
                 foreach ($providers as $provider) {
-                    $count = $service->updateRates($provider);
+                    $count = $service->updateRates($provider, $accountOnly, $userId);
                     $totalCount += $count;
                 }
 
-                return Redirect::back()->with('success', "Fetched {$totalCount} rates from all providers");
+                $suffix = $accountOnly ? ' (account currencies only)' : '';
+
+                return Redirect::back()->with('success', "Fetched {$totalCount} rates from all providers{$suffix}");
             }
 
-            $count = $service->updateRates($validated['provider']);
+            $count = $service->updateRates($validated['provider'], $accountOnly, $userId);
+            $suffix = $accountOnly ? ' (account currencies only)' : '';
 
-            return Redirect::back()->with('success', "Fetched {$count} rates from {$validated['provider']}");
+            return Redirect::back()->with('success', "Fetched {$count} rates from {$validated['provider']}{$suffix}");
         } catch (\Exception $e) {
             return Redirect::back()->withErrors(['error' => "Failed to fetch rates: {$e->getMessage()}"]);
         }
