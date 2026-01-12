@@ -32,6 +32,9 @@ export interface Account {
   exclude_from_total: boolean;
   created_at: string;
   updated_at: string;
+  // Computed fields for credit/loan accounts
+  amount_owed?: number;
+  utilization_rate?: number;
 }
 
 export type TransactionType = 'income' | 'expense' | 'transfer';

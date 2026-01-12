@@ -91,6 +91,7 @@ class AccountApiController extends Controller
             'account_type' => ['sometimes', 'in:bank,credit_card,investment,cash,loan,e_wallet,other'],
             'currency_code' => ['sometimes', 'string', 'size:3', 'exists:currencies,code'],
             'initial_balance' => ['sometimes', 'numeric'],
+            'current_balance' => ['sometimes', 'numeric', 'min:0'],
             'description' => ['nullable', 'string', 'max:1000'],
             'color' => ['nullable', 'string', 'max:7'],
             'is_active' => ['sometimes', 'boolean'],
@@ -98,8 +99,19 @@ class AccountApiController extends Controller
             'exclude_from_total' => ['sometimes', 'boolean'],
         ]);
 
+        $isCreditAccount = in_array($account->account_type, ['credit_card', 'loan']);
+
         if (isset($validated['initial_balance'])) {
-            $validated['current_balance'] = $validated['initial_balance'];
+            if ($isCreditAccount) {
+                // For credit accounts: if current_balance is NOT provided, adjust it by the limit difference
+                if (! isset($validated['current_balance'])) {
+                    $limitDiff = $validated['initial_balance'] - $account->initial_balance;
+                    $validated['current_balance'] = $account->current_balance + $limitDiff;
+                }
+            } else {
+                // For regular accounts: initial_balance = current_balance
+                $validated['current_balance'] = $validated['initial_balance'];
+            }
         }
 
         $setAsDefault = $validated['is_default_payment'] ?? false;

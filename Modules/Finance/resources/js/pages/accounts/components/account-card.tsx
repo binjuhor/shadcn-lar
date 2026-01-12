@@ -61,9 +61,19 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
   }).format(amount)
 }
 
+// Get utilization color based on percentage
+function getUtilizationColor(rate: number): string {
+  if (rate < 30) return 'bg-green-500'
+  if (rate < 70) return 'bg-yellow-500'
+  return 'bg-red-500'
+}
+
 export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
   const Icon = accountTypeIcons[account.account_type] || Wallet
   const isNegative = account.balance < 0
+  const isCreditAccount = ['credit_card', 'loan'].includes(account.account_type)
+  const amountOwed = account.amount_owed ?? 0
+  const utilizationRate = account.utilization_rate ?? 0
 
   return (
     <Card className={!account.is_active ? 'opacity-60' : ''}>
@@ -107,16 +117,58 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
-      <CardContent>
-        <div
-          className={`text-2xl font-bold ${
-            isNegative ? 'text-red-600' : ''
-          }`}
-        >
-          {formatMoney(account.balance, account.currency_code)}
-        </div>
+      <CardContent className="space-y-3">
+        {isCreditAccount ? (
+          <>
+            {/* Credit/Loan account display */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Credit Limit</span>
+                <span className="font-medium">
+                  {formatMoney(account.initial_balance, account.currency_code)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Available</span>
+                <span className="font-medium text-green-600">
+                  {formatMoney(account.current_balance, account.currency_code)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Amount Owed</span>
+                <span className={`font-bold ${amountOwed > 0 ? 'text-red-600' : ''}`}>
+                  {formatMoney(amountOwed, account.currency_code)}
+                </span>
+              </div>
+            </div>
+            {/* Utilization bar */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Utilization</span>
+                <span className={utilizationRate >= 70 ? 'text-red-600 font-medium' : ''}>
+                  {utilizationRate}%
+                </span>
+              </div>
+              <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full ${getUtilizationColor(utilizationRate)} transition-all`}
+                  style={{ width: `${Math.min(utilizationRate, 100)}%` }}
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Regular account display */}
+            <div
+              className={`text-2xl font-bold ${isNegative ? 'text-red-600' : ''}`}
+            >
+              {formatMoney(account.balance, account.currency_code)}
+            </div>
+          </>
+        )}
         {account.description && (
-          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+          <p className="text-sm text-muted-foreground line-clamp-2">
             {account.description}
           </p>
         )}

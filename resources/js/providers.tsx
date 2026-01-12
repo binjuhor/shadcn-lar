@@ -9,6 +9,7 @@ import {NuqsAdapter} from "@/lib/nuqs"
 import {queryClient} from "@/lib/react-query"
 import {ThemeProvider} from "@/context/theme-context"
 import {SearchProvider} from "@/context/search-context"
+import {CommandMenu} from "@/components/command-menu"
 
 export function Providers({children}: any) {
   return (
@@ -24,6 +25,7 @@ export function Providers({children}: any) {
 
               <Toaster/>
               <SonnerToaster position="bottom-right" />
+              <CommandMenu />
             </ThemeProvider>
           </SearchProvider>
 

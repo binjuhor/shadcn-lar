@@ -71,6 +71,7 @@ export function AccountForm({
     currency_code: defaultCurrency,
     rate_source: '__default__',
     initial_balance: '0',
+    current_balance: '0',
     description: '',
     color: '#3b82f6',
     is_active: true as boolean,
@@ -80,13 +81,15 @@ export function AccountForm({
   // Sync form data when account prop changes (for editing)
   useEffect(() => {
     if (account) {
-      const balanceValue = account.current_balance ?? account.initial_balance ?? 0
+      const isCreditAccount = ['credit_card', 'loan'].includes(account.account_type)
+
       setData({
         name: account.name || '',
         account_type: account.account_type || 'bank',
         currency_code: account.currency_code || defaultCurrency,
         rate_source: account.rate_source || '__default__',
-        initial_balance: String(balanceValue),
+        initial_balance: String(account.initial_balance ?? 0),
+        current_balance: String(account.current_balance ?? 0),
         description: account.description || '',
         color: account.color || '#3b82f6',
         is_active: account.is_active ?? true,
@@ -98,21 +101,40 @@ export function AccountForm({
     }
   }, [account, open])
 
+  const isCreditAccount = ['credit_card', 'loan'].includes(data.account_type)
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     clearErrors()
 
-    const balanceValue = parseFloat(data.initial_balance || '0')
+    const initialBalanceValue = parseFloat(data.initial_balance || '0')
+    const currentBalanceValue = parseFloat(data.current_balance || '0')
 
-    if (isNaN(balanceValue) || Math.abs(balanceValue) > MAX_BALANCE) {
+    if (isNaN(initialBalanceValue) || Math.abs(initialBalanceValue) > MAX_BALANCE) {
       setError('initial_balance', `Balance must be between -${MAX_BALANCE.toLocaleString()} and ${MAX_BALANCE.toLocaleString()}`)
       return
     }
 
-    const formData = {
+    if (isCreditAccount && isEditing) {
+      if (isNaN(currentBalanceValue) || currentBalanceValue < 0) {
+        setError('current_balance', 'Available credit must be 0 or greater')
+        return
+      }
+      if (currentBalanceValue > initialBalanceValue) {
+        setError('current_balance', 'Available credit cannot exceed credit limit')
+        return
+      }
+    }
+
+    const formData: Record<string, any> = {
       ...data,
-      initial_balance: Math.round(balanceValue),
+      initial_balance: Math.round(initialBalanceValue),
       rate_source: data.rate_source === '__default__' ? null : data.rate_source,
+    }
+
+    // For credit accounts when editing, include current_balance separately
+    if (isCreditAccount && isEditing) {
+      formData.current_balance = Math.round(currentBalanceValue)
     }
 
     if (isEditing && account) {
@@ -240,22 +262,56 @@ export function AccountForm({
 
           <div className="space-y-2">
             <Label htmlFor="initial_balance">
-              {isEditing ? 'Current Balance' : 'Initial Balance'}
+              {isCreditAccount
+                ? 'Credit Limit'
+                : isEditing
+                  ? 'Current Balance'
+                  : 'Initial Balance'}
             </Label>
             <Input
               id="initial_balance"
               type="number"
               step="0.01"
-              min="-999999999999999999"
+              min={isCreditAccount ? '0' : '-999999999999999999'}
               max="999999999999999999"
               value={data.initial_balance}
               onChange={(e) => setData('initial_balance', e.target.value)}
               placeholder="0.00"
             />
+            {isCreditAccount && !isEditing && (
+              <p className="text-xs text-muted-foreground">
+                {data.account_type === 'credit_card'
+                  ? 'Your total credit limit. Available credit will decrease as you spend.'
+                  : 'Your total loan amount. Balance will decrease as you make payments.'}
+              </p>
+            )}
             {errors.initial_balance && (
               <p className="text-sm text-red-600">{errors.initial_balance}</p>
             )}
           </div>
+
+          {/* Available Credit field - only for credit accounts when editing */}
+          {isCreditAccount && isEditing && (
+            <div className="space-y-2">
+              <Label htmlFor="current_balance">Available Credit</Label>
+              <Input
+                id="current_balance"
+                type="number"
+                step="0.01"
+                min="0"
+                max={data.initial_balance}
+                value={data.current_balance}
+                onChange={(e) => setData('current_balance', e.target.value)}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-muted-foreground">
+                Amount of credit still available. Amount Owed = Credit Limit - Available Credit
+              </p>
+              {errors.current_balance && (
+                <p className="text-sm text-red-600">{errors.current_balance}</p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="description">Description (Optional)</Label>

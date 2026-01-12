@@ -36,7 +36,7 @@ class Account extends Model implements Auditable
         'color',
     ];
 
-    protected $appends = ['balance'];
+    protected $appends = ['balance', 'amount_owed', 'utilization_rate'];
 
     protected function casts(): array
     {
@@ -78,6 +78,38 @@ class Account extends Model implements Auditable
     public function getBalanceAttribute(): float
     {
         return (float) ($this->current_balance ?? 0);
+    }
+
+    /**
+     * Get amount owed for credit/loan accounts
+     * For credit cards: initial_balance (limit) - current_balance (available) = amount spent/owed
+     */
+    public function getAmountOwedAttribute(): float
+    {
+        if (! in_array($this->account_type, ['credit_card', 'loan'])) {
+            return 0;
+        }
+
+        $owed = ($this->initial_balance ?? 0) - ($this->current_balance ?? 0);
+
+        return max(0, $owed);
+    }
+
+    /**
+     * Get utilization rate for credit/loan accounts (percentage)
+     */
+    public function getUtilizationRateAttribute(): float
+    {
+        if (! in_array($this->account_type, ['credit_card', 'loan'])) {
+            return 0;
+        }
+
+        $initialBalance = $this->initial_balance ?? 0;
+        if ($initialBalance <= 0) {
+            return 0;
+        }
+
+        return round(($this->amount_owed / $initialBalance) * 100, 1);
     }
 
     public function user(): BelongsTo
