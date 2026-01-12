@@ -130,9 +130,9 @@ export const sidebarData: SidebarData = {
           icon: IconWallet,
         },
         {
-          title: 'Smart Input',
-          url: '/dashboard/finance/smart-input',
-          icon: IconSparkles,
+          title: 'Accounts',
+          url: '/dashboard/finance/accounts',
+          icon: IconBuildingBank,
         },
         {
           title: 'Reports',
@@ -140,14 +140,14 @@ export const sidebarData: SidebarData = {
           icon: IconChartBar,
         },
         {
-          title: 'Accounts',
-          url: '/dashboard/finance/accounts',
-          icon: IconBuildingBank,
-        },
-        {
           title: 'Transactions',
           url: '/dashboard/finance/transactions',
           icon: IconArrowsExchange,
+        },
+        {
+          title: 'Smart Input',
+          url: '/dashboard/finance/smart-input',
+          icon: IconSparkles,
         },
         {
           title: 'Budgets',
