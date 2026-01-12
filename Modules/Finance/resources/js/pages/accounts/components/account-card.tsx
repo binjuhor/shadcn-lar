@@ -71,7 +71,7 @@ function getUtilizationColor(rate: number): string {
 export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
   const Icon = accountTypeIcons[account.account_type] || Wallet
   const isNegative = account.balance < 0
-  const isCreditAccount = ['credit_card', 'loan'].includes(account.account_type)
+  const hasCreditLimit = account.has_credit_limit
   const amountOwed = account.amount_owed ?? 0
   const utilizationRate = account.utilization_rate ?? 0
 
@@ -118,7 +118,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
         </DropdownMenu>
       </CardHeader>
       <CardContent className="space-y-3">
-        {isCreditAccount ? (
+        {hasCreditLimit ? (
           <>
             {/* Credit/Loan account display */}
             <div className="space-y-1">
