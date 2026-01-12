@@ -28,8 +28,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('financial_plan_id')->constrained('finance_plans')->cascadeOnDelete();
             $table->year('year');
-            $table->bigInteger('planned_income')->default(0);
-            $table->bigInteger('planned_expense')->default(0);
+            $table->decimal('planned_income', 15, 2)->default(0);
+            $table->decimal('planned_expense', 15, 2)->default(0);
             $table->text('notes')->nullable();
             $table->timestamps();
 
@@ -44,7 +44,7 @@ return new class extends Migration
             $table->foreignId('category_id')->nullable()->constrained('finance_categories')->nullOnDelete();
             $table->string('name');
             $table->enum('type', ['income', 'expense']);
-            $table->bigInteger('planned_amount')->default(0);
+            $table->decimal('planned_amount', 15, 2)->default(0);
             $table->enum('recurrence', ['one_time', 'monthly', 'quarterly', 'yearly'])->default('one_time');
             $table->text('notes')->nullable();
             $table->timestamps();

@@ -94,7 +94,7 @@ export function TransactionForm({
       // Create new transaction
       const formData = {
         ...data,
-        amount: Math.round(parseFloat(data.amount || '0')),
+        amount: parseFloat(data.amount || '0'),
         account_id: parseInt(data.account_id),
         category_id: data.category_id ? parseInt(data.category_id) : null,
         transfer_account_id: data.transfer_account_id ? parseInt(data.transfer_account_id) : null,

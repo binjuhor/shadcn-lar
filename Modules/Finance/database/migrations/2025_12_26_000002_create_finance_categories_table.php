@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('icon', 50)->nullable();
             $table->string('color', 7)->nullable();
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_passive')->default(false);
             $table->integer('_lft')->default(0);
             $table->integer('_rgt')->default(0);
             $table->timestamps();

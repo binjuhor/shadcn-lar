@@ -80,7 +80,7 @@ export function TransactionPreview({
       route('dashboard.finance.smart-input.store'),
       {
         type,
-        amount: Math.round(amount),
+        amount,
         description,
         account_id: parseInt(accountId),
         category_id: categoryId ? parseInt(categoryId) : null,

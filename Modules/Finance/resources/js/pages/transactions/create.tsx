@@ -95,7 +95,7 @@ export default function CreateTransaction({ accounts, categories }: Props) {
         body: JSON.stringify({
           from_account_id: parseInt(data.account_id),
           to_account_id: parseInt(data.transfer_account_id),
-          amount: Math.round(parseFloat(data.amount)),
+          amount: parseFloat(data.amount),
         }),
       })
 
@@ -118,7 +118,7 @@ export default function CreateTransaction({ accounts, categories }: Props) {
 
   transform((formData) => ({
     ...formData,
-    amount: Math.round(parseFloat(formData.amount || '0')),
+    amount: parseFloat(formData.amount || '0'),
     account_id: formData.account_id ? parseInt(formData.account_id) : null,
     category_id: formData.category_id ? parseInt(formData.category_id) : null,
     transfer_account_id: formData.transfer_account_id ? parseInt(formData.transfer_account_id) : null,

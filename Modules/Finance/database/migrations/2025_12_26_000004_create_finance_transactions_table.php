@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('account_id')->constrained('finance_accounts')->cascadeOnDelete();
             $table->foreignId('category_id')->nullable()->constrained('finance_categories')->nullOnDelete();
             $table->enum('transaction_type', ['income', 'expense', 'transfer']);
-            $table->bigInteger('amount');
+            $table->decimal('amount', 15, 2);
             $table->char('currency_code', 3);
             $table->text('description')->nullable();
             $table->text('notes')->nullable();

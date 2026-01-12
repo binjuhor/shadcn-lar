@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('description')->nullable();
             $table->enum('transaction_type', ['income', 'expense']);
-            $table->bigInteger('amount');
+            $table->decimal('amount', 15, 2);
             $table->char('currency_code', 3);
             $table->enum('frequency', ['daily', 'weekly', 'monthly', 'yearly']);
             $table->tinyInteger('day_of_week')->nullable(); // 0-6 (Sunday-Saturday) for weekly
