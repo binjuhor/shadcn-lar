@@ -68,6 +68,7 @@ export function AccountForm({
   const { data, setData, post, put, processing, errors, reset, setError, clearErrors } = useForm({
     name: '',
     account_type: 'bank' as AccountType,
+    has_credit_limit: false as boolean,
     currency_code: defaultCurrency,
     rate_source: '__default__',
     initial_balance: '0',
@@ -81,11 +82,10 @@ export function AccountForm({
   // Sync form data when account prop changes (for editing)
   useEffect(() => {
     if (account) {
-      const isCreditAccount = ['credit_card', 'loan'].includes(account.account_type)
-
       setData({
         name: account.name || '',
         account_type: account.account_type || 'bank',
+        has_credit_limit: account.has_credit_limit ?? false,
         currency_code: account.currency_code || defaultCurrency,
         rate_source: account.rate_source || '__default__',
         initial_balance: String(account.initial_balance ?? 0),
@@ -101,7 +101,9 @@ export function AccountForm({
     }
   }, [account, open])
 
-  const isCreditAccount = ['credit_card', 'loan'].includes(data.account_type)
+  // Credit limit applies to credit_card/loan by default, or any account with has_credit_limit enabled
+  const isDefaultCreditType = ['credit_card', 'loan'].includes(data.account_type)
+  const hasCreditLimit = data.has_credit_limit || isDefaultCreditType
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,7 +117,7 @@ export function AccountForm({
       return
     }
 
-    if (isCreditAccount && isEditing) {
+    if (hasCreditLimit && isEditing) {
       if (isNaN(currentBalanceValue) || currentBalanceValue < 0) {
         setError('current_balance', 'Available credit must be 0 or greater')
         return
@@ -130,10 +132,12 @@ export function AccountForm({
       ...data,
       initial_balance: Math.round(initialBalanceValue),
       rate_source: data.rate_source === '__default__' ? null : data.rate_source,
+      // For credit_card/loan, always set has_credit_limit to true
+      has_credit_limit: isDefaultCreditType || data.has_credit_limit,
     }
 
     // For credit accounts when editing, include current_balance separately
-    if (isCreditAccount && isEditing) {
+    if (hasCreditLimit && isEditing) {
       formData.current_balance = Math.round(currentBalanceValue)
     }
 
@@ -213,6 +217,23 @@ export function AccountForm({
             )}
           </div>
 
+          {/* Credit Limit toggle - only for non-credit_card/loan types */}
+          {!isDefaultCreditType && (
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="has_credit_limit">Has Credit Limit</Label>
+                <p className="text-xs text-muted-foreground">
+                  Enable for accounts with overdraft or credit line (e.g., MyCash)
+                </p>
+              </div>
+              <Switch
+                id="has_credit_limit"
+                checked={data.has_credit_limit}
+                onCheckedChange={(checked) => setData('has_credit_limit', checked)}
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="currency_code">Currency</Label>
             <Select
@@ -262,7 +283,7 @@ export function AccountForm({
 
           <div className="space-y-2">
             <Label htmlFor="initial_balance">
-              {isCreditAccount
+              {hasCreditLimit
                 ? 'Credit Limit'
                 : isEditing
                   ? 'Current Balance'
@@ -272,13 +293,13 @@ export function AccountForm({
               id="initial_balance"
               type="number"
               step="0.01"
-              min={isCreditAccount ? '0' : '-999999999999999999'}
+              min={hasCreditLimit ? '0' : '-999999999999999999'}
               max="999999999999999999"
               value={data.initial_balance}
               onChange={(e) => setData('initial_balance', e.target.value)}
               placeholder="0.00"
             />
-            {isCreditAccount && !isEditing && (
+            {hasCreditLimit && !isEditing && (
               <p className="text-xs text-muted-foreground">
                 {data.account_type === 'credit_card'
                   ? 'Your total credit limit. Available credit will decrease as you spend.'
@@ -291,7 +312,7 @@ export function AccountForm({
           </div>
 
           {/* Available Credit field - only for credit accounts when editing */}
-          {isCreditAccount && isEditing && (
+          {hasCreditLimit && isEditing && (
             <div className="space-y-2">
               <Label htmlFor="current_balance">Available Credit</Label>
               <Input

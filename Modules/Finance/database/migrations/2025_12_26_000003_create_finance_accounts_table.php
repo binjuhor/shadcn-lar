@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->enum('account_type', ['bank', 'investment', 'cash', 'credit_card', 'loan', 'e_wallet', 'other'])->notNull();
+            $table->boolean('has_credit_limit')->default(false);
             $table->string('name');
             $table->char('currency_code', 3);
             $table->string('rate_source')->nullable()
@@ -20,8 +21,8 @@ return new class extends Migration
             $table->string('institution_name')->nullable();
             $table->text('description')->nullable();
             $table->string('color', 7)->nullable();
-            $table->decimal('initial_balance', 15, 2)->default(0);
-            $table->decimal('current_balance', 15, 2)->default(0);
+            $table->decimal('initial_balance', 20, 2)->default(0);
+            $table->decimal('current_balance', 20, 2)->default(0);
             $table->boolean('is_active')->default(true);
             $table->boolean('is_default_payment')->default(false);
             $table->boolean('exclude_from_total')->default(false);
@@ -31,5 +32,9 @@ return new class extends Migration
             $table->foreign('currency_code')->references('code')->on('currencies')->cascadeOnDelete();
             $table->index(['user_id', 'is_active']);
         });
+
+        DB::table('finance_accounts')
+          ->whereIn('account_type', ['credit_card', 'loan'])
+          ->update(['has_credit_limit' => true]);
     }
 };

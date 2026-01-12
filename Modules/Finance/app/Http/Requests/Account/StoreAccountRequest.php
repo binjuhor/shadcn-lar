@@ -16,6 +16,7 @@ class StoreAccountRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'account_type' => ['required', 'in:bank,credit_card,investment,cash,loan,e_wallet,other'],
+            'has_credit_limit' => ['boolean'],
             'currency_code' => ['required', 'string', 'size:3', 'exists:currencies,code'],
             'rate_source' => ['nullable', 'string'],
             'initial_balance' => ['required', 'numeric', 'between:-999999999999999999,999999999999999999'],

@@ -22,6 +22,7 @@ class Account extends Model implements Auditable
     protected $fillable = [
         'user_id',
         'account_type',
+        'has_credit_limit',
         'name',
         'currency_code',
         'rate_source',
@@ -46,6 +47,7 @@ class Account extends Model implements Auditable
             'is_active' => 'boolean',
             'is_default_payment' => 'boolean',
             'exclude_from_total' => 'boolean',
+            'has_credit_limit' => 'boolean',
             'account_number' => 'encrypted',
         ];
     }
@@ -81,12 +83,12 @@ class Account extends Model implements Auditable
     }
 
     /**
-     * Get amount owed for credit/loan accounts
-     * For credit cards: initial_balance (limit) - current_balance (available) = amount spent/owed
+     * Get amount owed for accounts with credit limit
+     * For credit accounts: initial_balance (limit) - current_balance (available) = amount spent/owed
      */
     public function getAmountOwedAttribute(): float
     {
-        if (! in_array($this->account_type, ['credit_card', 'loan'])) {
+        if (! $this->has_credit_limit) {
             return 0;
         }
 
@@ -96,11 +98,11 @@ class Account extends Model implements Auditable
     }
 
     /**
-     * Get utilization rate for credit/loan accounts (percentage)
+     * Get utilization rate for accounts with credit limit (percentage)
      */
     public function getUtilizationRateAttribute(): float
     {
-        if (! in_array($this->account_type, ['credit_card', 'loan'])) {
+        if (! $this->has_credit_limit) {
             return 0;
         }
 

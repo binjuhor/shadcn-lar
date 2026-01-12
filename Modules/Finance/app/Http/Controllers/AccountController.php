@@ -42,9 +42,9 @@ class AccountController extends Controller
             ->where('current_balance', '>', 0)
             ->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode));
 
-        // Liabilities: from ALL credit cards/loans (debt is always tracked regardless of exclude_from_total)
+        // Liabilities: from ALL accounts with credit limit (debt is always tracked regardless of exclude_from_total)
         $totalLiabilities = $accounts
-            ->whereIn('account_type', ['credit_card', 'loan'])
+            ->where('has_credit_limit', true)
             ->sum(function ($account) use ($defaultCode) {
                 // Calculate amount owed: initial_balance - current_balance
                 $amountOwed = $account->initial_balance - $account->current_balance;
@@ -89,6 +89,7 @@ class AccountController extends Controller
             'user_id' => auth()->id(),
             'name' => $validated['name'],
             'account_type' => $validated['account_type'],
+            'has_credit_limit' => $validated['has_credit_limit'] ?? false,
             'currency_code' => $validated['currency_code'],
             'rate_source' => $validated['rate_source'] ?? null,
             'initial_balance' => $validated['initial_balance'],
@@ -153,11 +154,13 @@ class AccountController extends Controller
     public function update(UpdateAccountRequest $request, Account $account): RedirectResponse
     {
         $validated = $request->validated();
-        $isCreditAccount = in_array($account->account_type, ['credit_card', 'loan']);
+
+        // Use has_credit_limit from request, or fall back to account's current value
+        $hasCreditLimit = $validated['has_credit_limit'] ?? $account->has_credit_limit;
 
         // Handle balance updates
         if (isset($validated['initial_balance'])) {
-            if ($isCreditAccount) {
+            if ($hasCreditLimit) {
                 // For credit accounts: if current_balance is NOT provided, adjust it by the limit difference
                 if (! isset($validated['current_balance'])) {
                     $limitDiff = $validated['initial_balance'] - $account->initial_balance;

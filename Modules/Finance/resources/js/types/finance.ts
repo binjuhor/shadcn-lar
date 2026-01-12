@@ -18,6 +18,7 @@ export interface Account {
   user_id: number;
   name: string;
   account_type: AccountType;
+  has_credit_limit: boolean;
   currency_code: string;
   rate_source?: RateSource;
   currency?: Currency;

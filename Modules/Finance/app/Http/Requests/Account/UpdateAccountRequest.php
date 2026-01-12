@@ -18,6 +18,7 @@ class UpdateAccountRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'account_type' => ['sometimes', 'in:bank,credit_card,investment,cash,loan,e_wallet,other'],
+            'has_credit_limit' => ['sometimes', 'boolean'],
             'currency_code' => ['sometimes', 'string', 'size:3', 'exists:currencies,code'],
             'rate_source' => ['nullable', 'string'],
             'initial_balance' => ['sometimes', 'numeric', 'between:-999999999999999999,999999999999999999'],

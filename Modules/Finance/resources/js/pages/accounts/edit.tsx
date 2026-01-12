@@ -54,15 +54,16 @@ const rateSources: { value: string; label: string }[] = [
 ]
 
 export default function EditAccount({ account, currencies }: Props) {
-  // Use current_balance for display, fallback to initial_balance
-  const currentBalance = account.current_balance ?? account.initial_balance ?? 0
+  const isDefaultCreditType = ['credit_card', 'loan'].includes(account.account_type)
 
   const { data, setData, put, processing, errors, transform } = useForm({
     name: account.name || '',
     account_type: account.account_type || 'bank',
+    has_credit_limit: account.has_credit_limit ?? false,
     currency_code: account.currency_code || 'VND',
     rate_source: account.rate_source || '__default__',
-    initial_balance: String(currentBalance),
+    initial_balance: String(account.initial_balance ?? 0),
+    current_balance: String(account.current_balance ?? 0),
     description: account.description || '',
     color: account.color || '#3b82f6',
     is_active: account.is_active ?? true,
@@ -70,14 +71,19 @@ export default function EditAccount({ account, currencies }: Props) {
     exclude_from_total: account.exclude_from_total ?? false,
   })
 
+  // Credit limit applies to credit_card/loan by default, or any account with has_credit_limit enabled
+  const hasCreditLimit = data.has_credit_limit || isDefaultCreditType
+
   // Reset form when account changes (e.g., navigating between edit pages)
   useEffect(() => {
     setData({
       name: account.name || '',
       account_type: account.account_type || 'bank',
+      has_credit_limit: account.has_credit_limit ?? false,
       currency_code: account.currency_code || 'VND',
       rate_source: account.rate_source || '__default__',
-      initial_balance: String(account.current_balance ?? account.initial_balance ?? 0),
+      initial_balance: String(account.initial_balance ?? 0),
+      current_balance: String(account.current_balance ?? 0),
       description: account.description || '',
       color: account.color || '#3b82f6',
       is_active: account.is_active ?? true,
@@ -86,11 +92,22 @@ export default function EditAccount({ account, currencies }: Props) {
     })
   }, [account.id])
 
-  transform((formData) => ({
-    ...formData,
-    initial_balance: parseFloat(formData.initial_balance || '0'),
-    rate_source: formData.rate_source === '__default__' ? null : formData.rate_source,
-  }))
+  transform((formData) => {
+    const initialVal = parseFloat(formData.initial_balance || '0')
+    const currentVal = parseFloat(formData.current_balance || '0')
+    const isCreditType = ['credit_card', 'loan'].includes(formData.account_type)
+    const accountHasCreditLimit = formData.has_credit_limit || isCreditType
+
+    return {
+      ...formData,
+      initial_balance: initialVal,
+      // For credit accounts, include current_balance; for others, current = initial
+      current_balance: accountHasCreditLimit ? currentVal : initialVal,
+      rate_source: formData.rate_source === '__default__' ? null : formData.rate_source,
+      // For credit_card/loan, always set has_credit_limit to true
+      has_credit_limit: accountHasCreditLimit,
+    }
+  })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -154,6 +171,23 @@ export default function EditAccount({ account, currencies }: Props) {
                 )}
               </div>
 
+              {/* Credit Limit toggle - only for non-credit_card/loan types */}
+              {!isDefaultCreditType && (
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="has_credit_limit">Has Credit Limit</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Enable for accounts with overdraft or credit line (e.g., MyCash)
+                    </p>
+                  </div>
+                  <Switch
+                    id="has_credit_limit"
+                    checked={data.has_credit_limit}
+                    onCheckedChange={(checked) => setData('has_credit_limit', checked)}
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Currency</Label>
                 <Combobox
@@ -197,19 +231,49 @@ export default function EditAccount({ account, currencies }: Props) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="initial_balance">Current Balance</Label>
+                <Label htmlFor="initial_balance">
+                  {hasCreditLimit ? 'Credit Limit' : 'Current Balance'}
+                </Label>
                 <Input
                   id="initial_balance"
                   type="number"
                   step="0.01"
+                  min={hasCreditLimit ? '0' : undefined}
                   value={data.initial_balance}
                   onChange={(e) => setData('initial_balance', e.target.value)}
                   placeholder="0.00"
                 />
+                {hasCreditLimit && (
+                  <p className="text-xs text-muted-foreground">
+                    Your total credit limit
+                  </p>
+                )}
                 {errors.initial_balance && (
                   <p className="text-sm text-red-600">{errors.initial_balance}</p>
                 )}
               </div>
+
+              {/* Available Credit field - only for credit accounts */}
+              {hasCreditLimit && (
+                <div className="space-y-2">
+                  <Label htmlFor="current_balance">Available Credit</Label>
+                  <Input
+                    id="current_balance"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={data.current_balance}
+                    onChange={(e) => setData('current_balance', e.target.value)}
+                    placeholder="0.00"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Amount of credit still available. Amount Owed = Credit Limit - Available Credit
+                  </p>
+                  {errors.current_balance && (
+                    <p className="text-sm text-red-600">{errors.current_balance}</p>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="description">Description (Optional)</Label>

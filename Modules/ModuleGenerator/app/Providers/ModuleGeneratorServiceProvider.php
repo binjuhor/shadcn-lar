@@ -4,6 +4,7 @@ namespace Modules\ModuleGenerator\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Modules\ModuleGenerator\Console\Commands\ModuleScaffoldCommand;
+use Modules\ModuleGenerator\Console\Commands\SiteGenerateCommand;
 
 class ModuleGeneratorServiceProvider extends ServiceProvider
 {
@@ -26,6 +27,7 @@ class ModuleGeneratorServiceProvider extends ServiceProvider
     {
         $this->commands([
             ModuleScaffoldCommand::class,
+            SiteGenerateCommand::class,
         ]);
     }
 
