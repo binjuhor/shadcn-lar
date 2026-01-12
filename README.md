@@ -146,6 +146,99 @@ To modify the CI/CD behavior:
 - **Deployment Steps:** Edit `.github/workflows/deploy.yml` 
 - **Add Quality Checks:** Consider adding code style checks, static analysis, or security scans
 
+## Modular Architecture
+
+This project uses [nwidart/laravel-modules](https://github.com/nWidart/laravel-modules) for a modular monorepo architecture. Each module is self-contained with its own controllers, models, migrations, and React frontend.
+
+### Available Modules
+
+| Module | Description |
+|--------|-------------|
+| Finance | Personal finance tracking (accounts, transactions, budgets) |
+| Invoice | Invoice management |
+| Permission | Roles and permissions management |
+| Settings | Application settings |
+| Blog | Blog posts and categories |
+| Ecommerce | Products, orders, and categories |
+| Notification | User notifications |
+
+### Module Commands
+
+#### Create a New Module
+
+```bash
+# Basic module scaffolding
+php artisan module:scaffold ModuleName
+
+# With CRUD scaffolding (model, migration, policy, controller, pages)
+php artisan module:scaffold ModuleName --with-crud
+
+# Specify entity name for CRUD
+php artisan module:scaffold Inventory --with-crud --entity=Product
+
+# Preview without creating files
+php artisan module:scaffold ModuleName --dry-run
+```
+
+#### Generate a Standalone Site from Modules
+
+Extract selected modules into a completely new Laravel project:
+
+```bash
+# Create a finance-only site
+php artisan site:generate FinanceApp --modules=Finance --output=~/Projects
+
+# Create a multi-module site
+php artisan site:generate AdminPanel --modules=Finance,Settings,Permission --output=~/Projects
+
+# Preview what would be created
+php artisan site:generate TestApp --modules=Finance --dry-run
+```
+
+The `site:generate` command:
+- Copies base Laravel+React project structure
+- Includes only selected modules
+- Updates all configuration files (composer.json, tsconfig.json, vite.config.js)
+- Removes unused module references
+- Shows next steps after generation
+
+#### Enable/Disable Modules
+
+```bash
+# Enable a module
+php artisan module:enable ModuleName
+
+# Disable a module
+php artisan module:disable ModuleName
+
+# List all modules
+php artisan module:list
+```
+
+### Module Structure
+
+```
+Modules/
+└── ModuleName/
+    ├── app/
+    │   ├── Http/Controllers/
+    │   ├── Models/
+    │   ├── Policies/
+    │   └── Providers/
+    ├── config/
+    ├── database/
+    │   ├── migrations/
+    │   └── seeders/
+    ├── resources/
+    │   └── js/
+    │       ├── pages/
+    │       └── types/
+    ├── routes/
+    │   ├── api.php
+    │   └── web.php
+    └── module.json
+```
+
 ## Roadmap
 
 Here are some of the planned features for future updates:
