@@ -402,6 +402,25 @@ export interface CashflowAnalysis {
   financialFreedomProgress: number;
 }
 
+// Category Trend Analysis
+export interface CategoryTrendPoint {
+  period: string;
+  label: string;
+  amount: number;
+  transactionCount: number;
+}
+
+export interface CategoryTrendAnalysis {
+  category: Category | null;
+  monthlyData: CategoryTrendPoint[];
+  totalAmount: number;
+  averageAmount: number;
+  transactionCount: number;
+  trend: number; // percentage change from first to last period
+  bestMonth: { period: string; amount: number } | null;
+  worstMonth: { period: string; amount: number } | null;
+}
+
 // Recurring Transactions
 export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 

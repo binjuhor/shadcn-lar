@@ -19,6 +19,7 @@ Route::middleware(['auth', 'verified'])
     ->group(function () {
         Route::get('/', [FinanceDashboardController::class, 'index'])->name('index');
         Route::get('/reports', [FinanceReportController::class, 'index'])->name('reports');
+        Route::get('/reports/category-trend', [FinanceReportController::class, 'categoryTrend'])->name('reports.category-trend');
 
         Route::resource('accounts', AccountController::class);
 

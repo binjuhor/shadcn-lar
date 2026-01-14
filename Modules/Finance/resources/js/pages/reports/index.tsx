@@ -1,3 +1,4 @@
+import * as React from 'react'
 import { Link } from '@inertiajs/react'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
@@ -20,6 +21,7 @@ import { CategoryBreakdown } from './components/category-breakdown'
 import { IncomeCategoryBreakdown } from './components/income-category-breakdown'
 import { AccountDistribution } from './components/account-distribution'
 import { CashflowChart } from './components/cashflow-chart'
+import { CategoryTrendChart } from './components/category-trend-chart'
 import type {
   ReportFilters,
   IncomeExpensePoint,
@@ -27,6 +29,8 @@ import type {
   AccountTypeBreakdown,
   ReportSummary,
   CashflowAnalysis,
+  Category,
+  CategoryTrendAnalysis,
 } from '@modules/Finance/types/finance'
 
 interface Props {
@@ -37,6 +41,7 @@ interface Props {
   accountDistribution: AccountTypeBreakdown[]
   cashflowAnalysis: CashflowAnalysis
   summary: ReportSummary
+  categories: Category[]
   currencyCode: string
 }
 
@@ -111,8 +116,65 @@ export default function FinanceReports({
   accountDistribution,
   cashflowAnalysis,
   summary,
+  categories,
   currencyCode,
 }: Props) {
+  const [selectedIncomeCategoryId, setSelectedIncomeCategoryId] = React.useState<number | null>(null)
+  const [selectedExpenseCategoryId, setSelectedExpenseCategoryId] = React.useState<number | null>(null)
+  const [incomeTrendData, setIncomeTrendData] = React.useState<CategoryTrendAnalysis | null>(null)
+  const [expenseTrendData, setExpenseTrendData] = React.useState<CategoryTrendAnalysis | null>(null)
+
+  // Build query params from filters
+  const buildFilterParams = React.useCallback(() => {
+    const params = new URLSearchParams()
+    params.set('range', filters.range)
+    if (filters.range === 'custom') {
+      params.set('start', filters.startDate)
+      params.set('end', filters.endDate)
+    }
+    return params.toString()
+  }, [filters])
+
+  const fetchCategoryTrend = React.useCallback(async (categoryId: number | null): Promise<CategoryTrendAnalysis | null> => {
+    if (!categoryId) return null
+
+    try {
+      const filterParams = buildFilterParams()
+      const response = await fetch(`/dashboard/finance/reports/category-trend?category_id=${categoryId}&${filterParams}`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      })
+      const result = await response.json()
+      return result.data
+    } catch (error) {
+      console.error('Failed to fetch category trend:', error)
+      return null
+    }
+  }, [buildFilterParams])
+
+  const handleIncomeCategoryChange = React.useCallback(async (categoryId: number | null) => {
+    setSelectedIncomeCategoryId(categoryId)
+    const data = await fetchCategoryTrend(categoryId)
+    setIncomeTrendData(data)
+  }, [fetchCategoryTrend])
+
+  const handleExpenseCategoryChange = React.useCallback(async (categoryId: number | null) => {
+    setSelectedExpenseCategoryId(categoryId)
+    const data = await fetchCategoryTrend(categoryId)
+    setExpenseTrendData(data)
+  }, [fetchCategoryTrend])
+
+  // Refetch when filters change (if categories are selected)
+  React.useEffect(() => {
+    if (selectedIncomeCategoryId) {
+      fetchCategoryTrend(selectedIncomeCategoryId).then(setIncomeTrendData)
+    }
+    if (selectedExpenseCategoryId) {
+      fetchCategoryTrend(selectedExpenseCategoryId).then(setExpenseTrendData)
+    }
+  }, [filters, selectedIncomeCategoryId, selectedExpenseCategoryId, fetchCategoryTrend])
+
   return (
     <AuthenticatedLayout title="Financial Reports">
       <Main>
@@ -142,6 +204,17 @@ export default function FinanceReports({
           <IncomeExpenseTrend data={incomeExpenseTrend} currencyCode={currencyCode} />
 
           <CashflowChart data={cashflowAnalysis} currencyCode={currencyCode} />
+
+          <CategoryTrendChart
+            categories={categories}
+            incomeTrendData={incomeTrendData}
+            expenseTrendData={expenseTrendData}
+            currencyCode={currencyCode}
+            selectedIncomeCategoryId={selectedIncomeCategoryId}
+            selectedExpenseCategoryId={selectedExpenseCategoryId}
+            onIncomeCategoryChange={handleIncomeCategoryChange}
+            onExpenseCategoryChange={handleExpenseCategoryChange}
+          />
 
           <div className="grid gap-4 md:grid-cols-2">
             <IncomeCategoryBreakdown data={incomeCategoryBreakdown} currencyCode={currencyCode} />

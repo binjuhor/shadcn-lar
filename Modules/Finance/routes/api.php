@@ -9,6 +9,7 @@ use Modules\Finance\Http\Controllers\Api\ReportApiController;
 use Modules\Finance\Http\Controllers\Api\SavingsGoalApiController;
 use Modules\Finance\Http\Controllers\Api\SmartInputApiController;
 use Modules\Finance\Http\Controllers\Api\TransactionApiController;
+use Modules\Finance\Http\Controllers\FinanceReportController;
 
 Route::middleware(['auth:sanctum'])->prefix('v1/finance')->group(function () {
     // Account API
@@ -80,5 +81,6 @@ Route::middleware(['auth:sanctum'])->prefix('v1/finance')->group(function () {
         Route::get('account-distribution', [ReportApiController::class, 'accountDistribution'])->name('accountDistribution');
         Route::get('cashflow-analysis', [ReportApiController::class, 'cashflowAnalysis'])->name('cashflowAnalysis');
         Route::get('net-worth', [ReportApiController::class, 'netWorth'])->name('netWorth');
+        Route::get('category-trend', [FinanceReportController::class, 'categoryTrend'])->name('categoryTrend');
     });
 });

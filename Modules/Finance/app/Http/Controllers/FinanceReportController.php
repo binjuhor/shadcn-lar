@@ -4,6 +4,7 @@ namespace Modules\Finance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -39,6 +40,15 @@ class FinanceReportController extends Controller
         $cashflowAnalysis = $this->getCashflowAnalysis($userId, $defaultCode);
         $summary = $this->getSummary($userId, $dateFrom, $dateTo, $defaultCode);
 
+        // Get categories for the category trend selector
+        $categories = Category::where(function ($q) use ($userId) {
+            $q->whereNull('user_id')->orWhere('user_id', $userId);
+        })
+            ->where('is_active', true)
+            ->orderBy('type')
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('Finance::reports/index', [
             'filters' => [
                 'range' => $range,
@@ -51,6 +61,7 @@ class FinanceReportController extends Controller
             'accountDistribution' => $accountDistribution,
             'cashflowAnalysis' => $cashflowAnalysis,
             'summary' => $summary,
+            'categories' => $categories,
             'currencyCode' => $defaultCode,
         ]);
     }
@@ -510,5 +521,116 @@ class FinanceReportController extends Controller
         } catch (\Exception) {
             return $amount;
         }
+    }
+
+    public function categoryTrend(Request $request): JsonResponse
+    {
+        $userId = auth()->id();
+        $categoryId = $request->get('category_id');
+
+        if (! $categoryId) {
+            return response()->json(['data' => null]);
+        }
+
+        $defaultCurrency = Currency::where('is_default', true)->first();
+        $defaultCode = $defaultCurrency?->code ?? 'VND';
+
+        $category = Category::where(function ($q) use ($userId) {
+            $q->whereNull('user_id')->orWhere('user_id', $userId);
+        })
+            ->where('id', $categoryId)
+            ->first();
+
+        if (! $category) {
+            return response()->json(['data' => null]);
+        }
+
+        // Use the same date parsing as other report methods
+        $range = $request->get('range', '6m');
+        $start = $request->get('start');
+        $end = $request->get('end');
+
+        [$startDate, $endDate, $groupBy] = $this->parseDateRange($range, $start, $end);
+
+        $transactions = Transaction::select(
+            DB::raw("DATE_FORMAT(transaction_date, '%Y-%m') as period"),
+            DB::raw('SUM(amount) as total'),
+            DB::raw('COUNT(*) as count'),
+            'currency_code'
+        )
+            ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
+            ->where('category_id', $categoryId)
+            ->whereBetween('transaction_date', [$startDate->startOfDay(), $endDate->endOfDay()])
+            ->groupBy('period', 'currency_code')
+            ->get();
+
+        $periods = [];
+        $current = $startDate->copy();
+
+        while ($current <= $endDate) {
+            $periodKey = $current->format('Y-m');
+            $periods[$periodKey] = [
+                'period' => $periodKey,
+                'label' => $current->format('M Y'),
+                'amount' => 0,
+                'transactionCount' => 0,
+            ];
+            $current = $current->addMonth();
+        }
+
+        foreach ($transactions as $tx) {
+            if (! isset($periods[$tx->period])) {
+                continue;
+            }
+
+            $amount = $this->convertToDefault((float) $tx->total, $tx->currency_code, $defaultCode);
+            $periods[$tx->period]['amount'] += $amount;
+            $periods[$tx->period]['transactionCount'] += $tx->count;
+        }
+
+        $monthlyData = array_values($periods);
+        $amounts = array_column($monthlyData, 'amount');
+        $nonZeroAmounts = array_filter($amounts, fn ($a) => $a > 0);
+
+        $totalAmount = array_sum($amounts);
+        $transactionCount = array_sum(array_column($monthlyData, 'transactionCount'));
+        $averageAmount = count($nonZeroAmounts) > 0 ? $totalAmount / count($nonZeroAmounts) : 0;
+
+        // Calculate trend (first 3 months avg vs last 3 months avg)
+        $firstThree = array_slice($amounts, 0, 3);
+        $lastThree = array_slice($amounts, -3, 3);
+        $firstAvg = count(array_filter($firstThree)) > 0 ? array_sum($firstThree) / count(array_filter($firstThree)) : 0;
+        $lastAvg = count(array_filter($lastThree)) > 0 ? array_sum($lastThree) / count(array_filter($lastThree)) : 0;
+        $trend = $firstAvg > 0 ? (($lastAvg - $firstAvg) / $firstAvg) * 100 : 0;
+
+        // Find best and worst months
+        $bestMonth = null;
+        $worstMonth = null;
+        $maxAmount = 0;
+        $minAmount = PHP_FLOAT_MAX;
+
+        foreach ($monthlyData as $point) {
+            if ($point['amount'] > $maxAmount) {
+                $maxAmount = $point['amount'];
+                $bestMonth = ['period' => $point['label'], 'amount' => $point['amount']];
+            }
+            if ($point['amount'] > 0 && $point['amount'] < $minAmount) {
+                $minAmount = $point['amount'];
+                $worstMonth = ['period' => $point['label'], 'amount' => $point['amount']];
+            }
+        }
+
+        return response()->json([
+            'data' => [
+                'category' => $category,
+                'monthlyData' => $monthlyData,
+                'totalAmount' => round($totalAmount, 2),
+                'averageAmount' => round($averageAmount, 2),
+                'transactionCount' => $transactionCount,
+                'trend' => round($trend, 1),
+                'bestMonth' => $bestMonth,
+                'worstMonth' => $worstMonth,
+            ],
+        ]);
     }
 }
