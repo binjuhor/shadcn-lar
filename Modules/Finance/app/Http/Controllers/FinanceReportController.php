@@ -359,15 +359,20 @@ class FinanceReportController extends Controller
 
     protected function getAccountDistribution(int $userId, string $defaultCode): array
     {
+        // Get all active accounts - liabilities always shown, assets respect exclude_from_total
         $accounts = Account::where('user_id', $userId)
             ->where('is_active', true)
-            ->where('exclude_from_total', false)
+            ->where(function ($query) {
+                $query->where('exclude_from_total', false)
+                    ->orWhereIn('account_type', ['credit_card', 'loan']);
+            })
             ->get();
 
         $typeLabels = [
             'bank' => 'Bank Accounts',
             'investment' => 'Investments',
             'cash' => 'Cash',
+            'e_wallet' => 'E-Wallets',
             'credit_card' => 'Credit Cards',
             'loan' => 'Loans',
             'other' => 'Other',
@@ -377,6 +382,7 @@ class FinanceReportController extends Controller
             'bank' => 'hsl(142, 76%, 36%)',
             'investment' => 'hsl(199, 89%, 48%)',
             'cash' => 'hsl(43, 96%, 56%)',
+            'e_wallet' => 'hsl(271, 91%, 65%)',
             'credit_card' => 'hsl(0, 84%, 60%)',
             'loan' => 'hsl(0, 72%, 51%)',
             'other' => 'hsl(220, 9%, 46%)',
@@ -388,8 +394,21 @@ class FinanceReportController extends Controller
 
         foreach ($accounts as $account) {
             $type = $account->account_type;
+            $isLiability = in_array($type, $liabilityTypes);
+
+            // For credit accounts: show amount owed (initial_balance - current_balance)
+            // For regular accounts: show current_balance
+            $rawBalance = $isLiability
+                ? ($account->initial_balance - $account->current_balance)
+                : $account->current_balance;
+
+            // Skip if no balance to show
+            if ($rawBalance <= 0) {
+                continue;
+            }
+
             $balance = $this->convertToDefault(
-                (float) $account->current_balance,
+                (float) $rawBalance,
                 $account->currency_code,
                 $defaultCode,
                 $account->rate_source
@@ -402,7 +421,7 @@ class FinanceReportController extends Controller
                     'color' => $typeColors[$type] ?? '#6b7280',
                     'balance' => 0,
                     'count' => 0,
-                    'isLiability' => in_array($type, $liabilityTypes),
+                    'isLiability' => $isLiability,
                 ];
             }
 
