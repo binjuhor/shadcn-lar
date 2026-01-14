@@ -252,13 +252,13 @@ export function CategoryTrendChart({
                     <div>
                       <span className="text-muted-foreground">Total:</span>
                       <div className="font-semibold">
-                        {formatCurrency(incomeTrendData.totalAmount, currencyCode)}
+                        {formatFullCurrency(incomeTrendData.totalAmount, currencyCode)}
                       </div>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Monthly Avg:</span>
                       <div className="font-semibold">
-                        {formatCurrency(incomeTrendData.averageAmount, currencyCode)}
+                        {formatFullCurrency(incomeTrendData.averageAmount, currencyCode)}
                       </div>
                     </div>
                     <div>
@@ -277,7 +277,7 @@ export function CategoryTrendChart({
                       <span className="text-muted-foreground">Best: </span>
                       <span className="font-medium">{incomeTrendData.bestMonth.period}</span>
                       <span className="text-muted-foreground"> - </span>
-                      <span>{formatCurrency(incomeTrendData.bestMonth.amount, currencyCode)}</span>
+                      <span>{formatFullCurrency(incomeTrendData.bestMonth.amount, currencyCode)}</span>
                     </div>
                   )}
                 </div>
@@ -301,13 +301,13 @@ export function CategoryTrendChart({
                     <div>
                       <span className="text-muted-foreground">Total:</span>
                       <div className="font-semibold">
-                        {formatCurrency(expenseTrendData.totalAmount, currencyCode)}
+                        {formatFullCurrency(expenseTrendData.totalAmount, currencyCode)}
                       </div>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Monthly Avg:</span>
                       <div className="font-semibold">
-                        {formatCurrency(expenseTrendData.averageAmount, currencyCode)}
+                        {formatFullCurrency(expenseTrendData.averageAmount, currencyCode)}
                       </div>
                     </div>
                     <div>
@@ -326,7 +326,7 @@ export function CategoryTrendChart({
                       <span className="text-muted-foreground">Highest: </span>
                       <span className="font-medium">{expenseTrendData.bestMonth.period}</span>
                       <span className="text-muted-foreground"> - </span>
-                      <span>{formatCurrency(expenseTrendData.bestMonth.amount, currencyCode)}</span>
+                      <span>{formatFullCurrency(expenseTrendData.bestMonth.amount, currencyCode)}</span>
                     </div>
                   )}
                 </div>
@@ -352,7 +352,7 @@ export function CategoryTrendChart({
                         : 'text-red-600'
                     }`}>
                       {incomeTrendData.totalAmount - expenseTrendData.totalAmount >= 0 ? '+' : ''}
-                      {formatCurrency(incomeTrendData.totalAmount - expenseTrendData.totalAmount, currencyCode)}
+                      {formatFullCurrency(incomeTrendData.totalAmount - expenseTrendData.totalAmount, currencyCode)}
                     </div>
                   </div>
                   <div className="text-center">
@@ -363,7 +363,7 @@ export function CategoryTrendChart({
                         : 'text-red-600'
                     }`}>
                       {incomeTrendData.averageAmount - expenseTrendData.averageAmount >= 0 ? '+' : ''}
-                      {formatCurrency(incomeTrendData.averageAmount - expenseTrendData.averageAmount, currencyCode)}
+                      {formatFullCurrency(incomeTrendData.averageAmount - expenseTrendData.averageAmount, currencyCode)}
                     </div>
                   </div>
                   <div className="text-center">

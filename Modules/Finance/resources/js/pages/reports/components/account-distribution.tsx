@@ -28,6 +28,13 @@ function formatCurrency(value: number, code: string): string {
   }).format(value)
 }
 
+function formatFullCurrency(value: number, code: string): string {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: code,
+  }).format(value)
+}
+
 export function AccountDistribution({ data, currencyCode }: AccountDistributionProps) {
   const chartConfig = data.reduce((config, item) => {
     config[item.type] = {
@@ -123,13 +130,13 @@ export function AccountDistribution({ data, currencyCode }: AccountDistributionP
           <div>
             <p className="text-xs text-muted-foreground">Assets</p>
             <p className="text-sm font-semibold text-green-600">
-              {formatCurrency(totalAssets, currencyCode)}
+              {formatFullCurrency(totalAssets, currencyCode)}
             </p>
           </div>
           <div className="text-right">
             <p className="text-xs text-muted-foreground">Liabilities</p>
             <p className="text-sm font-semibold text-red-600">
-              {formatCurrency(totalLiabilities, currencyCode)}
+              {formatFullCurrency(totalLiabilities, currencyCode)}
             </p>
           </div>
         </div>

@@ -42,6 +42,13 @@ function formatCurrency(value: number, code: string): string {
   }).format(value)
 }
 
+function formatFullCurrency(value: number, code: string): string {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: code,
+  }).format(value)
+}
+
 function formatPeriod(period: string): string {
   if (period.length === 7) {
     const [year, month] = period.split('-')
@@ -78,19 +85,19 @@ export function IncomeExpenseTrend({ data, currencyCode }: IncomeExpenseTrendPro
           <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
             <span className="text-xs text-muted-foreground">Net</span>
             <span className={`text-sm font-bold leading-none ${netChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {netChange >= 0 ? '+' : ''}{formatCurrency(netChange, currencyCode)}
+              {netChange >= 0 ? '+' : ''}{formatFullCurrency(netChange, currencyCode)}
             </span>
           </div>
           <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
             <span className="text-xs text-muted-foreground">Income</span>
             <span className="text-sm font-bold leading-none text-green-600">
-              {formatCurrency(totals.income, currencyCode)}
+              {formatFullCurrency(totals.income, currencyCode)}
             </span>
           </div>
           <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
             <span className="text-xs text-muted-foreground">Expense</span>
             <span className="text-sm font-bold leading-none text-red-600">
-              {formatCurrency(totals.expense, currencyCode)}
+              {formatFullCurrency(totals.expense, currencyCode)}
             </span>
           </div>
         </div>

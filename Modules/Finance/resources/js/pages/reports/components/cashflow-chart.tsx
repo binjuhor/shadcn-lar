@@ -48,6 +48,13 @@ function formatCurrency(value: number, code: string): string {
   }).format(value)
 }
 
+function formatFullCurrency(value: number, code: string): string {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: code,
+  }).format(value)
+}
+
 export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
   const { monthlyData, averages, financialFreedomProgress } = data
 
@@ -113,7 +120,7 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
               Avg Passive Income
             </div>
             <div className="text-lg font-bold text-green-600">
-              {formatCurrency(averages.passiveIncome, currencyCode)}
+              {formatFullCurrency(averages.passiveIncome, currencyCode)}
             </div>
           </div>
           <div className="text-center">
@@ -122,7 +129,7 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
               Avg Expense
             </div>
             <div className="text-lg font-bold text-red-600">
-              {formatCurrency(averages.expense, currencyCode)}
+              {formatFullCurrency(averages.expense, currencyCode)}
             </div>
           </div>
           <div className="text-center">

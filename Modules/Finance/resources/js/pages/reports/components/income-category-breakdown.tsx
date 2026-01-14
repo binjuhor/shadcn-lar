@@ -28,6 +28,13 @@ function formatCurrency(value: number, code: string): string {
   }).format(value)
 }
 
+function formatFullCurrency(value: number, code: string): string {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: code,
+  }).format(value)
+}
+
 export function IncomeCategoryBreakdown({ data, currencyCode }: IncomeCategoryBreakdownProps) {
   const total = data.reduce((sum, item) => sum + item.amount, 0)
 
@@ -103,9 +110,9 @@ export function IncomeCategoryBreakdown({ data, currencyCode }: IncomeCategoryBr
                         <tspan
                           x={viewBox.cx}
                           y={viewBox.cy}
-                          className="fill-foreground text-lg font-bold"
+                          className="fill-foreground text-sm font-bold"
                         >
-                          {formatCurrency(total, currencyCode)}
+                          {formatFullCurrency(total, currencyCode)}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
