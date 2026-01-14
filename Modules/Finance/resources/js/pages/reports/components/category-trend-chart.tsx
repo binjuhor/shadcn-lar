@@ -337,6 +337,61 @@ export function CategoryTrendChart({
               )}
             </div>
 
+            {/* Net Income Summary - shown when both categories selected */}
+            {incomeTrendData && expenseTrendData && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-900 dark:bg-blue-950/20">
+                <div className="mb-3 text-sm font-medium text-blue-700 dark:text-blue-400">
+                  Net Income Analysis
+                </div>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground">Total Net</div>
+                    <div className={`text-lg font-bold ${
+                      incomeTrendData.totalAmount - expenseTrendData.totalAmount >= 0
+                        ? 'text-green-600'
+                        : 'text-red-600'
+                    }`}>
+                      {incomeTrendData.totalAmount - expenseTrendData.totalAmount >= 0 ? '+' : ''}
+                      {formatCurrency(incomeTrendData.totalAmount - expenseTrendData.totalAmount, currencyCode)}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground">Monthly Avg Net</div>
+                    <div className={`text-lg font-bold ${
+                      incomeTrendData.averageAmount - expenseTrendData.averageAmount >= 0
+                        ? 'text-green-600'
+                        : 'text-red-600'
+                    }`}>
+                      {incomeTrendData.averageAmount - expenseTrendData.averageAmount >= 0 ? '+' : ''}
+                      {formatCurrency(incomeTrendData.averageAmount - expenseTrendData.averageAmount, currencyCode)}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground">Coverage Ratio</div>
+                    <div className={`text-lg font-bold ${
+                      incomeTrendData.totalAmount >= expenseTrendData.totalAmount
+                        ? 'text-green-600'
+                        : 'text-red-600'
+                    }`}>
+                      {expenseTrendData.totalAmount > 0
+                        ? ((incomeTrendData.totalAmount / expenseTrendData.totalAmount) * 100).toFixed(0)
+                        : '∞'}%
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground">Status</div>
+                    <div className={`text-lg font-bold ${
+                      incomeTrendData.totalAmount >= expenseTrendData.totalAmount
+                        ? 'text-green-600'
+                        : 'text-red-600'
+                    }`}>
+                      {incomeTrendData.totalAmount >= expenseTrendData.totalAmount ? 'Surplus' : 'Deficit'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Comparison Chart */}
             <ChartContainer config={chartConfig} className="aspect-auto h-[300px] w-full">
               <BarChart
