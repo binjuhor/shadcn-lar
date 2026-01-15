@@ -42,6 +42,8 @@ export type TransactionType = 'income' | 'expense' | 'transfer';
 
 export type CategoryType = 'income' | 'expense' | 'both';
 
+export type ExpenseType = 'essential' | 'discretionary' | 'savings';
+
 export interface Category {
   id: number;
   user_id?: number;
@@ -52,6 +54,7 @@ export interface Category {
   color?: string;
   is_active: boolean;
   is_passive: boolean;
+  expense_type?: ExpenseType;
   _lft?: number;
   _rgt?: number;
   children?: Category[];

@@ -25,6 +25,7 @@ class Category extends Model
         'color',
         'is_active',
         'is_passive',
+        'expense_type',
     ];
 
     protected function casts(): array

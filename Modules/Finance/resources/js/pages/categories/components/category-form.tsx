@@ -19,7 +19,7 @@ import {
   SheetTitle,
   SheetFooter,
 } from '@/components/ui/sheet'
-import type { Category } from '@modules/Finance/types/finance'
+import type { Category, ExpenseType } from '@modules/Finance/types/finance'
 
 interface CategoryFormProps {
   open: boolean
@@ -59,6 +59,7 @@ export function CategoryForm({
     color: category?.color || '#6b7280',
     is_active: category?.is_active ?? true,
     is_passive: category?.is_passive ?? false,
+    expense_type: category?.expense_type || '',
   })
 
   const { data, setData, post, put, processing, errors, reset } = useForm(getFormDefaults())
@@ -83,6 +84,8 @@ export function CategoryForm({
     const formData = {
       ...data,
       parent_id: data.parent_id ? parseInt(data.parent_id) : null,
+      expense_type: data.type === 'expense' && data.expense_type ? data.expense_type : null,
+      is_passive: data.type === 'income' ? data.is_passive : false,
     }
 
     if (isEditing && category) {
@@ -246,6 +249,29 @@ export function CategoryForm({
                 checked={data.is_passive}
                 onCheckedChange={(checked) => setData('is_passive', checked)}
               />
+            </div>
+          )}
+
+          {data.type === 'expense' && (
+            <div className="space-y-2">
+              <Label htmlFor="expense_type">Expense Type</Label>
+              <Select
+                value={data.expense_type || '__none__'}
+                onValueChange={(value) => setData('expense_type', value === '__none__' ? '' : value as ExpenseType)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select expense type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Not specified</SelectItem>
+                  <SelectItem value="essential">Essential (Needs)</SelectItem>
+                  <SelectItem value="discretionary">Discretionary (Wants)</SelectItem>
+                  <SelectItem value="savings">Savings (Goals)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Used to track financial freedom progress
+              </p>
             </div>
           )}
 
