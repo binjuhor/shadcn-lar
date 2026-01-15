@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { format } from 'date-fns'
 import { useForm } from 'react-hook-form'
 import { CalendarIcon, CaretSortIcon, CheckIcon } from '@radix-ui/react-icons'
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export function AccountForm({ settings }: Props) {
+  const [dobOpen, setDobOpen] = useState(false)
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
     defaultValues: {
@@ -92,7 +94,7 @@ export function AccountForm({ settings }: Props) {
           render={({ field }) => (
             <FormItem className='flex flex-col'>
               <FormLabel>Date of birth</FormLabel>
-              <Popover>
+              <Popover open={dobOpen} onOpenChange={setDobOpen}>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -115,7 +117,11 @@ export function AccountForm({ settings }: Props) {
                   <Calendar
                     mode='single'
                     selected={field.value}
-                    onSelect={field.onChange}
+                    defaultMonth={field.value}
+                    onSelect={(date) => {
+                      field.onChange(date)
+                      setDobOpen(false)
+                    }}
                     disabled={(date: Date) =>
                       date > new Date() || date < new Date('1900-01-01')
                     }

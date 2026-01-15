@@ -80,6 +80,7 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
   const [publishedDate, setPublishedDate] = useState<Date | undefined>(
     post.published_at ? new Date(post.published_at) : undefined
   )
+  const [publishedDateOpen, setPublishedDateOpen] = useState(false)
   const [publishedTime, setPublishedTime] = useState<string>(() => {
     if (post.published_at) {
       const date = new Date(post.published_at)
@@ -386,7 +387,7 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                         <>
                           <div className="grid gap-3">
                             <Label>Publication Date</Label>
-                            <Popover>
+                            <Popover open={publishedDateOpen} onOpenChange={setPublishedDateOpen}>
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="outline"
@@ -404,7 +405,10 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                                   mode="single"
                                   selected={publishedDate}
                                   defaultMonth={publishedDate}
-                                  onSelect={setPublishedDate}
+                                  onSelect={(date) => {
+                                    setPublishedDate(date)
+                                    setPublishedDateOpen(false)
+                                  }}
                                   initialFocus
                                   captionLayout="dropdown"
                                   fromYear={2000}

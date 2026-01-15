@@ -39,6 +39,8 @@ export function InvoiceForm({ invoice }: Props) {
   const [dueDate, setDueDate] = useState<Date | undefined>(
     parseDate(invoice?.due_date)
   )
+  const [invoiceDateOpen, setInvoiceDateOpen] = useState(false)
+  const [dueDateOpen, setDueDateOpen] = useState(false)
 
   const { data, setData, post, put, processing, errors } = useForm({
     invoice_date: invoiceDate ? format(invoiceDate, 'yyyy-MM-dd') : '',
@@ -85,11 +87,13 @@ export function InvoiceForm({ invoice }: Props) {
   const handleInvoiceDateChange = (date: Date | undefined) => {
     setInvoiceDate(date)
     setData('invoice_date', date ? format(date, 'yyyy-MM-dd') : '')
+    setInvoiceDateOpen(false)
   }
 
   const handleDueDateChange = (date: Date | undefined) => {
     setDueDate(date)
     setData('due_date', date ? format(date, 'yyyy-MM-dd') : '')
+    setDueDateOpen(false)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -186,7 +190,7 @@ export function InvoiceForm({ invoice }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label>Invoice Date *</Label>
-              <Popover>
+              <Popover open={invoiceDateOpen} onOpenChange={setInvoiceDateOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -216,7 +220,7 @@ export function InvoiceForm({ invoice }: Props) {
             </div>
             <div className="space-y-2">
               <Label>Due Date *</Label>
-              <Popover>
+              <Popover open={dueDateOpen} onOpenChange={setDueDateOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"

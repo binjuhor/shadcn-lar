@@ -32,6 +32,8 @@ export function DateRangePicker({ filters }: DateRangePickerProps) {
   const [endDate, setEndDate] = useState<Date | undefined>(
     filters.endDate ? new Date(filters.endDate) : undefined
   )
+  const [startDateOpen, setStartDateOpen] = useState(false)
+  const [endDateOpen, setEndDateOpen] = useState(false)
 
   const handlePresetChange = (preset: DateRangePreset) => {
     if (preset === 'custom') {
@@ -79,7 +81,7 @@ export function DateRangePicker({ filters }: DateRangePickerProps) {
 
       {showCustom && (
         <div className="flex items-center gap-2">
-          <Popover>
+          <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -98,7 +100,10 @@ export function DateRangePicker({ filters }: DateRangePickerProps) {
                 mode="single"
                 selected={startDate}
                 defaultMonth={startDate}
-                onSelect={setStartDate}
+                onSelect={(date) => {
+                  setStartDate(date)
+                  setStartDateOpen(false)
+                }}
                 disabled={(date) => endDate ? date > endDate : false}
                 captionLayout="dropdown"
                 fromYear={2000}
@@ -109,7 +114,7 @@ export function DateRangePicker({ filters }: DateRangePickerProps) {
 
           <span className="text-muted-foreground">to</span>
 
-          <Popover>
+          <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -128,7 +133,10 @@ export function DateRangePicker({ filters }: DateRangePickerProps) {
                 mode="single"
                 selected={endDate}
                 defaultMonth={endDate}
-                onSelect={setEndDate}
+                onSelect={(date) => {
+                  setEndDate(date)
+                  setEndDateOpen(false)
+                }}
                 disabled={(date) => startDate ? date < startDate : false}
                 captionLayout="dropdown"
                 fromYear={2000}

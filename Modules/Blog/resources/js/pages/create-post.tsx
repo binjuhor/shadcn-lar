@@ -65,6 +65,7 @@ export default function CreateBlogPost({ categories, tags }: CreateBlogPostPageP
   const [content, setContent] = useState<Content>("")
   const [featuredImageFiles, setFeaturedImageFiles] = useState<File[]>([])
   const [publishedDate, setPublishedDate] = useState<Date | undefined>(undefined)
+  const [publishedDateOpen, setPublishedDateOpen] = useState(false)
   const [publishedTime, setPublishedTime] = useState<string>("12:00")
   const [processing, setProcessing] = useState(false)
   const { toast} = useToast()
@@ -293,7 +294,7 @@ export default function CreateBlogPost({ categories, tags }: CreateBlogPostPageP
                         <>
                           <div className="grid gap-3">
                             <Label>Publication Date</Label>
-                            <Popover>
+                            <Popover open={publishedDateOpen} onOpenChange={setPublishedDateOpen}>
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="outline"
@@ -311,7 +312,10 @@ export default function CreateBlogPost({ categories, tags }: CreateBlogPostPageP
                                   mode="single"
                                   selected={publishedDate}
                                   defaultMonth={publishedDate}
-                                  onSelect={setPublishedDate}
+                                  onSelect={(date) => {
+                                    setPublishedDate(date)
+                                    setPublishedDateOpen(false)
+                                  }}
                                   initialFocus
                                   captionLayout="dropdown"
                                   fromYear={2000}
