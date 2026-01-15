@@ -22,7 +22,7 @@ class ModulesControllerTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('Super Admin');
 
-        $response = $this->actingAs($user)->get('/dashboard/settings/modules');
+        $response = $this->actingAs($user)->get(route('dashboard.settings.modules'));
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -35,19 +35,31 @@ class ModulesControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->get('/dashboard/settings/modules');
+        $response = $this->actingAs($user)->get(route('dashboard.settings.modules'));
 
-        $response->assertStatus(403);
+        $response->assertForbidden();
     }
 
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
     public function test_super_admin_can_toggle_module(): void
     {
+        // This test requires separate process due to container state corruption
+        // from previous test's abort() call
+        Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']);
+
         $user = User::factory()->create();
         $user->assignRole('Super Admin');
 
-        $response = $this->actingAs($user)->patch('/dashboard/settings/modules/toggle', [
-            'name' => 'Blog',
-        ]);
+        // Make a GET request first to initialize session with CSRF token
+        $this->actingAs($user)->get(route('dashboard.settings.modules'));
+
+        $response = $this->actingAs($user)
+            ->from(route('dashboard.settings.modules'))
+            ->patch(route('dashboard.settings.modules.toggle'), [
+                '_token' => csrf_token(),
+                'name' => 'Blog',
+            ]);
 
         $response->assertRedirect();
         $response->assertSessionHas('success');
@@ -58,24 +70,36 @@ class ModulesControllerTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('Super Admin');
 
-        $response = $this->actingAs($user)->patch('/dashboard/settings/modules/toggle', [
-            'name' => 'Permission',
-        ]);
+        // Make a GET request first to initialize session with CSRF token
+        $this->actingAs($user)->get(route('dashboard.settings.modules'));
+
+        $response = $this->actingAs($user)
+            ->from(route('dashboard.settings.modules'))
+            ->patch(route('dashboard.settings.modules.toggle'), [
+                '_token' => csrf_token(),
+                'name' => 'Permission',
+            ]);
 
         $response->assertRedirect();
         $response->assertSessionHas('error');
     }
 
-    public function test_toggle_non_existent_module_returns_404(): void
+    public function test_toggle_non_existent_module_returns_error(): void
     {
         $user = User::factory()->create();
         $user->assignRole('Super Admin');
 
-        $response = $this->actingAs($user)->patch('/dashboard/settings/modules/toggle', [
-            'name' => 'NonExistentModule',
-        ]);
+        // Make a GET request first to initialize session with CSRF token
+        $this->actingAs($user)->get(route('dashboard.settings.modules'));
 
-        $response->assertStatus(404);
+        $response = $this->actingAs($user)
+            ->from(route('dashboard.settings.modules'))
+            ->patch(route('dashboard.settings.modules.toggle'), [
+                '_token' => csrf_token(),
+                'name' => 'NonExistentModule',
+            ]);
+
+        $response->assertNotFound();
     }
 
     public function test_toggle_requires_module_name(): void
@@ -83,7 +107,14 @@ class ModulesControllerTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('Super Admin');
 
-        $response = $this->actingAs($user)->patch('/dashboard/settings/modules/toggle', []);
+        // Make a GET request first to initialize session with CSRF token
+        $this->actingAs($user)->get(route('dashboard.settings.modules'));
+
+        $response = $this->actingAs($user)
+            ->from(route('dashboard.settings.modules'))
+            ->patch(route('dashboard.settings.modules.toggle'), [
+                '_token' => csrf_token(),
+            ]);
 
         $response->assertSessionHasErrors('name');
     }
@@ -92,10 +123,16 @@ class ModulesControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->patch('/dashboard/settings/modules/toggle', [
-            'name' => 'Blog',
-        ]);
+        // Make a GET request first to initialize session with CSRF token
+        $this->actingAs($user)->get(route('dashboard.settings.modules'));
 
-        $response->assertStatus(403);
+        $response = $this->actingAs($user)
+            ->from(route('dashboard.settings.modules'))
+            ->patch(route('dashboard.settings.modules.toggle'), [
+                '_token' => csrf_token(),
+                'name' => 'Blog',
+            ]);
+
+        $response->assertForbidden();
     }
 }

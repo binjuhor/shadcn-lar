@@ -93,8 +93,8 @@ class ReportApiTest extends TestCase
                     'date_to',
                 ],
             ])
-            ->assertJsonPath('data.summary.total_income', 1000.0)
-            ->assertJsonPath('data.summary.total_expense', 500.0)
+            ->assertJsonPath('data.summary.total_income', 1000)
+            ->assertJsonPath('data.summary.total_expense', 500)
             ->assertJsonPath('data.summary.transaction_count', 2);
     }
 
