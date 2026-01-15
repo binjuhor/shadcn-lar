@@ -203,6 +203,7 @@ export function InvoiceForm({ invoice }: Props) {
                   <Calendar
                     mode="single"
                     selected={invoiceDate}
+                    defaultMonth={invoiceDate}
                     onSelect={handleInvoiceDateChange}
                     initialFocus
                     captionLayout="dropdown"
@@ -232,6 +233,7 @@ export function InvoiceForm({ invoice }: Props) {
                   <Calendar
                     mode="single"
                     selected={dueDate}
+                    defaultMonth={dueDate}
                     onSelect={handleDueDateChange}
                     initialFocus
                     captionLayout="dropdown"

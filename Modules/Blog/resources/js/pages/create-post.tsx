@@ -310,6 +310,7 @@ export default function CreateBlogPost({ categories, tags }: CreateBlogPostPageP
                                 <Calendar
                                   mode="single"
                                   selected={publishedDate}
+                                  defaultMonth={publishedDate}
                                   onSelect={setPublishedDate}
                                   initialFocus
                                   captionLayout="dropdown"

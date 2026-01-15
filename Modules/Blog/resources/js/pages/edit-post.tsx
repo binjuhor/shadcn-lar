@@ -403,6 +403,7 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                                 <Calendar
                                   mode="single"
                                   selected={publishedDate}
+                                  defaultMonth={publishedDate}
                                   onSelect={setPublishedDate}
                                   initialFocus
                                   captionLayout="dropdown"

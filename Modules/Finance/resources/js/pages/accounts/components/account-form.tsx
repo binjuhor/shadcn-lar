@@ -34,6 +34,7 @@ const accountTypes: { value: AccountType; label: string }[] = [
   { value: 'bank', label: 'Bank Account' },
   { value: 'credit_card', label: 'Credit Card' },
   { value: 'investment', label: 'Investment' },
+  { value: 'e_wallet', label: 'E-Wallet (Payoneer, PayPal, etc.)' },
   { value: 'cash', label: 'Cash' },
   { value: 'loan', label: 'Loan' },
   { value: 'other', label: 'Other' },

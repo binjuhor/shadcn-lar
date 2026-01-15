@@ -97,6 +97,7 @@ export function DateRangePicker({ filters }: DateRangePickerProps) {
               <Calendar
                 mode="single"
                 selected={startDate}
+                defaultMonth={startDate}
                 onSelect={setStartDate}
                 disabled={(date) => endDate ? date > endDate : false}
                 captionLayout="dropdown"
@@ -126,6 +127,7 @@ export function DateRangePicker({ filters }: DateRangePickerProps) {
               <Calendar
                 mode="single"
                 selected={endDate}
+                defaultMonth={endDate}
                 onSelect={setEndDate}
                 disabled={(date) => startDate ? date < startDate : false}
                 captionLayout="dropdown"

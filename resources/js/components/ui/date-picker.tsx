@@ -65,6 +65,7 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={date}
+          defaultMonth={date}
           onSelect={handleSelect}
           captionLayout="dropdown"
           fromYear={fromYear}
