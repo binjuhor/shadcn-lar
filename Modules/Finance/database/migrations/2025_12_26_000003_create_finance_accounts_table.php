@@ -34,7 +34,7 @@ return new class extends Migration
         });
 
         DB::table('finance_accounts')
-          ->whereIn('account_type', ['credit_card', 'loan'])
-          ->update(['has_credit_limit' => true]);
+            ->whereIn('account_type', ['credit_card', 'loan'])
+            ->update(['has_credit_limit' => true]);
     }
 };

@@ -296,10 +296,19 @@ class FinanceReportController extends Controller
             ->groupBy('period', 'transaction_type', 'category_id', 'currency_code')
             ->get();
 
+        // Get passive income categories
         $passiveCategories = Category::where(function ($q) use ($userId) {
             $q->whereNull('user_id')->orWhere('user_id', $userId);
         })
             ->where('is_passive', true)
+            ->pluck('id')
+            ->toArray();
+
+        // Get essential expense categories (needs for survival)
+        $essentialCategories = Category::where(function ($q) use ($userId) {
+            $q->whereNull('user_id')->orWhere('user_id', $userId);
+        })
+            ->where('expense_type', 'essential')
             ->pluck('id')
             ->toArray();
 
@@ -315,6 +324,7 @@ class FinanceReportController extends Controller
                 'activeIncome' => 0,
                 'totalIncome' => 0,
                 'expense' => 0,
+                'essentialExpense' => 0,
                 'surplus' => 0,
                 'passiveCoverage' => 0,
             ];
@@ -337,14 +347,19 @@ class FinanceReportController extends Controller
                 }
             } else {
                 $periods[$tx->period]['expense'] += $amount;
+                // Track essential expenses separately for financial freedom calculation
+                if (in_array($tx->category_id, $essentialCategories)) {
+                    $periods[$tx->period]['essentialExpense'] += $amount;
+                }
             }
         }
 
         foreach ($periods as &$p) {
             $p['surplus'] = $p['passiveIncome'] - $p['expense'];
-            $p['passiveCoverage'] = $p['expense'] > 0
-                ? round(($p['passiveIncome'] / $p['expense']) * 100, 1)
-                : 0;
+            // Coverage based on essential expenses (financial freedom = covering needs)
+            $p['passiveCoverage'] = $p['essentialExpense'] > 0
+                ? round(($p['passiveIncome'] / $p['essentialExpense']) * 100, 1)
+                : ($p['expense'] > 0 ? round(($p['passiveIncome'] / $p['expense']) * 100, 1) : 0);
         }
 
         $monthlyData = array_values($periods);
@@ -355,13 +370,21 @@ class FinanceReportController extends Controller
         $avgExpense = count($monthlyData) > 0
             ? array_sum(array_column($monthlyData, 'expense')) / count($monthlyData)
             : 0;
-        $avgCoverage = $avgExpense > 0 ? round(($avgPassiveIncome / $avgExpense) * 100, 1) : 0;
+        $avgEssentialExpense = count($monthlyData) > 0
+            ? array_sum(array_column($monthlyData, 'essentialExpense')) / count($monthlyData)
+            : 0;
+
+        // Financial freedom = passive income covering essential expenses
+        $avgCoverage = $avgEssentialExpense > 0
+            ? round(($avgPassiveIncome / $avgEssentialExpense) * 100, 1)
+            : ($avgExpense > 0 ? round(($avgPassiveIncome / $avgExpense) * 100, 1) : 0);
 
         return [
             'monthlyData' => $monthlyData,
             'averages' => [
                 'passiveIncome' => round($avgPassiveIncome),
                 'expense' => round($avgExpense),
+                'essentialExpense' => round($avgEssentialExpense),
                 'coverage' => $avgCoverage,
             ],
             'financialFreedomProgress' => min(100, $avgCoverage),

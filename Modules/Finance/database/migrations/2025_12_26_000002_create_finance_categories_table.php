@@ -19,7 +19,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->boolean('is_passive')->default(false);
             $table->enum('expense_type', ['essential', 'discretionary', 'savings'])
-            ->nullable();
+                ->nullable();
             $table->integer('_lft')->default(0);
             $table->integer('_rgt')->default(0);
             $table->timestamps();

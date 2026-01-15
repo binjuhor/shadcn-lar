@@ -389,6 +389,7 @@ export interface CashflowMonthlyData {
   activeIncome: number;
   totalIncome: number;
   expense: number;
+  essentialExpense: number;
   surplus: number;
   passiveCoverage: number;
 }
@@ -396,6 +397,7 @@ export interface CashflowMonthlyData {
 export interface CashflowAverages {
   passiveIncome: number;
   expense: number;
+  essentialExpense: number;
   coverage: number;
 }
 

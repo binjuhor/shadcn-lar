@@ -29,9 +29,13 @@ const chartConfig = {
     label: 'Passive Income',
     color: 'hsl(142, 76%, 36%)',
   },
-  expense: {
-    label: 'Expense',
+  essentialExpense: {
+    label: 'Essential Expense',
     color: 'hsl(0, 84%, 60%)',
+  },
+  expense: {
+    label: 'Total Expense',
+    color: 'hsl(0, 60%, 75%)',
   },
   passiveCoverage: {
     label: 'Coverage %',
@@ -113,7 +117,7 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-3 gap-4 rounded-lg border p-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 rounded-lg border p-3">
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 text-green-600" />
@@ -126,9 +130,18 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
               <Wallet className="h-3 w-3 text-red-600" />
-              Avg Expense
+              Avg Essential Expense
             </div>
             <div className="text-lg font-bold text-red-600">
+              {formatFullCurrency(averages.essentialExpense, currencyCode)}
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+              <Wallet className="h-3 w-3 text-red-400" />
+              Avg Total Expense
+            </div>
+            <div className="text-lg font-bold text-red-400">
               {formatFullCurrency(averages.expense, currencyCode)}
             </div>
           </div>
@@ -183,7 +196,7 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
             <ChartTooltip
               content={
                 <ChartTooltipContent
-                  className="w-[200px]"
+                  className="w-[220px]"
                   formatter={(value, name) => {
                     if (name === 'passiveCoverage') {
                       return (
@@ -193,10 +206,15 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
                         </div>
                       )
                     }
+                    const labels: Record<string, string> = {
+                      passiveIncome: 'Passive:',
+                      essentialExpense: 'Essential:',
+                      expense: 'Total:',
+                    }
                     return (
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">
-                          {name === 'passiveIncome' ? 'Passive:' : 'Expense:'}
+                          {labels[name as string] || name}
                         </span>
                         <span className="font-mono font-medium">
                           {formatCurrency(value as number, currencyCode)}
@@ -213,14 +231,14 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
               dataKey="passiveIncome"
               fill="var(--color-passiveIncome)"
               radius={[4, 4, 0, 0]}
-              barSize={20}
+              barSize={16}
             />
             <Bar
               yAxisId="left"
-              dataKey="expense"
-              fill="var(--color-expense)"
+              dataKey="essentialExpense"
+              fill="var(--color-essentialExpense)"
               radius={[4, 4, 0, 0]}
-              barSize={20}
+              barSize={16}
             />
             <Line
               yAxisId="right"
@@ -235,9 +253,9 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
 
         <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
           <p>
-            <strong>Financial Freedom Goal:</strong> When your passive income covers 100% of your expenses,
-            you've achieved financial independence. The line shows your monthly coverage percentage,
-            while bars compare passive income vs expenses.
+            <strong>Financial Freedom Goal:</strong> When your passive income covers 100% of your essential expenses (needs),
+            you've achieved financial independence. Essential expenses are categorized as "needs" like housing, food, utilities,
+            healthcare, and insurance. The coverage % is calculated as Passive Income / Essential Expenses.
           </p>
         </div>
       </CardContent>
