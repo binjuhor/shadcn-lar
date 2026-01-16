@@ -27,16 +27,8 @@ jobs:
       - name: Generate key
         run: php artisan key:generate
 
-      - name: Create Database
-        run: |
-          mkdir -p database
-          touch database/database.sqlite
-
       - name: Run build production
         run: yarn install && yarn build
 
       - name: Execute tests (Unit and Feature tests) via PHPUnit/Pest
-        env:
-          DB_CONNECTION: sqlite
-          DB_DATABASE: database/database.sqlite
         run: php artisan test
