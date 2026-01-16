@@ -60,6 +60,13 @@ class TransactionController extends Controller
             $query->where('description', 'like', '%'.$request->search.'%');
         }
 
+        // Calculate totals for filtered transactions
+        $totals = (clone $query)->selectRaw("
+            SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END) as total_income,
+            SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END) as total_expense,
+            COUNT(*) as transaction_count
+        ")->first();
+
         $transactions = $query->orderBy('transaction_date', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(50)
@@ -80,6 +87,12 @@ class TransactionController extends Controller
             'accounts' => $accounts,
             'categories' => $categories,
             'filters' => $request->filters(),
+            'totals' => [
+                'income' => (float) ($totals->total_income ?? 0),
+                'expense' => (float) ($totals->total_expense ?? 0),
+                'net' => (float) (($totals->total_income ?? 0) - ($totals->total_expense ?? 0)),
+                'count' => (int) ($totals->transaction_count ?? 0),
+            ],
         ]);
     }
 

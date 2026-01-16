@@ -75,6 +75,12 @@ interface Props {
     date_from?: string
     date_to?: string
   }
+  totals: {
+    income: number
+    expense: number
+    net: number
+    count: number
+  }
 }
 
 function formatMoney(amount: number, currencyCode = 'VND'): string {
@@ -89,6 +95,7 @@ export default function TransactionsIndex({
   accounts,
   categories,
   filters,
+  totals,
 }: Props) {
   const [showForm, setShowForm] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -364,6 +371,30 @@ export default function TransactionsIndex({
                 </Button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Totals Summary - show when filters are active */}
+        {(filters.account_id || filters.category_id || filters.type || filters.date_from || filters.date_to || filters.search) && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="p-4 border rounded-lg bg-background">
+              <p className="text-sm text-muted-foreground">Total Transactions</p>
+              <p className="text-2xl font-bold">{totals.count.toLocaleString()}</p>
+            </div>
+            <div className="p-4 border rounded-lg bg-background">
+              <p className="text-sm text-muted-foreground">Total Income</p>
+              <p className="text-2xl font-bold text-green-600">{formatMoney(totals.income)}</p>
+            </div>
+            <div className="p-4 border rounded-lg bg-background">
+              <p className="text-sm text-muted-foreground">Total Expense</p>
+              <p className="text-2xl font-bold text-red-600">{formatMoney(totals.expense)}</p>
+            </div>
+            <div className="p-4 border rounded-lg bg-background">
+              <p className="text-sm text-muted-foreground">Net</p>
+              <p className={`text-2xl font-bold ${totals.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatMoney(totals.net)}
+              </p>
+            </div>
           </div>
         )}
 
