@@ -37,7 +37,7 @@ jobs:
           --exclude README.md --exclude .env.testing --exclude .prettierrc --exclude components.json \
           --exclude package.json --exclude yarn.lock --exclude package-lock.json --exclude tsconfig.json \
           --exclude phpunit.xml --exclude *.js --exclude tailwind.config.js --exclude vite.config.js \
-          --exclude resources/js --exclude resources/css \
+          --exclude resources/js --exclude resources/css --exclude CLAUDE.md --exclude node_modules \
           $GITHUB_WORKSPACE/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.WORK_DIR }}/
           echo "Code deployment completed."
       - name: Restart Docker containers
