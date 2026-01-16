@@ -117,8 +117,7 @@ class TransactionController extends Controller
             $this->transactionService->recordExpense($validated);
         }
 
-        return Redirect::route('dashboard.finance.transactions.index')
-            ->with('success', 'Transaction recorded successfully');
+        return Redirect::back()->with('success', 'Transaction recorded successfully');
     }
 
     public function update(UpdateTransactionRequest $request, Transaction $transaction): RedirectResponse
