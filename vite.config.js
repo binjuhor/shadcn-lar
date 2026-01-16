@@ -51,6 +51,18 @@ export default defineConfig(({ mode }) => {
               if (id.includes('@radix-ui') || id.includes('lucide-react')) {
                 return 'vendor-ui';
               }
+              // Keep embla-carousel packages together
+              if (id.includes('embla-carousel')) {
+                return 'vendor-ui';
+              }
+              // Keep recharts and d3 packages together
+              if (id.includes('recharts') || id.includes('d3-')) {
+                return 'vendor-charts';
+              }
+              // Keep motion/animation packages together
+              if (id.includes('motion') || id.includes('framer-motion')) {
+                return 'vendor-ui';
+              }
               return 'vendor';
             }
             // Separate module chunks
