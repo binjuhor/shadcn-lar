@@ -34,38 +34,8 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            // Share vendor libs across all modules
-            if (id.includes('node_modules')) {
-              // React ecosystem packages must stay together
-              const reactPackages = [
-                'react',
-                'react-dom',
-                'scheduler',
-                'react-is',
-                'use-sync-external-store',
-                '@inertiajs',
-              ];
-              if (reactPackages.some(pkg => id.includes(`node_modules/${pkg}/`) || id.includes(`node_modules/${pkg}`))) {
-                return 'vendor-react';
-              }
-              if (id.includes('@radix-ui') || id.includes('lucide-react')) {
-                return 'vendor-ui';
-              }
-              // Keep embla-carousel packages together
-              if (id.includes('embla-carousel')) {
-                return 'vendor-ui';
-              }
-              // Keep recharts and d3 packages together
-              if (id.includes('recharts') || id.includes('d3-')) {
-                return 'vendor-charts';
-              }
-              // Keep motion/animation packages together
-              if (id.includes('motion') || id.includes('framer-motion')) {
-                return 'vendor-ui';
-              }
-              return 'vendor';
-            }
-            // Separate module chunks
+            // Only chunk by modules - let Vite handle vendor chunking automatically
+            // Manual vendor chunking causes cross-chunk dependency issues
             if (id.includes('/Modules/')) {
               const match = id.match(/\/Modules\/(\w+)\//);
               if (match) {
