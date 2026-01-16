@@ -118,28 +118,31 @@ export function AccountForm({
       return
     }
 
-    if (hasCreditLimit && isEditing) {
-      if (isNaN(currentBalanceValue) || currentBalanceValue < 0) {
-        setError('current_balance', 'Available credit must be 0 or greater')
+    if (isEditing) {
+      if (isNaN(currentBalanceValue)) {
+        setError('current_balance', 'Please enter a valid number')
         return
       }
-      if (currentBalanceValue > initialBalanceValue) {
-        setError('current_balance', 'Available credit cannot exceed credit limit')
-        return
+      // Credit accounts have additional restrictions
+      if (hasCreditLimit) {
+        if (currentBalanceValue < 0) {
+          setError('current_balance', 'Available credit must be 0 or greater')
+          return
+        }
+        if (currentBalanceValue > initialBalanceValue) {
+          setError('current_balance', 'Available credit cannot exceed credit limit')
+          return
+        }
       }
     }
 
     const formData: Record<string, any> = {
       ...data,
       initial_balance: Math.round(initialBalanceValue),
+      current_balance: Math.round(currentBalanceValue),
       rate_source: data.rate_source === '__default__' ? null : data.rate_source,
       // For credit_card/loan, always set has_credit_limit to true
       has_credit_limit: isDefaultCreditType || data.has_credit_limit,
-    }
-
-    // For credit accounts when editing, include current_balance separately
-    if (hasCreditLimit && isEditing) {
-      formData.current_balance = Math.round(currentBalanceValue)
     }
 
     if (isEditing && account) {
@@ -312,22 +315,26 @@ export function AccountForm({
             )}
           </div>
 
-          {/* Available Credit field - only for credit accounts when editing */}
-          {hasCreditLimit && isEditing && (
+          {/* Current Balance field - for editing existing accounts */}
+          {isEditing && (
             <div className="space-y-2">
-              <Label htmlFor="current_balance">Available Credit</Label>
+              <Label htmlFor="current_balance">
+                {hasCreditLimit ? 'Available Credit' : 'Current Balance'}
+              </Label>
               <Input
                 id="current_balance"
                 type="number"
                 step="0.01"
-                min="0"
-                max={data.initial_balance}
+                min={hasCreditLimit ? '0' : undefined}
+                max={hasCreditLimit ? data.initial_balance : undefined}
                 value={data.current_balance}
                 onChange={(e) => setData('current_balance', e.target.value)}
                 placeholder="0.00"
               />
               <p className="text-xs text-muted-foreground">
-                Amount of credit still available. Amount Owed = Credit Limit - Available Credit
+                {hasCreditLimit
+                  ? 'Amount of credit still available. Amount Owed = Credit Limit - Available Credit'
+                  : 'Manual balance adjustment. Use this to correct balance discrepancies.'}
               </p>
               {errors.current_balance && (
                 <p className="text-sm text-red-600">{errors.current_balance}</p>

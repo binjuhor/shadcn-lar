@@ -22,7 +22,7 @@ class UpdateAccountRequest extends FormRequest
             'currency_code' => ['sometimes', 'string', 'size:3', 'exists:currencies,code'],
             'rate_source' => ['nullable', 'string'],
             'initial_balance' => ['sometimes', 'numeric', 'between:-999999999999999999,999999999999999999'],
-            'current_balance' => ['sometimes', 'numeric', 'min:0'],
+            'current_balance' => ['sometimes', 'numeric'],
             'description' => ['nullable', 'string', 'max:1000'],
             'color' => ['nullable', 'string', 'max:7'],
             'is_active' => ['sometimes', 'boolean'],

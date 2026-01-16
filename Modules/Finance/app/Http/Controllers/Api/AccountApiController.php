@@ -91,7 +91,7 @@ class AccountApiController extends Controller
             'account_type' => ['sometimes', 'in:bank,credit_card,investment,cash,loan,e_wallet,other'],
             'currency_code' => ['sometimes', 'string', 'size:3', 'exists:currencies,code'],
             'initial_balance' => ['sometimes', 'numeric'],
-            'current_balance' => ['sometimes', 'numeric', 'min:0'],
+            'current_balance' => ['sometimes', 'numeric'],
             'description' => ['nullable', 'string', 'max:1000'],
             'color' => ['nullable', 'string', 'max:7'],
             'is_active' => ['sometimes', 'boolean'],
