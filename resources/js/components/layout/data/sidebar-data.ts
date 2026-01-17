@@ -111,11 +111,23 @@ export const sidebarData: SidebarData = {
           url: '/dashboard/charts',
           icon: IconChartBar,
         },
+      ],
+    },
+    {
+      title: 'Invoices',
+      collapsible: true,
+      requiresModule: 'Invoice',
+      items: [
         {
-          title: 'Invoices',
+          title: 'All Invoices',
           url: '/dashboard/invoices',
           icon: IconFileInvoice,
           permission: 'invoices.view',
+        },
+        {
+          title: 'Reports',
+          url: '/dashboard/invoices-reports',
+          icon: IconChartBar,
         },
       ],
     },
@@ -368,6 +380,16 @@ export const sidebarData: SidebarData = {
               title: 'Display',
               url: '/dashboard/settings/display',
               icon: IconBrowserCheck,
+            },
+            {
+              title: 'Finance',
+              url: '/dashboard/settings/finance',
+              icon: IconCurrencyDollar,
+            },
+            {
+              title: 'Modules',
+              url: '/dashboard/settings/modules',
+              icon: IconPackages,
             },
           ],
         },
