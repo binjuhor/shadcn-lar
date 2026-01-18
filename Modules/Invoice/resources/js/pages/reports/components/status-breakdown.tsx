@@ -24,25 +24,26 @@ interface StatusBreakdownItem {
 
 interface StatusBreakdownProps {
   data: StatusBreakdownItem[]
+  currency: string
 }
 
-function formatCurrency(value: number): string {
+function formatCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'VND',
+    currency,
     notation: 'compact',
     maximumFractionDigits: 1,
   }).format(value)
 }
 
-function formatFullCurrency(value: number): string {
+function formatFullCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'VND',
+    currency,
   }).format(value)
 }
 
-export function StatusBreakdown({ data }: StatusBreakdownProps) {
+export function StatusBreakdown({ data, currency }: StatusBreakdownProps) {
   const chartConfig = React.useMemo(() => {
     return data.reduce((acc, item) => {
       acc[item.status] = {
@@ -74,7 +75,7 @@ export function StatusBreakdown({ data }: StatusBreakdownProps) {
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">{name}:</span>
                         <span className="font-mono font-medium">
-                          {formatCurrency(value as number)}
+                          {formatCurrency(value as number, currency)}
                         </span>
                       </div>
                     )}
@@ -111,7 +112,7 @@ export function StatusBreakdown({ data }: StatusBreakdownProps) {
                 <span className="text-muted-foreground">({item.count})</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-medium">{formatFullCurrency(item.amount)}</span>
+                <span className="font-medium">{formatFullCurrency(item.amount, currency)}</span>
                 <span className="text-muted-foreground">{item.percentage}%</span>
               </div>
             </div>
@@ -121,7 +122,7 @@ export function StatusBreakdown({ data }: StatusBreakdownProps) {
         <div className="mt-4 border-t pt-4">
           <div className="flex items-center justify-between text-sm font-medium">
             <span>Total</span>
-            <span>{formatFullCurrency(totalAmount)}</span>
+            <span>{formatFullCurrency(totalAmount, currency)}</span>
           </div>
         </div>
       </CardContent>

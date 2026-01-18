@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import useDialogState from '@/hooks/use-dialog-state'
 
-type SettingsTab = 'profile' | 'account' | 'appearance' | 'notifications' | 'display' | 'finance' | 'modules'
+type SettingsTab = 'profile' | 'account' | 'appearance' | 'notifications' | 'display' | 'finance' | 'invoice' | 'modules'
 type SettingsDialogType = 'save-confirm' | 'discard-confirm'
 
 interface SettingsContextType {

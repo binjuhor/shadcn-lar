@@ -113,33 +113,50 @@ export function AccountForm({
     const initialBalanceValue = parseFloat(data.initial_balance || '0')
     const currentBalanceValue = parseFloat(data.current_balance || '0')
 
-    if (isNaN(initialBalanceValue) || Math.abs(initialBalanceValue) > MAX_BALANCE) {
-      setError('initial_balance', `Balance must be between -${MAX_BALANCE.toLocaleString()} and ${MAX_BALANCE.toLocaleString()}`)
-      return
-    }
-
-    if (isEditing) {
-      if (isNaN(currentBalanceValue)) {
-        setError('current_balance', 'Please enter a valid number')
+    // Validate based on account type and mode
+    if (hasCreditLimit) {
+      // Credit accounts: validate both fields
+      if (isNaN(initialBalanceValue) || initialBalanceValue < 0) {
+        setError('initial_balance', 'Credit limit must be 0 or greater')
         return
       }
-      // Credit accounts have additional restrictions
-      if (hasCreditLimit) {
-        if (currentBalanceValue < 0) {
-          setError('current_balance', 'Available credit must be 0 or greater')
-          return
-        }
-        if (currentBalanceValue > initialBalanceValue) {
-          setError('current_balance', 'Available credit cannot exceed credit limit')
-          return
-        }
+      if (isNaN(currentBalanceValue) || currentBalanceValue < 0) {
+        setError('current_balance', 'Available credit must be 0 or greater')
+        return
+      }
+      if (currentBalanceValue > initialBalanceValue) {
+        setError('current_balance', 'Available credit cannot exceed credit limit')
+        return
+      }
+    } else {
+      // Regular accounts: validate single balance field
+      const balanceToValidate = isEditing ? currentBalanceValue : initialBalanceValue
+      if (isNaN(balanceToValidate) || Math.abs(balanceToValidate) > MAX_BALANCE) {
+        const errorField = isEditing ? 'current_balance' : 'initial_balance'
+        setError(errorField, `Balance must be between -${MAX_BALANCE.toLocaleString()} and ${MAX_BALANCE.toLocaleString()}`)
+        return
+      }
+    }
+
+    // Build form data
+    let formInitialBalance = initialBalanceValue
+    let formCurrentBalance = currentBalanceValue
+
+    // For regular accounts: initial_balance = current_balance
+    if (!hasCreditLimit) {
+      if (isEditing) {
+        // Keep original initial_balance, only update current_balance
+        formInitialBalance = parseFloat(String(account?.initial_balance ?? '0'))
+      } else {
+        // New account: set both to the same value
+        formCurrentBalance = initialBalanceValue
       }
     }
 
     const formData: Record<string, any> = {
       ...data,
-      initial_balance: Math.round(initialBalanceValue),
-      current_balance: Math.round(currentBalanceValue),
+      initial_balance: Math.round(formInitialBalance),
+      current_balance: Math.round(formCurrentBalance),
       rate_source: data.rate_source === '__default__' ? null : data.rate_source,
       // For credit_card/loan, always set has_credit_limit to true
       has_credit_limit: isDefaultCreditType || data.has_credit_limit,
@@ -285,56 +302,80 @@ export function AccountForm({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="initial_balance">
-              {hasCreditLimit
-                ? 'Credit Limit'
-                : isEditing
-                  ? 'Current Balance'
-                  : 'Initial Balance'}
-            </Label>
-            <Input
-              id="initial_balance"
-              type="number"
-              step="0.01"
-              min={hasCreditLimit ? '0' : '-999999999999999999'}
-              max="999999999999999999"
-              value={data.initial_balance}
-              onChange={(e) => setData('initial_balance', e.target.value)}
-              placeholder="0.00"
-            />
-            {hasCreditLimit && !isEditing && (
+          {/* For regular accounts: single balance field */}
+          {!hasCreditLimit && (
+            <div className="space-y-2">
+              <Label htmlFor="balance">
+                {isEditing ? 'Current Balance' : 'Initial Balance'}
+              </Label>
+              <Input
+                id="balance"
+                type="number"
+                step="0.01"
+                min="-999999999999999999"
+                max="999999999999999999"
+                value={isEditing ? data.current_balance : data.initial_balance}
+                onChange={(e) => {
+                  if (isEditing) {
+                    setData('current_balance', e.target.value)
+                  } else {
+                    setData('initial_balance', e.target.value)
+                  }
+                }}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-muted-foreground">
+                {isEditing
+                  ? 'Adjust this to correct balance discrepancies.'
+                  : 'Starting balance when you create this account.'}
+              </p>
+              {(errors.initial_balance || errors.current_balance) && (
+                <p className="text-sm text-red-600">{errors.initial_balance || errors.current_balance}</p>
+              )}
+            </div>
+          )}
+
+          {/* For credit accounts: Credit Limit field */}
+          {hasCreditLimit && (
+            <div className="space-y-2">
+              <Label htmlFor="initial_balance">Credit Limit</Label>
+              <Input
+                id="initial_balance"
+                type="number"
+                step="0.01"
+                min="0"
+                max="999999999999999999"
+                value={data.initial_balance}
+                onChange={(e) => setData('initial_balance', e.target.value)}
+                placeholder="0.00"
+              />
               <p className="text-xs text-muted-foreground">
                 {data.account_type === 'credit_card'
-                  ? 'Your total credit limit. Available credit will decrease as you spend.'
-                  : 'Your total loan amount. Balance will decrease as you make payments.'}
+                  ? 'Your total credit limit.'
+                  : 'Your total loan amount.'}
               </p>
-            )}
-            {errors.initial_balance && (
-              <p className="text-sm text-red-600">{errors.initial_balance}</p>
-            )}
-          </div>
+              {errors.initial_balance && (
+                <p className="text-sm text-red-600">{errors.initial_balance}</p>
+              )}
+            </div>
+          )}
 
-          {/* Current Balance field - for editing existing accounts */}
-          {isEditing && (
+          {/* For credit accounts: Available Credit field */}
+          {hasCreditLimit && (
             <div className="space-y-2">
-              <Label htmlFor="current_balance">
-                {hasCreditLimit ? 'Available Credit' : 'Current Balance'}
-              </Label>
+              <Label htmlFor="current_balance">Available Credit</Label>
               <Input
                 id="current_balance"
                 type="number"
                 step="0.01"
-                min={hasCreditLimit ? '0' : undefined}
-                max={hasCreditLimit ? data.initial_balance : undefined}
+                min="0"
+                max={data.initial_balance}
                 value={data.current_balance}
                 onChange={(e) => setData('current_balance', e.target.value)}
                 placeholder="0.00"
               />
               <p className="text-xs text-muted-foreground">
-                {hasCreditLimit
-                  ? 'Amount of credit still available. Amount Owed = Credit Limit - Available Credit'
-                  : 'Manual balance adjustment. Use this to correct balance discrepancies.'}
+                Amount of credit still available. Amount Owed = Credit Limit - Available Credit
               </p>
               {errors.current_balance && (
                 <p className="text-sm text-red-600">{errors.current_balance}</p>

@@ -20,12 +20,23 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
 }
 
-interface Props {
-  invoice?: Invoice
+interface InvoiceDefaults {
+  from_name?: string
+  from_address?: string
+  from_email?: string
+  from_phone?: string
+  tax_rate?: number
+  payment_terms?: number
 }
 
-export function InvoiceForm({ invoice }: Props) {
+interface Props {
+  invoice?: Invoice
+  defaults?: InvoiceDefaults
+}
+
+export function InvoiceForm({ invoice, defaults }: Props) {
   const isEdit = !!invoice
+  const paymentTerms = defaults?.payment_terms ?? 30
 
   const parseDate = (dateStr: string | undefined): Date | undefined => {
     if (!dateStr) return undefined
@@ -33,26 +44,31 @@ export function InvoiceForm({ invoice }: Props) {
     return isNaN(d.getTime()) ? undefined : d
   }
 
-  const [invoiceDate, setInvoiceDate] = useState<Date | undefined>(
-    parseDate(invoice?.invoice_date) || new Date()
-  )
-  const [dueDate, setDueDate] = useState<Date | undefined>(
-    parseDate(invoice?.due_date)
-  )
+  const calculateDueDate = (invoiceDate: Date, terms: number): Date => {
+    const dueDate = new Date(invoiceDate)
+    dueDate.setDate(dueDate.getDate() + terms)
+    return dueDate
+  }
+
+  const initialInvoiceDate = parseDate(invoice?.invoice_date) || new Date()
+  const initialDueDate = parseDate(invoice?.due_date) || calculateDueDate(initialInvoiceDate, paymentTerms)
+
+  const [invoiceDate, setInvoiceDate] = useState<Date | undefined>(initialInvoiceDate)
+  const [dueDate, setDueDate] = useState<Date | undefined>(initialDueDate)
   const [invoiceDateOpen, setInvoiceDateOpen] = useState(false)
   const [dueDateOpen, setDueDateOpen] = useState(false)
 
   const { data, setData, post, put, processing, errors } = useForm({
     invoice_date: invoiceDate ? format(invoiceDate, 'yyyy-MM-dd') : '',
     due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : '',
-    from_name: invoice?.from_name || '',
-    from_address: invoice?.from_address || '',
-    from_email: invoice?.from_email || '',
-    from_phone: invoice?.from_phone || '',
+    from_name: invoice?.from_name || defaults?.from_name || '',
+    from_address: invoice?.from_address || defaults?.from_address || '',
+    from_email: invoice?.from_email || defaults?.from_email || '',
+    from_phone: invoice?.from_phone || defaults?.from_phone || '',
     to_name: invoice?.to_name || '',
     to_address: invoice?.to_address || '',
     to_email: invoice?.to_email || '',
-    tax_rate: invoice?.tax_rate ? Number(invoice.tax_rate) : 0.1,
+    tax_rate: invoice?.tax_rate ? Number(invoice.tax_rate) : (defaults?.tax_rate ?? 0.1),
     notes: invoice?.notes || '',
     status: invoice?.status || 'draft',
     items: invoice?.items?.map(item => ({
@@ -88,6 +104,13 @@ export function InvoiceForm({ invoice }: Props) {
     setInvoiceDate(date)
     setData('invoice_date', date ? format(date, 'yyyy-MM-dd') : '')
     setInvoiceDateOpen(false)
+
+    // Auto-update due date when creating new invoice
+    if (!isEdit && date) {
+      const newDueDate = calculateDueDate(date, paymentTerms)
+      setDueDate(newDueDate)
+      setData('due_date', format(newDueDate, 'yyyy-MM-dd'))
+    }
   }
 
   const handleDueDateChange = (date: Date | undefined) => {

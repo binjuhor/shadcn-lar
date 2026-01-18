@@ -26,6 +26,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/finance', [SettingsController::class, 'finance'])->name('finance');
         Route::patch('/finance', [SettingsController::class, 'updateFinance'])->name('finance.update');
 
+        Route::get('/invoice', [SettingsController::class, 'invoice'])->name('invoice');
+        Route::patch('/invoice', [SettingsController::class, 'updateInvoice'])->name('invoice.update');
+
         // Modules (Super Admin only)
         Route::get('/modules', [ModulesController::class, 'index'])->name('modules');
         Route::patch('/modules/toggle', [ModulesController::class, 'toggle'])->name('modules.toggle');

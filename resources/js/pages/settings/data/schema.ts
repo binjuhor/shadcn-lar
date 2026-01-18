@@ -129,3 +129,26 @@ export const months = [
   { label: 'November', value: 11 },
   { label: 'December', value: 12 },
 ] as const
+
+// Invoice Settings Schema
+export const invoiceSettingsFormSchema = z.object({
+  default_currency: z.string().length(3, 'Currency code must be 3 characters'),
+  default_tax_rate: z.number().min(0).max(100),
+  default_payment_terms: z.number().min(0).max(365),
+  company_name: z.string().max(255).nullable(),
+  company_address: z.string().max(1000).nullable(),
+  company_email: z.string().email().max(255).nullable().or(z.literal('')),
+  company_phone: z.string().max(50).nullable(),
+})
+export type InvoiceSettingsFormValues = z.infer<typeof invoiceSettingsFormSchema>
+
+// Payment terms options
+export const paymentTermsOptions = [
+  { label: 'Due on Receipt', value: 0 },
+  { label: 'Net 7', value: 7 },
+  { label: 'Net 15', value: 15 },
+  { label: 'Net 30', value: 30 },
+  { label: 'Net 45', value: 45 },
+  { label: 'Net 60', value: 60 },
+  { label: 'Net 90', value: 90 },
+] as const

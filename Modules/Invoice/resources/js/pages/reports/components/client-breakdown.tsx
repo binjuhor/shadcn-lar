@@ -23,25 +23,26 @@ interface ClientBreakdownItem {
 
 interface ClientBreakdownProps {
   data: ClientBreakdownItem[]
+  currency: string
 }
 
-function formatCurrency(value: number): string {
+function formatCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'VND',
+    currency,
     notation: 'compact',
     maximumFractionDigits: 1,
   }).format(value)
 }
 
-function formatFullCurrency(value: number): string {
+function formatFullCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'VND',
+    currency,
   }).format(value)
 }
 
-export function ClientBreakdown({ data }: ClientBreakdownProps) {
+export function ClientBreakdown({ data, currency }: ClientBreakdownProps) {
   const chartConfig = React.useMemo(() => {
     return {
       amount: {
@@ -93,7 +94,7 @@ export function ClientBreakdown({ data }: ClientBreakdownProps) {
             <CartesianGrid horizontal={false} />
             <XAxis
               type="number"
-              tickFormatter={(value) => formatCurrency(value)}
+              tickFormatter={(value) => formatCurrency(value, currency)}
               tickLine={false}
               axisLine={false}
             />
@@ -113,7 +114,7 @@ export function ClientBreakdown({ data }: ClientBreakdownProps) {
                       <span className="font-medium">{props.payload.name}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">Amount:</span>
-                        <span className="font-mono">{formatFullCurrency(value as number)}</span>
+                        <span className="font-mono">{formatFullCurrency(value as number, currency)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">Invoices:</span>
@@ -143,7 +144,7 @@ export function ClientBreakdown({ data }: ClientBreakdownProps) {
                 <span className="truncate max-w-[150px]">{item.name}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-medium">{formatFullCurrency(item.amount)}</span>
+                <span className="font-medium">{formatFullCurrency(item.amount, currency)}</span>
                 <span className="text-muted-foreground">{item.percentage}%</span>
               </div>
             </div>

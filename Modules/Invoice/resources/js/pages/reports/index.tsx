@@ -58,20 +58,21 @@ interface ReportSummary {
 
 interface Props {
   filters: ReportFilters
+  currency: string
   incomeTrend: IncomeTrendPoint[]
   statusBreakdown: StatusBreakdownItem[]
   clientBreakdown: ClientBreakdownItem[]
   summary: ReportSummary
 }
 
-function formatMoney(amount: number): string {
+function formatMoney(amount: number, currency: string): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'VND',
+    currency,
   }).format(amount)
 }
 
-function SummaryCards({ summary }: { summary: ReportSummary }) {
+function SummaryCards({ summary, currency }: { summary: ReportSummary; currency: string }) {
   const isPositiveChange = summary.previousPeriodChange >= 0
 
   return (
@@ -82,7 +83,7 @@ function SummaryCards({ summary }: { summary: ReportSummary }) {
           <FileText className="h-3 w-3 text-blue-600" />
         </div>
         <div className="text-lg font-bold mt-1">
-          {formatMoney(summary.totalInvoiced)}
+          {formatMoney(summary.totalInvoiced, currency)}
         </div>
         <div className="text-xs text-muted-foreground mt-1">
           {summary.invoiceCount} invoices
@@ -95,7 +96,7 @@ function SummaryCards({ summary }: { summary: ReportSummary }) {
           <DollarSign className="h-3 w-3 text-green-600" />
         </div>
         <div className="text-lg font-bold text-green-600 mt-1">
-          {formatMoney(summary.totalPaid)}
+          {formatMoney(summary.totalPaid, currency)}
         </div>
       </Card>
 
@@ -105,7 +106,7 @@ function SummaryCards({ summary }: { summary: ReportSummary }) {
           <Clock className="h-3 w-3 text-yellow-600" />
         </div>
         <div className="text-lg font-bold text-yellow-600 mt-1">
-          {formatMoney(summary.totalPending)}
+          {formatMoney(summary.totalPending, currency)}
         </div>
       </Card>
 
@@ -128,6 +129,7 @@ function SummaryCards({ summary }: { summary: ReportSummary }) {
 
 export default function InvoiceReports({
   filters,
+  currency,
   incomeTrend,
   statusBreakdown,
   clientBreakdown,
@@ -157,13 +159,13 @@ export default function InvoiceReports({
         </div>
 
         <div className="space-y-4">
-          <SummaryCards summary={summary} />
+          <SummaryCards summary={summary} currency={currency} />
 
-          <IncomeTrend data={incomeTrend} />
+          <IncomeTrend data={incomeTrend} currency={currency} />
 
           <div className="grid gap-4 md:grid-cols-2">
-            <StatusBreakdown data={statusBreakdown} />
-            <ClientBreakdown data={clientBreakdown} />
+            <StatusBreakdown data={statusBreakdown} currency={currency} />
+            <ClientBreakdown data={clientBreakdown} currency={currency} />
           </div>
         </div>
       </Main>

@@ -26,6 +26,7 @@ interface IncomeTrendPoint {
 
 interface IncomeTrendProps {
   data: IncomeTrendPoint[]
+  currency: string
 }
 
 const chartConfig = {
@@ -39,19 +40,19 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-function formatCurrency(value: number): string {
+function formatCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'VND',
+    currency,
     notation: 'compact',
     maximumFractionDigits: 1,
   }).format(value)
 }
 
-function formatFullCurrency(value: number): string {
+function formatFullCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'VND',
+    currency,
   }).format(value)
 }
 
@@ -65,7 +66,7 @@ function formatPeriod(period: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export function IncomeTrend({ data }: IncomeTrendProps) {
+export function IncomeTrend({ data, currency }: IncomeTrendProps) {
   const formattedData = data.map((item) => ({
     ...item,
     periodLabel: formatPeriod(item.period),
@@ -91,19 +92,19 @@ export function IncomeTrend({ data }: IncomeTrendProps) {
           <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
             <span className="text-xs text-muted-foreground">Total</span>
             <span className="text-sm font-bold leading-none">
-              {formatFullCurrency(totals.total)}
+              {formatFullCurrency(totals.total, currency)}
             </span>
           </div>
           <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
             <span className="text-xs text-muted-foreground">Paid</span>
             <span className="text-sm font-bold leading-none text-green-600">
-              {formatFullCurrency(totals.paid)}
+              {formatFullCurrency(totals.paid, currency)}
             </span>
           </div>
           <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
             <span className="text-xs text-muted-foreground">Pending</span>
             <span className="text-sm font-bold leading-none text-yellow-600">
-              {formatFullCurrency(totals.pending)}
+              {formatFullCurrency(totals.pending, currency)}
             </span>
           </div>
         </div>
@@ -124,7 +125,7 @@ export function IncomeTrend({ data }: IncomeTrendProps) {
               minTickGap={32}
             />
             <YAxis
-              tickFormatter={(value) => formatCurrency(value)}
+              tickFormatter={(value) => formatCurrency(value, currency)}
               tickLine={false}
               axisLine={false}
               width={70}
@@ -139,7 +140,7 @@ export function IncomeTrend({ data }: IncomeTrendProps) {
                         {name === 'paid' ? 'Paid' : 'Pending'}:
                       </span>
                       <span className="font-mono font-medium">
-                        {formatCurrency(value as number)}
+                        {formatCurrency(value as number, currency)}
                       </span>
                     </div>
                   )}

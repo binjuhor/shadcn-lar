@@ -1,6 +1,7 @@
 import {
   IconBrowserCheck,
   IconCurrencyDollar,
+  IconFileInvoice,
   IconNotification,
   IconPackages,
   IconPalette,
@@ -47,6 +48,12 @@ export const settingsNavItems: SettingsNavItem[] = [
     icon: <IconCurrencyDollar size={18} />,
     href: '/dashboard/settings/finance',
     requiresModule: 'Finance',
+  },
+  {
+    title: 'Invoice',
+    icon: <IconFileInvoice size={18} />,
+    href: '/dashboard/settings/invoice',
+    requiresModule: 'Invoice',
   },
   {
     title: 'Modules',

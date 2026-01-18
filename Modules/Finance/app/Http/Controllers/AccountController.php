@@ -159,19 +159,15 @@ class AccountController extends Controller
         $hasCreditLimit = $validated['has_credit_limit'] ?? $account->has_credit_limit;
 
         // Handle balance updates
-        if (isset($validated['initial_balance'])) {
-            if ($hasCreditLimit) {
-                // For credit accounts: if current_balance is NOT provided, adjust it by the limit difference
-                if (! isset($validated['current_balance'])) {
-                    $limitDiff = $validated['initial_balance'] - $account->initial_balance;
-                    $validated['current_balance'] = $account->current_balance + $limitDiff;
-                }
-                // If current_balance IS provided, use it directly (user manually set it)
-            } else {
-                // For regular accounts: initial_balance = current_balance
-                $validated['current_balance'] = $validated['initial_balance'];
+        if ($hasCreditLimit) {
+            // For credit accounts: if current_balance is NOT provided, adjust it by the limit difference
+            if (isset($validated['initial_balance']) && ! isset($validated['current_balance'])) {
+                $limitDiff = $validated['initial_balance'] - $account->initial_balance;
+                $validated['current_balance'] = $account->current_balance + $limitDiff;
             }
+            // If current_balance IS provided, use it directly (user manually set it)
         }
+        // For regular accounts: current_balance is sent directly from frontend, no conversion needed
 
         $setAsDefault = $validated['is_default_payment'] ?? false;
         unset($validated['is_default_payment']);

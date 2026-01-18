@@ -27,12 +27,17 @@ class InvoiceReportController extends Controller
         $clientBreakdown = $this->getClientBreakdown($userId, $dateFrom, $dateTo);
         $summary = $this->getSummary($userId, $dateFrom, $dateTo);
 
+        $user = auth()->user();
+        $settings = $user->invoice_settings ?? [];
+        $currency = $settings['default_currency'] ?? 'VND';
+
         return Inertia::render('Invoice::reports/index', [
             'filters' => [
                 'range' => $range,
                 'startDate' => $dateFrom->format('Y-m-d'),
                 'endDate' => $dateTo->format('Y-m-d'),
             ],
+            'currency' => $currency,
             'incomeTrend' => $incomeTrend,
             'statusBreakdown' => $statusBreakdown,
             'clientBreakdown' => $clientBreakdown,
@@ -228,7 +233,7 @@ class InvoiceReportController extends Controller
 
         $previousPeriod = Invoice::where('user_id', $userId)
             ->whereBetween('invoice_date', [$previousFrom->startOfDay(), $previousTo->endOfDay()])
-            ->selectRaw("SUM(total) as total")
+            ->selectRaw('SUM(total) as total')
             ->first();
 
         $currentTotal = (float) ($currentPeriod->total ?? 0);

@@ -27,7 +27,19 @@ class InvoiceController extends Controller
 
     public function create()
     {
-        return Inertia::render('Invoice::create');
+        $user = auth()->user();
+        $settings = $user->invoice_settings ?? [];
+
+        return Inertia::render('Invoice::create', [
+            'defaults' => [
+                'from_name' => $settings['company_name'] ?? '',
+                'from_address' => $settings['company_address'] ?? '',
+                'from_email' => $settings['company_email'] ?? '',
+                'from_phone' => $settings['company_phone'] ?? '',
+                'tax_rate' => ($settings['default_tax_rate'] ?? 10) / 100,
+                'payment_terms' => $settings['default_payment_terms'] ?? 30,
+            ],
+        ]);
     }
 
     public function store(StoreInvoiceRequest $request)
