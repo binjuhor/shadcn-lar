@@ -54,7 +54,9 @@
             "Modules\\Finance\\Database\\Seeders\\": "Modules/Finance/database/seeders/",
             "Modules\\Settings\\": "Modules/Settings/app/",
             "Modules\\Settings\\Database\\Seeders\\": "Modules/Settings/database/seeders/",
-            "Modules\\ModuleGenerator\\": "Modules/ModuleGenerator/app/"
+            "Modules\\ModuleGenerator\\": "Modules/ModuleGenerator/app/",
+            "Modules\\Invoice\\Database\\Factories\\": "Modules/Invoice/database/factories/",
+            "Modules\\Invoice\\Database\\Seeders\\": "Modules/Invoice/database/seeders/"
         }
     },
     "autoload-dev": {
