@@ -4,7 +4,11 @@ namespace Modules\Notification\Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Modules\Notification\Enums\{NotificationCategory, NotificationChannel, NotificationTemplate};
+use Modules\Notification\{
+    Enums\NotificationCategory,
+    Enums\NotificationChannel,
+    Models\NotificationTemplate
+};
 use Spatie\Permission\Models\{Permission, Role};
 use Tests\TestCase;
 
