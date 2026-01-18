@@ -5,8 +5,7 @@ namespace Modules\Permission\Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\{Permission, Role};
 use Tests\TestCase;
 
 class RoleControllerTest extends TestCase

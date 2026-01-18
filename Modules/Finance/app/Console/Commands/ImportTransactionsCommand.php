@@ -5,10 +5,8 @@ namespace Modules\Finance\Console\Commands;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Modules\Finance\Models\Account;
-use Modules\Finance\Models\Transaction;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Shared\Date;
+use Modules\Finance\Models\{Account, Transaction};
+use PhpOffice\PhpSpreadsheet\{IOFactory, Shared\Date};
 
 class ImportTransactionsCommand extends Command
 {

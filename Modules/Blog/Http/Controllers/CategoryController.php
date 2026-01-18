@@ -5,8 +5,7 @@ namespace Modules\Blog\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
+use Inertia\{Inertia, Response};
 use Modules\Blog\Models\Category;
 
 class CategoryController extends Controller

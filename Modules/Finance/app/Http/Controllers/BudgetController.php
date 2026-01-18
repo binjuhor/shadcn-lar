@@ -4,14 +4,10 @@ namespace Modules\Finance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{RedirectResponse,Request};
 use Illuminate\Support\Facades\Redirect;
-use Inertia\Inertia;
-use Inertia\Response;
-use Modules\Finance\Models\Budget;
-use Modules\Finance\Models\Category;
-use Modules\Finance\Models\Currency;
+use Inertia\{Inertia, Response};
+use Modules\Finance\Models\{Budget, Category, Currency};
 use Modules\Finance\Services\BudgetService;
 
 class BudgetController extends Controller

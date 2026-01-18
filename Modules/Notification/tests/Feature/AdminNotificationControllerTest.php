@@ -5,12 +5,13 @@ namespace Modules\Notification\Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
-use Modules\Notification\Enums\NotificationCategory;
-use Modules\Notification\Enums\NotificationChannel;
-use Modules\Notification\Models\NotificationTemplate;
-use Modules\Notification\Notifications\GenericNotification;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+use Modules\Notification\{
+    Enums\NotificationCategory,
+    Enums\NotificationChannel,
+    Models\NotificationTemplate,
+    Notifications\GenericNotification
+};
+use Spatie\Permission\Models\{Permission, Role};
 use Tests\TestCase;
 
 class AdminNotificationControllerTest extends TestCase

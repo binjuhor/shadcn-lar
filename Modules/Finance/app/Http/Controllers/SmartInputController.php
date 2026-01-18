@@ -4,12 +4,9 @@ namespace Modules\Finance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
+use Inertia\{Inertia, Response};
 use Modules\Finance\Contracts\TransactionParserInterface;
-use Modules\Finance\Models\Account;
-use Modules\Finance\Models\Category;
-use Modules\Finance\Models\Transaction;
+use Modules\Finance\Models\{Account, Category, Transaction};
 use Modules\Finance\Services\TransactionParserFactory;
 
 class SmartInputController extends Controller

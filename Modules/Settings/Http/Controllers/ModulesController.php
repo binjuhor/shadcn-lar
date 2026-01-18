@@ -3,12 +3,9 @@
 namespace Modules\Settings\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Redirect;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\Http\{RedirectResponse, Request};
+use Illuminate\Support\Facades\{Artisan, Redirect};
+use Inertia\{Inertia, Response};
 use Nwidart\Modules\Facades\Module;
 
 class ModulesController extends Controller

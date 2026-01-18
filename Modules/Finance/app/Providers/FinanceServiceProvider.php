@@ -3,21 +3,15 @@
 namespace Modules\Finance\Providers;
 
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\ServiceProvider;
-use Modules\Finance\Console\Commands\FetchExchangeRatesCommand;
-use Modules\Finance\Console\Commands\ImportTransactionsCommand;
-use Modules\Finance\Console\Commands\ProcessRecurringTransactionsCommand;
-use Modules\Finance\Console\Commands\RecalculatePlanTotalsCommand;
-use Modules\Finance\Models\Account;
-use Modules\Finance\Models\Budget;
-use Modules\Finance\Models\SavingsGoal;
-use Modules\Finance\Models\Transaction;
-use Modules\Finance\Policies\AccountPolicy;
-use Modules\Finance\Policies\BudgetPolicy;
-use Modules\Finance\Policies\SavingsGoalPolicy;
-use Modules\Finance\Policies\TransactionPolicy;
+use Illuminate\Support\{Facades\Blade, Facades\Gate, ServiceProvider};
+use Modules\Finance\Console\Commands\{
+    FetchExchangeRatesCommand,
+    ImportTransactionsCommand,
+    ProcessRecurringTransactionsCommand,
+    RecalculatePlanTotalsCommand
+};
+use Modules\Finance\Models\{Account, Budget, SavingsGoal, Transaction};
+use Modules\Finance\Policies\{AccountPolicy, BudgetPolicy, SavingsGoalPolicy, TransactionPolicy};
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;

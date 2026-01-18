@@ -24,6 +24,7 @@ return new class extends Migration
             $table->json('notification_settings')->nullable();
             $table->json('display_settings')->nullable();
             $table->json('finance_settings')->nullable();
+            $table->json('invoice_settings')->nullable();
             $table->json('sidebar_settings')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');

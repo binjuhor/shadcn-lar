@@ -3,15 +3,15 @@
 namespace Modules\Permission\Http\Controllers;
 
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
-use Inertia\Inertia;
-use Inertia\Response;
-use Modules\Permission\Http\Requests\UserRequest;
-use Modules\Permission\Http\Resources\RoleResource;
-use Modules\Permission\Http\Resources\UserResource;
+use Inertia\{Inertia, Response};
+use Modules\Permission\Http\{
+    Requests\UserRequest,
+    Resources\RoleResource,
+    Resources\UserResource
+};
 use Spatie\Permission\Models\Role;
 
 class UserController extends Controller

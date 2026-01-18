@@ -3,9 +3,7 @@
 namespace Modules\Ecommerce\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Modules\Ecommerce\Models\Order;
-use Modules\Ecommerce\Models\OrderItem;
-use Modules\Ecommerce\Models\Product;
+use Modules\Ecommerce\Models\{Order, OrderItem, Product};
 
 class OrderItemFactory extends Factory
 {

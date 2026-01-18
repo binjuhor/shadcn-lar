@@ -3,12 +3,14 @@
 namespace Modules\Notification\Models;
 
 use App\Models\User;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\{
+    Factories\HasFactory,
+    Model,
+    Relations\BelongsTo,
+
+};
 use Modules\Notification\Database\Factories\NotificationPreferenceFactory;
-use Modules\Notification\Enums\NotificationCategory;
-use Modules\Notification\Enums\NotificationChannel;
+use Modules\Notification\Enums\{NotificationCategory, NotificationChannel};
 
 class NotificationPreference extends Model
 {

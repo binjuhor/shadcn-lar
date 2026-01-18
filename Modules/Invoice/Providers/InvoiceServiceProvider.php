@@ -2,11 +2,11 @@
 
 namespace Modules\Invoice\Providers;
 
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\ServiceProvider;
-use Modules\Invoice\Models\Invoice;
-use Modules\Invoice\Policies\InvoicePolicy;
+use Illuminate\Support\{Facades\Blade, Facades\Gate, ServiceProvider};
+use Modules\Invoice\{
+    Models\Invoice,
+    Policies\InvoicePolicy
+};
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;

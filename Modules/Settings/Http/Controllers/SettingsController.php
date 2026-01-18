@@ -5,16 +5,17 @@ namespace Modules\Settings\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
-use Inertia\Inertia;
-use Inertia\Response;
+use Inertia\{Inertia, Response};
 use Modules\Finance\Models\Currency;
-use Modules\Settings\Http\Requests\UpdateAccountRequest;
-use Modules\Settings\Http\Requests\UpdateAppearanceRequest;
-use Modules\Settings\Http\Requests\UpdateDisplayRequest;
-use Modules\Settings\Http\Requests\UpdateFinanceSettingsRequest;
-use Modules\Settings\Http\Requests\UpdateInvoiceSettingsRequest;
-use Modules\Settings\Http\Requests\UpdateNotificationsRequest;
-use Modules\Settings\Http\Requests\UpdateProfileRequest;
+use Modules\Settings\Http\Requests\{
+    UpdateAccountRequest,
+    UpdateAppearanceRequest,
+    UpdateDisplayRequest,
+    UpdateFinanceSettingsRequest,
+    UpdateInvoiceSettingsRequest,
+    UpdateNotificationsRequest,
+    UpdateProfileRequest
+};
 use Nwidart\Modules\Facades\Module;
 
 class SettingsController extends Controller

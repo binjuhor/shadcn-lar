@@ -4,9 +4,7 @@ namespace Modules\Ecommerce\Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Modules\Ecommerce\Models\Product;
-use Modules\Ecommerce\Models\ProductCategory;
-use Modules\Ecommerce\Models\ProductTag;
+use Modules\Ecommerce\Models\{Product, ProductCategory, ProductTag};
 
 class ProductSeeder extends Seeder
 {

@@ -4,8 +4,7 @@ namespace Modules\Ecommerce\Database\Factories;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Modules\Ecommerce\Models\Product;
-use Modules\Ecommerce\Models\ProductCategory;
+use Modules\Ecommerce\Models\{Product, ProductCategory};
 
 class ProductFactory extends Factory
 {

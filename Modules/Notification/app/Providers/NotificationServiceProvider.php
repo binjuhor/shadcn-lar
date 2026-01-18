@@ -2,13 +2,9 @@
 
 namespace Modules\Notification\Providers;
 
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\ServiceProvider;
-use Modules\Notification\Models\Notification;
-use Modules\Notification\Models\NotificationTemplate;
-use Modules\Notification\Policies\NotificationPolicy;
-use Modules\Notification\Policies\NotificationTemplatePolicy;
+use Illuminate\Support\{Facades\Blade, Facades\Gate, ServiceProvider};
+use Modules\Notification\Models\{Notification, NotificationTemplate };
+use Modules\Notification\Policies\{NotificationPolicy, NotificationTemplatePolicy};
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;

@@ -3,8 +3,7 @@
 namespace Modules\Finance\Services;
 
 use Illuminate\Support\Facades\DB;
-use Modules\Finance\Models\Budget;
-use Modules\Finance\Models\Transaction;
+use Modules\Finance\Models\{Budget, Transaction};
 
 class BudgetService
 {

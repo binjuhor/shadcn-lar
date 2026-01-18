@@ -2,17 +2,17 @@
 
 namespace Modules\Ecommerce\Providers;
 
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\ServiceProvider;
-use Modules\Ecommerce\Models\Order;
-use Modules\Ecommerce\Models\Product;
-use Modules\Ecommerce\Models\ProductCategory;
-use Modules\Ecommerce\Models\ProductTag;
-use Modules\Ecommerce\Policies\OrderPolicy;
-use Modules\Ecommerce\Policies\ProductCategoryPolicy;
-use Modules\Ecommerce\Policies\ProductPolicy;
-use Modules\Ecommerce\Policies\ProductTagPolicy;
+use Illuminate\Support\{Facades\Blade, Facades\Gate, ServiceProvider};
+use Modules\Ecommerce\{
+    Models\Order,
+    Models\Product,
+    Models\ProductCategory,
+    Models\ProductTag,
+    Policies\OrderPolicy,
+    Policies\ProductCategoryPolicy,
+    Policies\ProductPolicy,
+    Policies\ProductTagPolicy
+};
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;

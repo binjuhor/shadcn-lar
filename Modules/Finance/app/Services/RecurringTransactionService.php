@@ -3,10 +3,8 @@
 namespace Modules\Finance\Services;
 
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
-use Modules\Finance\Models\Currency;
-use Modules\Finance\Models\RecurringTransaction;
+use Illuminate\Support\{Collection, Facades\DB};
+use Modules\Finance\Models\{Currency, RecurringTransaction};
 
 class RecurringTransactionService
 {

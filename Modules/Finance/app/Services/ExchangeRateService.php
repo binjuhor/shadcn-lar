@@ -2,11 +2,8 @@
 
 namespace Modules\Finance\Services;
 
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use Modules\Finance\Models\Account;
-use Modules\Finance\Models\Currency;
-use Modules\Finance\Models\ExchangeRate;
+use Illuminate\Support\Facades\{Http, Log};
+use Modules\Finance\Models\{Account, Currency, ExchangeRate};
 
 class ExchangeRateService
 {

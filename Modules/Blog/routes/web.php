@@ -1,9 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Blog\Http\Controllers\CategoryController;
-use Modules\Blog\Http\Controllers\PostController;
-use Modules\Blog\Http\Controllers\TagController;
+use Modules\Blog\Http\Controllers\{CategoryController, PostController, TagController};
 
 Route::middleware(['auth', 'verified'])->prefix('dashboard')
     ->name('dashboard.')

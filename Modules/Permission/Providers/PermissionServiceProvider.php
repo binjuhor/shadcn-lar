@@ -2,9 +2,11 @@
 
 namespace Modules\Permission\Providers;
 
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\{
+    Facades\Blade,
+    Facades\Gate,
+    ServiceProvider
+};
 use Nwidart\Modules\Traits\PathNamespace;
 
 class PermissionServiceProvider extends ServiceProvider

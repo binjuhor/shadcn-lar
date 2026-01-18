@@ -4,8 +4,7 @@ namespace Modules\Ecommerce\Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Modules\Ecommerce\Models\Product;
-use Modules\Ecommerce\Models\ProductCategory;
+use Modules\Ecommerce\Models\{Product, ProductCategory};
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;

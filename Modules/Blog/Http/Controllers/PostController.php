@@ -6,14 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
-use Modules\Blog\Http\Resources\CategoryResource;
-use Modules\Blog\Http\Resources\PostResource;
-use Modules\Blog\Http\Resources\TagResource;
-use Modules\Blog\Models\Category;
-use Modules\Blog\Models\Post;
-use Modules\Blog\Models\Tag;
+use Inertia\{Inertia, Response};
+use Modules\Blog\Http\Resources\{CategoryResource, PostResource, TagResource};
+use Modules\Blog\Models\{Category, Post, Tag};
 
 class PostController extends Controller
 {

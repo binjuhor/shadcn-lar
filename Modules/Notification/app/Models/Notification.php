@@ -3,8 +3,7 @@
 namespace Modules\Notification\Models;
 
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\{Builder, Relations\BelongsTo};
 use Illuminate\Notifications\DatabaseNotification;
 
 class Notification extends DatabaseNotification

@@ -5,11 +5,13 @@ namespace Modules\Notification\Tests\Unit\Services;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
-use Modules\Notification\Enums\NotificationCategory;
-use Modules\Notification\Enums\NotificationChannel;
-use Modules\Notification\Models\NotificationTemplate;
-use Modules\Notification\Notifications\GenericNotification;
-use Modules\Notification\Services\NotificationService;
+use Modules\Notification\{
+    Enums\NotificationCategory,
+    Enums\NotificationChannel,
+    Models\NotificationTemplate,
+    Notifications\GenericNotification,
+    Services\NotificationService
+};
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 

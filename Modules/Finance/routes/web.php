@@ -1,17 +1,19 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Finance\Http\Controllers\AccountController;
-use Modules\Finance\Http\Controllers\BudgetController;
-use Modules\Finance\Http\Controllers\CategoryController;
-use Modules\Finance\Http\Controllers\ExchangeRateController;
-use Modules\Finance\Http\Controllers\FinanceDashboardController;
-use Modules\Finance\Http\Controllers\FinanceReportController;
-use Modules\Finance\Http\Controllers\FinancialPlanController;
-use Modules\Finance\Http\Controllers\RecurringTransactionController;
-use Modules\Finance\Http\Controllers\SavingsGoalController;
-use Modules\Finance\Http\Controllers\SmartInputController;
-use Modules\Finance\Http\Controllers\TransactionController;
+use Modules\Finance\Http\Controllers\{
+    AccountController,
+    BudgetController,
+    CategoryController,
+    ExchangeRateController,
+    FinanceDashboardController,
+    FinanceReportController,
+    FinancialPlanController,
+    RecurringTransactionController,
+    SavingsGoalController,
+    SmartInputController,
+    TransactionController
+};
 
 Route::middleware(['auth', 'verified'])
     ->prefix('dashboard/finance')

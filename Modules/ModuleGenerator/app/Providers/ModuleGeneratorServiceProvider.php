@@ -3,8 +3,7 @@
 namespace Modules\ModuleGenerator\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Modules\ModuleGenerator\Console\Commands\ModuleScaffoldCommand;
-use Modules\ModuleGenerator\Console\Commands\SiteGenerateCommand;
+use Modules\ModuleGenerator\Console\Commands\{ModuleScaffoldCommand, SiteGenerateCommand};
 
 class ModuleGeneratorServiceProvider extends ServiceProvider
 {

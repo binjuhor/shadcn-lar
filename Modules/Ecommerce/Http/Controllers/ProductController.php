@@ -3,17 +3,11 @@
 namespace Modules\Ecommerce\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{JsonResponse, Request};
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
-use Inertia\Response;
-use Modules\Ecommerce\Http\Resources\ProductCategoryResource;
-use Modules\Ecommerce\Http\Resources\ProductResource;
-use Modules\Ecommerce\Http\Resources\ProductTagResource;
-use Modules\Ecommerce\Models\Product;
-use Modules\Ecommerce\Models\ProductCategory;
-use Modules\Ecommerce\Models\ProductTag;
+use Inertia\{Inertia, Response};
+use Modules\Ecommerce\Http\Resources\{ProductCategoryResource, ProductResource, ProductTagResource};
+use Modules\Ecommerce\Models\{Product, ProductCategory, ProductTag};
 
 class ProductController extends Controller
 {

@@ -4,8 +4,7 @@ namespace Modules\Finance\Services;
 
 use Illuminate\Support\Facades\DB;
 use Modules\Finance\Events\TransactionCreated;
-use Modules\Finance\Models\Account;
-use Modules\Finance\Models\Transaction;
+use Modules\Finance\Models\{Account, Transaction};
 
 class TransactionService
 {

@@ -6,13 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
-use Modules\Finance\Models\Account;
-use Modules\Finance\Models\Budget;
-use Modules\Finance\Models\Currency;
-use Modules\Finance\Models\RecurringTransaction;
-use Modules\Finance\Models\Transaction;
-use Modules\Finance\Services\ExchangeRateService;
-use Modules\Finance\Services\RecurringTransactionService;
+use Modules\Finance\Models\{Account, Budget, Currency, RecurringTransaction, Transaction};
+use Modules\Finance\Services\{ExchangeRateService, RecurringTransactionService};
 
 class FinanceDashboardController extends Controller
 {

@@ -3,9 +3,11 @@
 namespace Modules\Notification\Tests\Unit\Models;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Modules\Notification\Enums\NotificationCategory;
-use Modules\Notification\Enums\NotificationChannel;
-use Modules\Notification\Models\NotificationTemplate;
+use Modules\Notification\{
+    Enums\NotificationCategory,
+    Enums\NotificationChannel,
+    Models\NotificationTemplate
+};
 use Tests\TestCase;
 
 class NotificationTemplateTest extends TestCase

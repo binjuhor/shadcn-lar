@@ -4,9 +4,7 @@ namespace Modules\Finance\Services;
 
 use Illuminate\Support\Facades\DB;
 use Modules\Finance\Events\SavingsGoalCompleted;
-use Modules\Finance\Models\SavingsContribution;
-use Modules\Finance\Models\SavingsGoal;
-use Modules\Finance\Models\Transaction;
+use Modules\Finance\Models\{SavingsContribution, SavingsGoal, Transaction};
 
 class SavingsGoalService
 {

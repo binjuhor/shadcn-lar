@@ -4,8 +4,7 @@ namespace Modules\Blog\Database\Factories;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Modules\Blog\Models\Category;
-use Modules\Blog\Models\Post;
+use Modules\Blog\Models\{Category, Post};
 
 class PostFactory extends Factory
 {

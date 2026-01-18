@@ -1,9 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Permission\Http\Controllers\PermissionController;
-use Modules\Permission\Http\Controllers\RoleController;
-use Modules\Permission\Http\Controllers\UserController;
+use Modules\Permission\Http\Controllers\{
+    PermissionController,
+    RoleController,
+    UserController
+};
 
 Route::middleware(['auth', 'verified'])->prefix('dashboard')->name('dashboard.')->group(function () {
     // Roles Management

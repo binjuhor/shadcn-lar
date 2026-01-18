@@ -1,9 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Settings\Http\Controllers\ModulesController;
-use Modules\Settings\Http\Controllers\ProfileController;
-use Modules\Settings\Http\Controllers\SettingsController;
+use Modules\Settings\Http\Controllers\{
+    ModulesController,
+    ProfileController,
+    SettingsController
+};
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Settings routes

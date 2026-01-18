@@ -2,8 +2,7 @@
 
 namespace Modules\Finance\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\{Model, Relations\HasMany};
 
 class Currency extends Model
 {

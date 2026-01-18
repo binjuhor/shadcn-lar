@@ -3,12 +3,9 @@
 namespace Modules\Notification\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
-use Modules\Notification\Http\Resources\NotificationResource;
-use Modules\Notification\Models\Notification;
+use Illuminate\Http\{JsonResponse, Request};
+use Inertia\{Inertia, Response};
+use Modules\Notification\{Http\Resources\NotificationResource, Models\Notification};
 
 class NotificationController extends Controller
 {

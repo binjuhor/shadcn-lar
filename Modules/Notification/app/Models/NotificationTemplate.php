@@ -2,13 +2,14 @@
 
 namespace Modules\Notification\Models;
 
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\{
+    Builder,
+    Factories\HasFactory,
+    Model,
+    SoftDeletes
+};
 use Modules\Notification\Database\Factories\NotificationTemplateFactory;
-use Modules\Notification\Enums\NotificationCategory;
-use Modules\Notification\Enums\NotificationChannel;
+use Modules\Notification\Enums\{NotificationCategory, NotificationChannel};
 
 class NotificationTemplate extends Model
 {

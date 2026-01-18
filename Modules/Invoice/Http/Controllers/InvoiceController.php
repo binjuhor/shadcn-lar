@@ -4,11 +4,9 @@ namespace Modules\Invoice\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\{Cache, DB};
 use Inertia\Inertia;
-use Modules\Invoice\Http\Requests\StoreInvoiceRequest;
-use Modules\Invoice\Http\Requests\UpdateInvoiceRequest;
+use Modules\Invoice\Http\Requests\{StoreInvoiceRequest, UpdateInvoiceRequest};
 use Modules\Invoice\Models\Invoice;
 
 class InvoiceController extends Controller

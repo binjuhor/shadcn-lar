@@ -2,15 +2,19 @@
 
 namespace Modules\Blog\Providers;
 
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\ServiceProvider;
-use Modules\Blog\Models\Category;
-use Modules\Blog\Models\Post;
-use Modules\Blog\Models\Tag;
-use Modules\Blog\Policies\CategoryPolicy;
-use Modules\Blog\Policies\PostPolicy;
-use Modules\Blog\Policies\TagPolicy;
+use Illuminate\Support\{
+    Facades\Blade,
+    Facades\Gate,
+    ServiceProvider
+};
+use Modules\Blog\{
+    Models\Category,
+    Models\Post,
+    Models\Tag,
+    Policies\CategoryPolicy,
+    Policies\PostPolicy,
+    Policies\TagPolicy,
+};
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;

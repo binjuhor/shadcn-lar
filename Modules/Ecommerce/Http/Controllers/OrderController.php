@@ -3,15 +3,11 @@
 namespace Modules\Ecommerce\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\Http\{JsonResponse, Request};
+use Illuminate\Support\Facades\{Auth, DB};
+use Inertia\{Inertia, Response};
 use Modules\Ecommerce\Http\Resources\OrderResource;
-use Modules\Ecommerce\Models\Order;
-use Modules\Ecommerce\Models\Product;
+use Modules\Ecommerce\Models\{Order, Product};
 
 class OrderController extends Controller
 {

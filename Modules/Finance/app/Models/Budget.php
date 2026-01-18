@@ -3,9 +3,11 @@
 namespace Modules\Finance\Models;
 
 use App\Models\User;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\{
+    Factories\HasFactory,
+    Model,
+    Relations\BelongsTo
+};
 use Modules\Finance\ValueObjects\Money;
 
 class Budget extends Model

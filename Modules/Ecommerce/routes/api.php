@@ -1,10 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Ecommerce\Http\Controllers\OrderController;
-use Modules\Ecommerce\Http\Controllers\ProductCategoryController;
-use Modules\Ecommerce\Http\Controllers\ProductController;
-use Modules\Ecommerce\Http\Controllers\ProductTagController;
+use Modules\Ecommerce\Http\Controllers\{
+    OrderController,
+    ProductCategoryController,
+    ProductController,
+    ProductTagController
+};
 
 Route::middleware(['auth:sanctum'])->prefix('v1/ecommerce')->group(function () {
     // Products API routes

@@ -3,11 +3,9 @@
 namespace Modules\Finance\Services;
 
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\{Http, Log};
 use Modules\Finance\Contracts\TransactionParserInterface;
-use Modules\Finance\Models\Account;
-use Modules\Finance\Models\Category;
+use Modules\Finance\Models\{Account, Category};
 
 class ClaudeTransactionParser implements TransactionParserInterface
 {

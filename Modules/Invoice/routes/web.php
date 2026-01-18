@@ -1,8 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Invoice\Http\Controllers\InvoiceController;
-use Modules\Invoice\Http\Controllers\InvoiceReportController;
+use Modules\Invoice\Http\Controllers\{
+    InvoiceController,
+    InvoiceReportController
+};
 
 Route::middleware(['auth', 'verified'])->prefix('dashboard')
     ->name('dashboard.')

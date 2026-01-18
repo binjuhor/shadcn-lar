@@ -6,12 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
-use Inertia\Inertia;
-use Inertia\Response;
-use Modules\Finance\Http\Requests\Account\StoreAccountRequest;
-use Modules\Finance\Http\Requests\Account\UpdateAccountRequest;
-use Modules\Finance\Models\Account;
-use Modules\Finance\Models\Currency;
+use Inertia\{Inertia, Response};
+use Modules\Finance\Http\Requests\Account\{StoreAccountRequest, UpdateAccountRequest};
+use Modules\Finance\Models\{Account, Currency};
 use Modules\Finance\Services\ExchangeRateService;
 
 class AccountController extends Controller

@@ -4,12 +4,9 @@ namespace Modules\Notification\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
-use Modules\Notification\Enums\NotificationCategory;
-use Modules\Notification\Enums\NotificationChannel;
+use Illuminate\Http\{JsonResponse, Request};
+use Inertia\{Inertia, Response};
+use Modules\Notification\Enums\{NotificationCategory, NotificationChannel};
 use Modules\Notification\Http\Resources\NotificationTemplateResource;
 use Modules\Notification\Models\NotificationTemplate;
 use Modules\Notification\Services\NotificationService;

@@ -4,20 +4,17 @@ namespace Modules\Finance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redirect;
-use Inertia\Inertia;
-use Inertia\Response;
-use Modules\Finance\Http\Requests\Transaction\ConversionPreviewRequest;
-use Modules\Finance\Http\Requests\Transaction\ExportTransactionRequest;
-use Modules\Finance\Http\Requests\Transaction\IndexTransactionRequest;
-use Modules\Finance\Http\Requests\Transaction\StoreTransactionRequest;
-use Modules\Finance\Http\Requests\Transaction\UpdateTransactionRequest;
-use Modules\Finance\Models\Account;
-use Modules\Finance\Models\Category;
-use Modules\Finance\Models\Transaction;
+use Illuminate\Http\{JsonResponse, RedirectResponse};
+use Illuminate\Support\Facades\{DB, Redirect};
+use Inertia\{Inertia, Response};
+use Modules\Finance\Http\Requests\Transaction\{
+    ConversionPreviewRequest,
+    ExportTransactionRequest,
+    IndexTransactionRequest,
+    StoreTransactionRequest,
+    UpdateTransactionRequest
+};
+use Modules\Finance\Models\{Account, Category, Transaction};
 use Modules\Finance\Services\TransactionService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 

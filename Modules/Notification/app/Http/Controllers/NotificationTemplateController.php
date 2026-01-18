@@ -5,12 +5,13 @@ namespace Modules\Notification\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
-use Inertia\Response;
-use Modules\Notification\Enums\NotificationCategory;
-use Modules\Notification\Enums\NotificationChannel;
-use Modules\Notification\Http\Resources\NotificationTemplateResource;
-use Modules\Notification\Models\NotificationTemplate;
+use Inertia\{Inertia, Response};
+use Modules\Notification\{
+    Enums\NotificationCategory,
+    Enums\NotificationChannel,
+    Http\Resources\NotificationTemplateResource,
+    Models\NotificationTemplate
+};
 
 class NotificationTemplateController extends Controller
 {

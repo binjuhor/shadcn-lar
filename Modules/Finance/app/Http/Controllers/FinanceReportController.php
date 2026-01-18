@@ -4,15 +4,10 @@ namespace Modules\Finance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Carbon\Carbon;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{JsonResponse, Request};
 use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
-use Inertia\Response;
-use Modules\Finance\Models\Account;
-use Modules\Finance\Models\Category;
-use Modules\Finance\Models\Currency;
-use Modules\Finance\Models\Transaction;
+use Inertia\{Inertia, Response};
+use Modules\Finance\Models\{Account, Category, Currency, Transaction};
 use Modules\Finance\Services\ExchangeRateService;
 
 class FinanceReportController extends Controller

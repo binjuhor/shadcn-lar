@@ -1,15 +1,17 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Finance\Http\Controllers\Api\AccountApiController;
-use Modules\Finance\Http\Controllers\Api\BudgetApiController;
-use Modules\Finance\Http\Controllers\Api\CategoryApiController;
-use Modules\Finance\Http\Controllers\Api\ExchangeRateApiController;
-use Modules\Finance\Http\Controllers\Api\ReportApiController;
-use Modules\Finance\Http\Controllers\Api\SavingsGoalApiController;
-use Modules\Finance\Http\Controllers\Api\SmartInputApiController;
-use Modules\Finance\Http\Controllers\Api\TransactionApiController;
-use Modules\Finance\Http\Controllers\FinanceReportController;
+use Modules\Finance\Http\Controllers\{
+    Api\AccountApiController,
+    Api\BudgetApiController,
+    Api\CategoryApiController,
+    Api\ExchangeRateApiController,
+    Api\ReportApiController,
+    Api\SavingsGoalApiController,
+    Api\SmartInputApiController,
+    Api\TransactionApiController,
+    FinanceReportController
+};
 
 Route::middleware(['auth:sanctum'])->prefix('v1/finance')->group(function () {
     // Account API

@@ -5,9 +5,11 @@ namespace Modules\Notification\Services;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
-use Modules\Notification\Enums\NotificationCategory;
-use Modules\Notification\Enums\NotificationChannel;
-use Modules\Notification\Models\NotificationTemplate;
+use Modules\Notification\{
+    Enums\NotificationCategory,
+    Enums\NotificationChannel,
+    Models\NotificationTemplate
+};
 use Modules\Notification\Notifications\GenericNotification;
 use Spatie\Permission\Models\Role;
 

@@ -4,9 +4,11 @@ namespace Modules\Notification\Tests\Unit\Models;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Modules\Notification\Enums\NotificationCategory;
-use Modules\Notification\Enums\NotificationChannel;
-use Modules\Notification\Models\NotificationPreference;
+use Modules\Notification\{
+    Enums\NotificationCategory,
+    Enums\NotificationChannel,
+    Models\NotificationPreference
+};
 use Tests\TestCase;
 
 class NotificationPreferenceTest extends TestCase

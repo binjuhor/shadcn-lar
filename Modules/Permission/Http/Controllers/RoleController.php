@@ -5,13 +5,13 @@ namespace Modules\Permission\Http\Controllers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Inertia\Inertia;
-use Inertia\Response;
-use Modules\Permission\Http\Requests\RoleRequest;
-use Modules\Permission\Http\Resources\PermissionResource;
-use Modules\Permission\Http\Resources\RoleResource;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+use Inertia\{Inertia, Response};
+use Modules\Permission\Http\{
+    Requests\RoleRequest,
+    Resources\PermissionResource,
+    Resources\RoleResource
+};
+use Spatie\Permission\Models\{Permission, Role};
 
 class RoleController extends Controller
 {

@@ -4,18 +4,10 @@ namespace Modules\Finance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Carbon\Carbon;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
-use Inertia\Response;
-use Modules\Finance\Models\Category;
-use Modules\Finance\Models\Currency;
-use Modules\Finance\Models\FinancialPlan;
-use Modules\Finance\Models\PlanItem;
-use Modules\Finance\Models\PlanPeriod;
-use Modules\Finance\Models\RecurringTransaction;
-use Modules\Finance\Models\Transaction;
+use Inertia\{Inertia, Response};
+use Modules\Finance\Models\{Category, Currency, FinancialPlan, PlanItem, PlanPeriod, RecurringTransaction, Transaction};
 use Modules\Finance\Services\RecurringTransactionService;
 
 class FinancialPlanController extends Controller

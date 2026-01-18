@@ -4,11 +4,8 @@ namespace Modules\Notification\Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Modules\Notification\Enums\NotificationCategory;
-use Modules\Notification\Enums\NotificationChannel;
-use Modules\Notification\Models\NotificationTemplate;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+use Modules\Notification\Enums\{NotificationCategory, NotificationChannel, NotificationTemplate};
+use Spatie\Permission\Models\{Permission, Role};
 use Tests\TestCase;
 
 class NotificationTemplateControllerTest extends TestCase

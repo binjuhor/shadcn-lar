@@ -5,8 +5,7 @@ namespace Modules\Finance\Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
-use Modules\Finance\Models\Account;
-use Modules\Finance\Models\Currency;
+use Modules\Finance\Models\{Account, Currency};
 use Tests\TestCase;
 
 class AccountApiTest extends TestCase

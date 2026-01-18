@@ -1,9 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Notification\Http\Controllers\AdminNotificationController;
-use Modules\Notification\Http\Controllers\NotificationController;
-use Modules\Notification\Http\Controllers\NotificationTemplateController;
+use Modules\Notification\Http\Controllers\{
+    AdminNotificationController,
+    NotificationController,
+    NotificationTemplateController
+};
 
 Route::middleware(['auth:sanctum'])->prefix('v1/notification')->group(function () {
     // User notifications
