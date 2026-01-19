@@ -21,9 +21,12 @@ class AccountController extends Controller
 
     public function index(): Response
     {
-        $userId = auth()->id();
-        $defaultCurrency = Currency::where('is_default', true)->first();
-        $defaultCode = $defaultCurrency?->code ?? 'VND';
+        $user = auth()->user();
+        $userId = $user->id;
+
+        // Get default currency from user's finance settings, fall back to system default
+        $userSettings = $user->finance_settings ?? [];
+        $defaultCode = $userSettings['default_currency'] ?? Currency::where('is_default', true)->first()?->code ?? 'VND';
 
         $accounts = Account::with('currency')
             ->where('user_id', $userId)

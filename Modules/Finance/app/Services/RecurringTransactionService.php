@@ -205,10 +205,9 @@ class RecurringTransactionService
         return $previews;
     }
 
-    public function getMonthlyProjection(int $userId): array
+    public function getMonthlyProjection(int $userId, ?string $currencyCode = null): array
     {
-        $defaultCurrency = Currency::where('is_default', true)->first();
-        $defaultCode = $defaultCurrency?->code ?? 'VND';
+        $defaultCode = $currencyCode ?? Currency::where('is_default', true)->first()?->code ?? 'VND';
 
         $recurrings = RecurringTransaction::forUser($userId)
             ->active()

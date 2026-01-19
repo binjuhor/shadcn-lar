@@ -150,9 +150,10 @@ class ReportApiController extends Controller
 
     protected function getDefaultCurrency(): string
     {
-        $defaultCurrency = Currency::where('is_default', true)->first();
+        $user = auth()->user();
+        $userSettings = $user->finance_settings ?? [];
 
-        return $defaultCurrency?->code ?? 'VND';
+        return $userSettings['default_currency'] ?? Currency::where('is_default', true)->first()?->code ?? 'VND';
     }
 
     protected function parseDateRange(Request $request, bool $includeGroupBy = false): array

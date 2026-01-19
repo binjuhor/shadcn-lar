@@ -18,9 +18,12 @@ class FinanceReportController extends Controller
 
     public function index(Request $request): Response
     {
-        $userId = auth()->id();
-        $defaultCurrency = Currency::where('is_default', true)->first();
-        $defaultCode = $defaultCurrency?->code ?? 'VND';
+        $user = auth()->user();
+        $userId = $user->id;
+
+        // Get default currency from user's finance settings, fall back to system default
+        $userSettings = $user->finance_settings ?? [];
+        $defaultCode = $userSettings['default_currency'] ?? Currency::where('is_default', true)->first()?->code ?? 'VND';
 
         $range = $request->get('range', '6m');
         $startDate = $request->get('start');
@@ -543,15 +546,17 @@ class FinanceReportController extends Controller
 
     public function categoryTrend(Request $request): JsonResponse
     {
-        $userId = auth()->id();
+        $user = auth()->user();
+        $userId = $user->id;
         $categoryId = $request->get('category_id');
 
         if (! $categoryId) {
             return response()->json(['data' => null]);
         }
 
-        $defaultCurrency = Currency::where('is_default', true)->first();
-        $defaultCode = $defaultCurrency?->code ?? 'VND';
+        // Get default currency from user's finance settings, fall back to system default
+        $userSettings = $user->finance_settings ?? [];
+        $defaultCode = $userSettings['default_currency'] ?? Currency::where('is_default', true)->first()?->code ?? 'VND';
 
         $category = Category::where(function ($q) use ($userId) {
             $q->whereNull('user_id')->orWhere('user_id', $userId);

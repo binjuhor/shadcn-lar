@@ -18,9 +18,12 @@ class FinanceDashboardController extends Controller
 
     public function index(): Response
     {
-        $userId = auth()->id();
-        $defaultCurrency = Currency::where('is_default', true)->first();
-        $defaultCode = $defaultCurrency?->code ?? 'VND';
+        $user = auth()->user();
+        $userId = $user->id;
+
+        // Get default currency from user's finance settings, fall back to system default
+        $userSettings = $user->finance_settings ?? [];
+        $defaultCode = $userSettings['default_currency'] ?? Currency::where('is_default', true)->first()?->code ?? 'VND';
 
         $allAccounts = Account::where('user_id', $userId)
             ->where('is_active', true)
@@ -80,7 +83,7 @@ class FinanceDashboardController extends Controller
                 'amount' => $item->amount,
             ]);
 
-        $recurringProjection = $this->recurringService->getMonthlyProjection($userId);
+        $recurringProjection = $this->recurringService->getMonthlyProjection($userId, $defaultCode);
 
         $upcomingRecurrings = RecurringTransaction::forUser($userId)
             ->active()
@@ -109,7 +112,7 @@ class FinanceDashboardController extends Controller
                 'total_liabilities' => $totalLiabilities,
                 'net_worth' => $netWorth,
                 'total_balance' => $totalBalance,
-                'currency_code' => $defaultCurrency?->code ?? 'VND',
+                'currency_code' => $defaultCode,
                 'accounts_count' => $allAccounts->count(),
             ],
             'recentTransactions' => $recentTransactions,
