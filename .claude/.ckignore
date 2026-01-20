@@ -1,0 +1,11 @@
+# ClaudeKit Ignore File
+# Patterns listed here will be blocked by the scout-block hook
+# Syntax similar to .gitignore - one pattern per line
+# Lines starting with # are comments
+
+# Default patterns
+node_modules
+__pycache__
+.git
+dist
+build

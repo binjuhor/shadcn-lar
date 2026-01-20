@@ -1,0 +1,29 @@
+{
+  "plan": {
+    "namingFormat": "{date}-{issue}-{slug}",
+    "dateFormat": "YYMMDD-HHmm",
+    "issuePrefix": "GH-",
+    "reportsDir": "reports",
+    "resolution": {
+      "order": ["session", "branch"],
+      "branchPattern": "(?:feat|fix|chore|refactor|docs)/(?:[^/]+/)?(.+)"
+    }
+  },
+  "paths": {
+    "docs": "docs",
+    "plans": "plans"
+  },
+  "locale": {
+    "responseLanguage": null
+  },
+  "trust": {
+    "passphrase": null,
+    "enabled": false
+  },
+  "project": {
+    "type": "auto",
+    "packageManager": "auto",
+    "framework": "auto"
+  },
+  "assertions": []
+}

@@ -19,6 +19,21 @@ class SmartInputController extends Controller
     }
 
     /**
+     * Get parser for voice input (prefers Gemini for audio support)
+     */
+    protected function getVoiceParser(): TransactionParserInterface
+    {
+        $provider = config('services.smart_input.provider', 'deepseek');
+
+        // DeepSeek doesn't support audio, use Gemini if available
+        if ($provider === 'deepseek' && config('services.gemini.api_key')) {
+            return TransactionParserFactory::make('gemini');
+        }
+
+        return $this->parser;
+    }
+
+    /**
      * Show smart input page
      */
     public function index(): Response
@@ -51,7 +66,8 @@ class SmartInputController extends Controller
             'language' => ['nullable', 'string', 'in:vi,en'],
         ]);
 
-        $result = $this->parser->parseVoice(
+        $voiceParser = $this->getVoiceParser();
+        $result = $voiceParser->parseVoice(
             $request->file('audio'),
             $request->input('language', 'vi')
         );
@@ -63,7 +79,7 @@ class SmartInputController extends Controller
             ], 422);
         }
 
-        return $this->enrichResult($result);
+        return $this->enrichResult($result, $voiceParser);
     }
 
     /**
@@ -153,13 +169,14 @@ class SmartInputController extends Controller
             ->with('success', 'Transaction created successfully.');
     }
 
-    protected function enrichResult(array $result)
+    protected function enrichResult(array $result, ?TransactionParserInterface $parser = null)
     {
+        $parser = $parser ?? $this->parser;
         $userId = auth()->id();
 
         $suggestedCategory = null;
         if (! empty($result['category_hint'])) {
-            $suggestedCategory = $this->parser->matchCategory(
+            $suggestedCategory = $parser->matchCategory(
                 $result['category_hint'],
                 $userId,
                 $result['type'] ?? 'expense'
@@ -168,7 +185,7 @@ class SmartInputController extends Controller
 
         $suggestedAccount = null;
         if (! empty($result['account_hint'])) {
-            $suggestedAccount = $this->parser->matchAccount($result['account_hint'], $userId);
+            $suggestedAccount = $parser->matchAccount($result['account_hint'], $userId);
         }
 
         if (! $suggestedAccount) {

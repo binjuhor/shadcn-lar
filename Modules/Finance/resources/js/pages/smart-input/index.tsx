@@ -87,9 +87,16 @@ export default function SmartInputIndex({ accounts, categories }: Props) {
       })
 
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Voice API error:', response.status, errorText)
-        setError(`Server error: ${response.status}`)
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Voice API error:', response.status, errorData)
+
+        // Provide helpful error message with fallback suggestion
+        const errorMsg = errorData.error || `Server error: ${response.status}`
+        const isQuotaError = errorMsg.toLowerCase().includes('quota')
+        setError(isQuotaError
+          ? `${errorMsg} You can use the Text tab to enter transactions manually.`
+          : errorMsg
+        )
         return
       }
 
@@ -98,7 +105,11 @@ export default function SmartInputIndex({ accounts, categories }: Props) {
       if (data.success) {
         setParsedTransaction(data.data)
       } else {
-        setError(data.error || 'Failed to parse voice input')
+        const isQuotaError = (data.error || '').toLowerCase().includes('quota')
+        setError(isQuotaError
+          ? `${data.error} You can use the Text tab to enter transactions manually.`
+          : data.error || 'Failed to parse voice input'
+        )
       }
     } catch (err) {
       setError('Network error. Please try again.')
