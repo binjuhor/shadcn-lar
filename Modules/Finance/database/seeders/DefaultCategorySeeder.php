@@ -13,6 +13,7 @@ class DefaultCategorySeeder extends Seeder
             // Income categories
             ['name' => 'Salary', 'type' => 'income', 'icon' => 'wallet', 'color' => '#10b981', 'is_passive' => false],
             ['name' => 'Business Income', 'type' => 'income', 'icon' => 'briefcase', 'color' => '#3b82f6', 'is_passive' => false],
+            ['name' => 'Affiliate Income', 'type' => 'income', 'icon' => 'briefcase', 'color' => '#22c55e', 'is_passive' => true],
             ['name' => 'Investment Income', 'type' => 'income', 'icon' => 'trending-up', 'color' => '#8b5cf6', 'is_passive' => true],
             ['name' => 'Other Income', 'type' => 'income', 'icon' => 'plus-circle', 'color' => '#6b7280', 'is_passive' => false],
 
