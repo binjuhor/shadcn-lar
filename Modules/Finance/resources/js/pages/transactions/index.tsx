@@ -423,7 +423,7 @@ export default function TransactionsIndex({
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div>
+                        <div className="max-w-xl">
                           <p className="font-medium">
                             {transaction.description || 'No description'}
                           </p>
