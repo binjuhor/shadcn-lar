@@ -33,6 +33,7 @@ class DefaultCategorySeeder extends Seeder
             // Expense categories - Other
             ['name' => 'Education', 'type' => 'expense', 'icon' => 'book', 'color' => '#0ea5e9', 'expense_type' => null],
             ['name' => 'Other Expenses', 'type' => 'expense', 'icon' => 'more-horizontal', 'color' => '#6b7280', 'expense_type' => null],
+            ['name' => 'Investment Expenses', 'type' => 'expense', 'icon' => 'more-horizontal', 'color' => '#6b7280', 'expense_type' => null],
         ];
 
         foreach ($categories as $category) {
