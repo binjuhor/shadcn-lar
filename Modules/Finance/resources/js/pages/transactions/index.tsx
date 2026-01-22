@@ -230,9 +230,9 @@ export default function TransactionsIndex({
     }
   }
 
-  // Selection helpers
+  // Selection helpers - allow selecting all except linked transfers
   const selectableTransactions = transactions.data.filter(
-    (t) => t.type !== 'transfer' && !t.transfer_transaction_id
+    (t) => !t.transfer_transaction_id
   )
   const isAllSelected = selectableTransactions.length > 0 &&
     selectableTransactions.every((t) => selectedIds.includes(t.id))
@@ -612,7 +612,7 @@ export default function TransactionsIndex({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {transaction.type !== 'transfer' && !transaction.transfer_transaction_id && (
+                            {!transaction.transfer_transaction_id && (
                               <DropdownMenuItem
                                 onClick={() => handleEdit(transaction)}
                               >

@@ -40,7 +40,7 @@ class AccountController extends Controller
         $totalAssets = $includedAccounts
             ->whereIn('account_type', ['bank', 'investment', 'cash', 'e_wallet'])
             ->where('current_balance', '>', 0)
-            ->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode));
+            ->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode, $account->rate_source));
 
         // Liabilities: from ALL accounts with credit limit (debt is always tracked regardless of exclude_from_total)
         $totalLiabilities = $accounts
@@ -53,7 +53,7 @@ class AccountController extends Controller
                     return 0;
                 }
 
-                return $this->convertToDefault($amountOwed, $account->currency_code, $defaultCode);
+                return $this->convertToDefault($amountOwed, $account->currency_code, $defaultCode, $account->rate_source);
             });
 
         $netWorth = $totalAssets - $totalLiabilities;
@@ -198,14 +198,14 @@ class AccountController extends Controller
             ->with('success', 'Account deleted successfully');
     }
 
-    protected function convertToDefault(float $amount, string $fromCurrency, string $defaultCurrency): float
+    protected function convertToDefault(float $amount, string $fromCurrency, string $defaultCurrency, ?string $source = null): float
     {
         if ($fromCurrency === $defaultCurrency) {
             return $amount;
         }
 
         try {
-            return $this->exchangeRateService->convert($amount, $fromCurrency, $defaultCurrency);
+            return $this->exchangeRateService->convert($amount, $fromCurrency, $defaultCurrency, $source);
         } catch (\Exception) {
             return $amount;
         }
