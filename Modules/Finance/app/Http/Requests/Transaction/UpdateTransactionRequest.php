@@ -16,6 +16,7 @@ class UpdateTransactionRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'account_id' => ['sometimes', 'exists:finance_accounts,id'],
             'category_id' => ['nullable', 'exists:finance_categories,id'],
             'amount' => ['sometimes', 'numeric', 'min:0.01'],
             'description' => ['nullable', 'string', 'max:255'],

@@ -8,6 +8,7 @@ use Illuminate\Http\{JsonResponse, RedirectResponse};
 use Illuminate\Support\Facades\{DB, Redirect};
 use Inertia\{Inertia, Response};
 use Modules\Finance\Http\Requests\Transaction\{
+    BulkUpdateTransactionRequest,
     ConversionPreviewRequest,
     ExportTransactionRequest,
     IndexTransactionRequest,
@@ -55,6 +56,14 @@ class TransactionController extends Controller
 
         if ($request->search) {
             $query->where('description', 'like', '%'.$request->search.'%');
+        }
+
+        if ($request->amount_from) {
+            $query->where('amount', '>=', $request->amount_from);
+        }
+
+        if ($request->amount_to) {
+            $query->where('amount', '<=', $request->amount_to);
         }
 
         // Calculate totals for filtered transactions
@@ -141,8 +150,27 @@ class TransactionController extends Controller
         DB::transaction(function () use ($transaction, $validated) {
             $oldAmount = (float) $transaction->amount;
             $newAmount = isset($validated['amount']) ? (float) $validated['amount'] : $oldAmount;
+            $oldAccountId = $transaction->account_id;
+            $newAccountId = isset($validated['account_id']) ? (int) $validated['account_id'] : $oldAccountId;
 
-            if ($oldAmount !== $newAmount) {
+            // Handle account change
+            if ($oldAccountId !== $newAccountId) {
+                // Reverse on old account
+                if ($transaction->transaction_type === 'income') {
+                    $transaction->account->decrement('current_balance', $oldAmount);
+                } elseif ($transaction->transaction_type === 'expense') {
+                    $transaction->account->increment('current_balance', $oldAmount);
+                }
+
+                // Apply on new account
+                $newAccount = Account::find($newAccountId);
+                if ($transaction->transaction_type === 'income') {
+                    $newAccount->increment('current_balance', $newAmount);
+                } elseif ($transaction->transaction_type === 'expense') {
+                    $newAccount->decrement('current_balance', $newAmount);
+                }
+            } elseif ($oldAmount !== $newAmount) {
+                // Same account, different amount
                 $difference = $newAmount - $oldAmount;
 
                 if ($transaction->transaction_type === 'income') {
@@ -156,6 +184,93 @@ class TransactionController extends Controller
         });
 
         return Redirect::back()->with('success', 'Transaction updated successfully');
+    }
+
+    public function bulkUpdate(BulkUpdateTransactionRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+        $userId = auth()->id();
+
+        $updateData = collect($validated)
+            ->only(['account_id', 'category_id', 'transaction_date'])
+            ->filter(fn ($value) => $value !== null)
+            ->toArray();
+
+        if (empty($updateData)) {
+            return Redirect::back()->with('error', 'No fields to update');
+        }
+
+        $transactions = Transaction::whereIn('id', $validated['transaction_ids'])
+            ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
+            ->whereNull('transfer_transaction_id')
+            ->where('transaction_type', '!=', 'transfer')
+            ->get();
+
+        $updatedCount = 0;
+
+        DB::transaction(function () use ($transactions, $updateData, &$updatedCount) {
+            foreach ($transactions as $transaction) {
+                $transaction->update($updateData);
+                $updatedCount++;
+            }
+        });
+
+        $skippedCount = count($validated['transaction_ids']) - $updatedCount;
+        $message = "{$updatedCount} transaction(s) updated";
+
+        if ($skippedCount > 0) {
+            $message .= " ({$skippedCount} transfer transaction(s) skipped)";
+        }
+
+        return Redirect::back()->with('success', $message);
+    }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'transaction_ids' => ['required', 'array', 'min:1'],
+            'transaction_ids.*' => ['exists:finance_transactions,id'],
+        ]);
+
+        $userId = auth()->id();
+
+        $transactions = Transaction::with('account')
+            ->whereIn('id', $validated['transaction_ids'])
+            ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
+            ->get();
+
+        $deletedCount = 0;
+
+        DB::transaction(function () use ($transactions, &$deletedCount) {
+            foreach ($transactions as $transaction) {
+                // Handle linked transfer transactions
+                if ($transaction->transfer_transaction_id) {
+                    $linkedTransaction = Transaction::with('account')
+                        ->find($transaction->transfer_transaction_id);
+
+                    if ($linkedTransaction) {
+                        if ($linkedTransaction->transaction_type === 'income') {
+                            $linkedTransaction->account->decrement('current_balance', $linkedTransaction->amount);
+                        } elseif ($linkedTransaction->transaction_type === 'expense') {
+                            $linkedTransaction->account->increment('current_balance', $linkedTransaction->amount);
+                        }
+                        $linkedTransaction->delete();
+                    }
+                }
+
+                // Reverse balance update
+                if ($transaction->transaction_type === 'income') {
+                    $transaction->account->decrement('current_balance', $transaction->amount);
+                } elseif ($transaction->transaction_type === 'expense') {
+                    $transaction->account->increment('current_balance', $transaction->amount);
+                }
+
+                $transaction->delete();
+                $deletedCount++;
+            }
+        });
+
+        return Redirect::back()->with('success', "{$deletedCount} transaction(s) deleted");
     }
 
     public function destroy(Transaction $transaction): RedirectResponse

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
+import { Checkbox } from '@/components/ui/checkbox'
 import { formatDateDisplay } from '@/lib/date-utils'
 import {
   Table,
@@ -54,6 +55,7 @@ import {
   Download,
   Pencil,
   XCircle,
+  X,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -61,6 +63,7 @@ import {
 } from 'lucide-react'
 import { TransactionForm } from './components/transaction-form'
 import { ExportDialog } from './components/export-dialog'
+import { BulkEditDialog } from './components/bulk-edit-dialog'
 import type { Transaction, Account, Category, PaginatedData } from '@modules/Finance/types/finance'
 
 interface Props {
@@ -74,6 +77,8 @@ interface Props {
     search?: string
     date_from?: string
     date_to?: string
+    amount_from?: string
+    amount_to?: string
   }
   totals: {
     income: number
@@ -103,6 +108,9 @@ export default function TransactionsIndex({
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
+  const [showBulkEditDialog, setShowBulkEditDialog] = useState(false)
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [searchQuery, setSearchQuery] = useState(filters.search || '')
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -220,6 +228,51 @@ export default function TransactionsIndex({
       default:
         return null
     }
+  }
+
+  // Selection helpers
+  const selectableTransactions = transactions.data.filter(
+    (t) => t.type !== 'transfer' && !t.transfer_transaction_id
+  )
+  const isAllSelected = selectableTransactions.length > 0 &&
+    selectableTransactions.every((t) => selectedIds.includes(t.id))
+  const isSomeSelected = selectedIds.length > 0 && !isAllSelected
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    )
+  }
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(selectableTransactions.map((t) => t.id))
+    }
+  }
+
+  const clearSelection = () => {
+    setSelectedIds([])
+  }
+
+  const handleBulkEditSuccess = () => {
+    clearSelection()
+    router.reload({ only: ['transactions'] })
+  }
+
+  const confirmBulkDelete = () => {
+    router.post(
+      route('dashboard.finance.transactions.bulk-destroy'),
+      { transaction_ids: selectedIds },
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          setShowBulkDeleteDialog(false)
+          clearSelection()
+        },
+      }
+    )
   }
 
   return (
@@ -354,7 +407,31 @@ export default function TransactionsIndex({
               />
             </div>
 
-            {(filters.account_id || filters.category_id || filters.type || filters.date_from || filters.date_to) && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">Amount From</label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="Min amount"
+                value={filters.amount_from || ''}
+                onChange={(e) => handleFilterChange('amount_from', e.target.value || 'all')}
+                className="w-36"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">Amount To</label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="Max amount"
+                value={filters.amount_to || ''}
+                onChange={(e) => handleFilterChange('amount_to', e.target.value || 'all')}
+                className="w-36"
+              />
+            </div>
+
+            {(filters.account_id || filters.category_id || filters.type || filters.date_from || filters.date_to || filters.amount_from || filters.amount_to) && (
               <div className="flex flex-col gap-1.5 justify-end">
                 <Button
                   variant="ghost"
@@ -375,7 +452,7 @@ export default function TransactionsIndex({
         )}
 
         {/* Totals Summary - show when filters are active */}
-        {(filters.account_id || filters.category_id || filters.type || filters.date_from || filters.date_to || filters.search) && (
+        {(filters.account_id || filters.category_id || filters.type || filters.date_from || filters.date_to || filters.amount_from || filters.amount_to || filters.search) && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="p-4 border rounded-lg bg-background">
               <p className="text-sm text-muted-foreground">Total Transactions</p>
@@ -398,6 +475,31 @@ export default function TransactionsIndex({
           </div>
         )}
 
+        {/* Bulk Actions Toolbar */}
+        {selectedIds.length > 0 && (
+          <div className="flex items-center gap-4 p-3 bg-muted rounded-lg mb-4">
+            <span className="text-sm font-medium">
+              {selectedIds.length} transaction{selectedIds.length !== 1 ? 's' : ''} selected
+            </span>
+            <Button size="sm" onClick={() => setShowBulkEditDialog(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Selected
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => setShowBulkDeleteDialog(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Selected
+            </Button>
+            <Button variant="ghost" size="sm" onClick={clearSelection}>
+              <X className="mr-2 h-4 w-4" />
+              Clear
+            </Button>
+          </div>
+        )}
+
         {/* Transactions Table */}
         {transactions.data.length > 0 ? (
           <>
@@ -405,6 +507,14 @@ export default function TransactionsIndex({
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={isAllSelected}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Select all"
+                        data-state={isSomeSelected ? 'indeterminate' : undefined}
+                      />
+                    </TableHead>
                     <TableHead className="w-12">Type</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Category</TableHead>
@@ -415,8 +525,25 @@ export default function TransactionsIndex({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions.data.map((transaction) => (
-                    <TableRow key={transaction.id}>
+                  {transactions.data.map((transaction) => {
+                    const isTransfer = transaction.type === 'transfer' || transaction.transfer_transaction_id
+                    const isSelected = selectedIds.includes(transaction.id)
+                    return (
+                    <TableRow
+                      key={transaction.id}
+                      className={isSelected ? 'bg-muted/50' : undefined}
+                    >
+                      <TableCell>
+                        {isTransfer ? (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        ) : (
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelect(transaction.id)}
+                            aria-label={`Select transaction ${transaction.id}`}
+                          />
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center">
                           {getTypeIcon(transaction.type)}
@@ -519,7 +646,7 @@ export default function TransactionsIndex({
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )})}
                 </TableBody>
               </Table>
             </div>
@@ -667,10 +794,42 @@ export default function TransactionsIndex({
           </AlertDialogContent>
         </AlertDialog>
 
+        {/* Bulk Delete Confirmation */}
+        <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedIds.length} Transaction{selectedIds.length !== 1 ? 's' : ''}</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {selectedIds.length} selected transaction{selectedIds.length !== 1 ? 's' : ''}?
+                This will also reverse all balance updates. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmBulkDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete {selectedIds.length} Transaction{selectedIds.length !== 1 ? 's' : ''}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* Export Dialog */}
         <ExportDialog
           open={showExportDialog}
           onOpenChange={setShowExportDialog}
+        />
+
+        {/* Bulk Edit Dialog */}
+        <BulkEditDialog
+          open={showBulkEditDialog}
+          onOpenChange={setShowBulkEditDialog}
+          selectedIds={selectedIds}
+          accounts={accounts}
+          categories={categories}
+          onSuccess={handleBulkEditSuccess}
         />
       </Main>
     </AuthenticatedLayout>

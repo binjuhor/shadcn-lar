@@ -28,6 +28,10 @@ Route::middleware(['auth', 'verified'])
         Route::resource('categories', CategoryController::class)->except(['show']);
 
         Route::resource('transactions', TransactionController::class)->except(['show', 'edit']);
+        Route::post('transactions/bulk-update', [TransactionController::class, 'bulkUpdate'])
+            ->name('transactions.bulk-update');
+        Route::post('transactions/bulk-destroy', [TransactionController::class, 'bulkDestroy'])
+            ->name('transactions.bulk-destroy');
         Route::post('transactions/{transaction}/reconcile', [TransactionController::class, 'reconcile'])
             ->name('transactions.reconcile');
         Route::post('transactions/{transaction}/unreconcile', [TransactionController::class, 'unreconcile'])

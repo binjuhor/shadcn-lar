@@ -19,12 +19,14 @@ class IndexTransactionRequest extends FormRequest
             'type' => ['nullable', 'in:income,expense,transfer'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'amount_from' => ['nullable', 'numeric', 'min:0'],
+            'amount_to' => ['nullable', 'numeric', 'min:0', 'gte:amount_from'],
             'search' => ['nullable', 'string', 'max:255'],
         ];
     }
 
     public function filters(): array
     {
-        return $this->only(['account_id', 'category_id', 'type', 'date_from', 'date_to', 'search']);
+        return $this->only(['account_id', 'category_id', 'type', 'date_from', 'date_to', 'amount_from', 'amount_to', 'search']);
     }
 }
