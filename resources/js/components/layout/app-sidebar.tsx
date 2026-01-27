@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { usePage } from '@inertiajs/react'
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +15,7 @@ import { usePermission } from '@/hooks/use-permission'
 import { useCollapsibleGroups } from '@/hooks/use-collapsible-groups'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { auth } = usePage().props as { auth: { user: { name: string; email: string; avatar_url?: string } } }
   const { filterNavGroups, enabledModules, moduleOrder } = usePermission()
   const { isCollapsed, toggleGroup } = useCollapsibleGroups()
 
@@ -38,7 +40,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ))}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={sidebarData.user} />
+        <NavUser user={{
+          name: auth?.user?.name ?? 'User',
+          email: auth?.user?.email ?? '',
+          avatar: auth?.user?.avatar_url ?? '/avatars/shadcn.jpg',
+        }} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
