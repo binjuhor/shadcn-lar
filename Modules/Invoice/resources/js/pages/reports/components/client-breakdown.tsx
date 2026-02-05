@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from 'recharts'
 import {
   Card,
@@ -43,14 +44,16 @@ function formatFullCurrency(value: number, currency: string): string {
 }
 
 export function ClientBreakdown({ data, currency }: ClientBreakdownProps) {
+  const { t } = useTranslation()
+
   const chartConfig = React.useMemo(() => {
     return {
       amount: {
-        label: 'Amount',
+        label: t('form.amount'),
         color: 'hsl(199, 89%, 48%)',
       },
     }
-  }, [])
+  }, [t])
 
   const chartData = data.map((item) => ({
     ...item,
@@ -61,14 +64,14 @@ export function ClientBreakdown({ data, currency }: ClientBreakdownProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Top Clients</CardTitle>
+          <CardTitle>{t('page.invoice_reports.top_clients')}</CardTitle>
           <CardDescription>
-            Revenue by client
+            {t('page.invoice_reports.revenue_by_client')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-            No data available
+            {t('page.invoice_reports.no_data_available')}
           </div>
         </CardContent>
       </Card>
@@ -78,9 +81,9 @@ export function ClientBreakdown({ data, currency }: ClientBreakdownProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top Clients</CardTitle>
+        <CardTitle>{t('page.invoice_reports.top_clients')}</CardTitle>
         <CardDescription>
-          Revenue by client (Top 10)
+          {t('page.invoice_reports.revenue_by_client_top_10')}
         </CardDescription>
       </CardHeader>
       <CardContent>

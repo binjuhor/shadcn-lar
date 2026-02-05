@@ -56,6 +56,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
+import { useTranslation } from "react-i18next"
 
 interface CategoryFilters {
   search?: string
@@ -77,6 +78,7 @@ export default function Categories({
   categories = { data: [], current_page: 1, last_page: 1, per_page: 15, total: 0 },
   filters: initialFilters = {},
 }: CategoriesPageProps) {
+  const { t } = useTranslation()
   const [filters, setFilters] = useState<CategoryFilters>(initialFilters)
   const [searchTerm, setSearchTerm] = useState(initialFilters?.search || "")
   const { toast } = useToast()
@@ -99,19 +101,19 @@ export default function Categories({
   }
 
   const handleDelete = (category: ProductCategory) => {
-    if (confirm('Are you sure you want to delete this category?')) {
+    if (confirm(t('page.ecommerce.categories.delete_confirm'))) {
       router.delete(route('dashboard.ecommerce.product-categories.destroy', category.slug), {
         onSuccess: () => {
           toast({
-            title: "Category deleted!",
-            description: `"${category.name}" has been deleted successfully.`,
+            title: t('page.ecommerce.categories.toast.delete_success'),
+            description: t('page.ecommerce.categories.toast.delete_success_description', { name: category.name }),
           })
         },
         onError: () => {
           toast({
             variant: "destructive",
-            title: "Error deleting category",
-            description: "Something went wrong. Please try again.",
+            title: t('common.messages.error'),
+            description: t('common.messages.error_try_again'),
           })
         }
       })
@@ -158,9 +160,9 @@ export default function Categories({
 
   const getStatusBadge = (isActive: boolean) => {
     return isActive ? (
-      <Badge variant="outline" className="text-green-600 border-green-600">Active</Badge>
+      <Badge variant="outline" className="text-green-600 border-green-600">{t('common.statuses.active')}</Badge>
     ) : (
-      <Badge variant="secondary">Inactive</Badge>
+      <Badge variant="secondary">{t('common.statuses.inactive')}</Badge>
     )
   }
 
@@ -186,17 +188,17 @@ export default function Categories({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Slug</TableHead>
-          <TableHead>Description</TableHead>
-          <TableHead>Parent</TableHead>
-          <TableHead>Products</TableHead>
-          <TableHead>Status</TableHead>
+          <TableHead>{t('common.fields.name')}</TableHead>
+          <TableHead>{t('common.fields.slug')}</TableHead>
+          <TableHead>{t('common.fields.description')}</TableHead>
+          <TableHead>{t('page.ecommerce.categories.table.parent')}</TableHead>
+          <TableHead>{t('page.ecommerce.categories.table.products')}</TableHead>
+          <TableHead>{t('common.fields.status')}</TableHead>
           <TableHead className="hidden md:table-cell">
-            Created
+            {t('common.fields.created')}
           </TableHead>
           <TableHead>
-            <span className="sr-only">Actions</span>
+            <span className="sr-only">{t('common.actions.actions')}</span>
           </TableHead>
         </TableRow>
       </TableHeader>
@@ -204,7 +206,7 @@ export default function Categories({
         {!categories.data || categories.data.length === 0 ? (
           <TableRow>
             <TableCell colSpan={8} className="h-24 text-center">
-              No categories found.
+              {t('page.ecommerce.categories.empty')}
             </TableCell>
           </TableRow>
         ) : (
@@ -226,7 +228,7 @@ export default function Categories({
             </TableCell>
             <TableCell>
               <span className="text-sm text-muted-foreground line-clamp-2">
-                {category.description || 'N/A'}
+                {category.description || t('common.fields.na')}
               </span>
             </TableCell>
             <TableCell>
@@ -256,17 +258,17 @@ export default function Categories({
                     variant="ghost"
                   >
                     <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Toggle menu</span>
+                    <span className="sr-only">{t('common.actions.toggle_menu')}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t('common.actions.actions')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => router.get(route('dashboard.ecommerce.product-categories.edit', category.slug))}
                   >
                     <Edit className="mr-2 h-4 w-4" />
-                    Edit
+                    {t('common.actions.edit')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -274,7 +276,7 @@ export default function Categories({
                     onClick={() => handleDelete(category)}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
+                    {t('common.actions.delete')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -288,18 +290,18 @@ export default function Categories({
 
   return (
     <>
-      <AuthenticatedLayout title="Product Categories">
+      <AuthenticatedLayout title={t('page.ecommerce.categories.title')}>
         <Main>
           <div className="grid flex-1 items-start gap-4 md:gap-8">
             <Tabs defaultValue="all">
               <div className="flex items-center">
                 <TabsList>
-                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="all">{t('common.filters.all')}</TabsTrigger>
                 </TabsList>
                 <div className="ml-auto flex items-center gap-2">
                   <div className="relative">
                     <Input
-                      placeholder="Search categories..."
+                      placeholder={t('page.ecommerce.categories.search_placeholder')}
                       value={searchTerm}
                       onChange={(e) => handleSearch(e.target.value)}
                       className="w-64"
@@ -310,12 +312,12 @@ export default function Categories({
                       <Button variant="outline" size="sm" className="h-7 gap-1">
                         <ListFilter className="h-3.5 w-3.5" />
                         <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                          Filter
+                          {t('common.actions.filter')}
                         </span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuLabel>Filter by</DropdownMenuLabel>
+                      <DropdownMenuLabel>{t('common.filters.filter_by')}</DropdownMenuLabel>
                       <DropdownMenuSeparator />
 
                       <DropdownMenuCheckboxItem
@@ -324,7 +326,7 @@ export default function Categories({
                           handleFilterChange({ is_active: checked ? true : undefined })
                         }
                       >
-                        Active Only
+                        {t('page.ecommerce.categories.filters.active_only')}
                       </DropdownMenuCheckboxItem>
 
                       <DropdownMenuCheckboxItem
@@ -333,14 +335,14 @@ export default function Categories({
                           handleFilterChange({ is_active: checked ? false : undefined })
                         }
                       >
-                        Inactive Only
+                        {t('page.ecommerce.categories.filters.inactive_only')}
                       </DropdownMenuCheckboxItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                   <Button size="sm" variant="outline" className="h-7 gap-1">
                     <File className="h-3.5 w-3.5" />
                     <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                      Export
+                      {t('common.actions.export')}
                     </span>
                   </Button>
                   <Button
@@ -350,7 +352,7 @@ export default function Categories({
                   >
                     <PlusCircle className="h-3.5 w-3.5" />
                     <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                      Add Category
+                      {t('page.ecommerce.categories.add_category')}
                     </span>
                   </Button>
                 </div>
@@ -358,10 +360,10 @@ export default function Categories({
 
               {hasActiveFilters() && (
                 <div className="flex items-center gap-2 pt-2">
-                  <span className="text-sm text-muted-foreground">Active filters:</span>
+                  <span className="text-sm text-muted-foreground">{t('common.filters.active_filters')}:</span>
                   {filters.is_active === true && (
                     <Badge variant="secondary" className="gap-1">
-                      Active
+                      {t('common.statuses.active')}
                       <button
                         onClick={() => handleFilterChange({ is_active: undefined })}
                         className="ml-1 hover:bg-secondary-foreground/20 rounded-full"
@@ -372,7 +374,7 @@ export default function Categories({
                   )}
                   {filters.is_active === false && (
                     <Badge variant="secondary" className="gap-1">
-                      Inactive
+                      {t('common.statuses.inactive')}
                       <button
                         onClick={() => handleFilterChange({ is_active: undefined })}
                         className="ml-1 hover:bg-secondary-foreground/20 rounded-full"
@@ -387,7 +389,7 @@ export default function Categories({
                     onClick={clearAllFilters}
                     className="h-6 text-xs"
                   >
-                    Clear all
+                    {t('common.filters.clear_all')}
                   </Button>
                 </div>
               )}
@@ -395,9 +397,9 @@ export default function Categories({
               <TabsContent value="all">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Product Categories</CardTitle>
+                    <CardTitle>{t('page.ecommerce.categories.title')}</CardTitle>
                     <CardDescription>
-                      Manage your product categories and organize your catalog.
+                      {t('page.ecommerce.categories.description')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -407,11 +409,11 @@ export default function Categories({
                     <div className="text-xs text-muted-foreground">
                       {categories?.current_page && categories?.per_page && categories?.total ? (
                         <>
-                          Showing <strong>{((categories.current_page - 1) * categories.per_page) + 1}-{Math.min(categories.current_page * categories.per_page, categories.total)}</strong> of <strong>{categories.total}</strong>{" "}
-                          categories
+                          {t('common.pagination.showing')} <strong>{((categories.current_page - 1) * categories.per_page) + 1}-{Math.min(categories.current_page * categories.per_page, categories.total)}</strong> {t('common.pagination.of')} <strong>{categories.total}</strong>{" "}
+                          {t('page.ecommerce.categories.categories')}
                         </>
                       ) : (
-                        <>Showing <strong>0</strong> categories</>
+                        <>{t('common.pagination.showing')} <strong>0</strong> {t('page.ecommerce.categories.categories')}</>
                       )}
                     </div>
 

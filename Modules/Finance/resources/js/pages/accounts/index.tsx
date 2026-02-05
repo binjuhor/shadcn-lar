@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { router } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -16,21 +17,13 @@ import {
 import { Plus, Wallet } from 'lucide-react'
 import { AccountCard } from './components/account-card'
 import { AccountForm } from './components/account-form'
-import type { Account, AccountSummary, Currency, AccountType } from '@modules/Finance/types/finance'
+import type { Account, AccountSummary, Currency } from '@modules/Finance/types/finance'
 
 interface Props {
   accounts: Account[]
   summary: AccountSummary
   currencies: Currency[]
 }
-
-const filterTypes: { value: string; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'bank', label: 'Bank' },
-  { value: 'credit_card', label: 'Credit Card' },
-  { value: 'investment', label: 'Investment' },
-  { value: 'cash', label: 'Cash' },
-]
 
 function formatMoney(amount: number, currencyCode = 'VND'): string {
   return new Intl.NumberFormat('vi-VN', {
@@ -40,10 +33,19 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
 }
 
 export default function AccountsIndex({ accounts, summary, currencies }: Props) {
+  const { t } = useTranslation()
   const [showForm, setShowForm] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null)
   const [filterType, setFilterType] = useState('all')
+
+  const filterTypes = [
+    { value: 'all', label: t('filter.all') },
+    { value: 'bank', label: t('filter.bank') },
+    { value: 'credit_card', label: t('filter.credit_card') },
+    { value: 'investment', label: t('filter.investment') },
+    { value: 'cash', label: t('filter.cash') },
+  ]
 
   const filteredAccounts = useMemo(() => {
     if (filterType === 'all') {
@@ -86,37 +88,37 @@ export default function AccountsIndex({ accounts, summary, currencies }: Props) 
   }
 
   return (
-    <AuthenticatedLayout title="Accounts">
+    <AuthenticatedLayout title={t('page.accounts.title')}>
       <Main>
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Accounts</h1>
+        <div className="mb-4 md:flex items-center justify-between">
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold tracking-tight">{t('page.accounts.title')}</h1>
             <p className="text-muted-foreground">
-              Manage your financial accounts
+              {t('page.accounts.description')}
             </p>
           </div>
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            New Account
+            {t('page.accounts.new')}
           </Button>
         </div>
 
         {/* Summary */}
-        <div className="mb-6 grid grid-cols-3 gap-4">
+        <div className="mb-6 grid md:grid-cols-3 gap-4">
           <div className="rounded-lg border bg-card p-4">
-            <p className="text-sm text-muted-foreground">Total Assets</p>
+            <p className="text-sm text-muted-foreground">{t('page.accounts.total_assets')}</p>
             <p className="text-2xl font-bold text-green-600">
               {formatMoney(summary.total_assets, summary.currency_code)}
             </p>
           </div>
           <div className="rounded-lg border bg-card p-4">
-            <p className="text-sm text-muted-foreground">Total Liabilities</p>
+            <p className="text-sm text-muted-foreground">{t('page.accounts.total_liabilities')}</p>
             <p className="text-2xl font-bold text-red-600">
               {formatMoney(summary.total_liabilities, summary.currency_code)}
             </p>
           </div>
           <div className="rounded-lg border bg-card p-4">
-            <p className="text-sm text-muted-foreground">Net Worth</p>
+            <p className="text-sm text-muted-foreground">{t('page.accounts.net_worth')}</p>
             <p className="text-2xl font-bold">
               {formatMoney(summary.net_worth, summary.currency_code)}
             </p>
@@ -140,7 +142,7 @@ export default function AccountsIndex({ accounts, summary, currencies }: Props) 
         {/* Active Accounts */}
         {activeAccounts.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-4">Active Accounts</h3>
+            <h3 className="text-lg font-medium mb-4">{t('page.accounts.active_accounts')}</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {activeAccounts.map((account) => (
                 <AccountCard
@@ -158,7 +160,7 @@ export default function AccountsIndex({ accounts, summary, currencies }: Props) 
         {inactiveAccounts.length > 0 && (
           <div>
             <h3 className="text-lg font-medium text-muted-foreground mb-4">
-              Inactive Accounts
+              {t('page.accounts.inactive_accounts')}
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {inactiveAccounts.map((account) => (
@@ -177,13 +179,13 @@ export default function AccountsIndex({ accounts, summary, currencies }: Props) 
         {activeAccounts.length === 0 && inactiveAccounts.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Wallet className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No accounts yet</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('page.accounts.no_accounts')}</h3>
             <p className="text-muted-foreground mb-4">
-              Get started by creating your first account
+              {t('page.accounts.get_started')}
             </p>
             <Button onClick={() => setShowForm(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Create Account
+              {t('page.accounts.create')}
             </Button>
           </div>
         )}
@@ -201,19 +203,18 @@ export default function AccountsIndex({ accounts, summary, currencies }: Props) 
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Account</AlertDialogTitle>
+              <AlertDialogTitle>{t('page.accounts.delete_title')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete "{selectedAccount?.name}"? This
-                action cannot be undone.
+                {t('page.accounts.delete_description', { name: selectedAccount?.name || '' })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDelete}
                 className="bg-red-600 hover:bg-red-700"
               >
-                Delete
+                {t('common.delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

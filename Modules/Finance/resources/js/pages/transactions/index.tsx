@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { router } from '@inertiajs/react'
 import { format } from 'date-fns'
+import { useTranslation } from 'react-i18next'
+import { useCategoryName } from '@/hooks/use-category-name'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -53,6 +55,7 @@ import {
   Sparkles,
   Search,
   Download,
+  Upload,
   Pencil,
   XCircle,
   X,
@@ -60,10 +63,12 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Link2,
 } from 'lucide-react'
 import { TransactionForm } from './components/transaction-form'
 import { ExportDialog } from './components/export-dialog'
 import { BulkEditDialog } from './components/bulk-edit-dialog'
+import { MultiSelect } from '@/components/ui/multi-select'
 import type { Transaction, Account, Category, PaginatedData } from '@modules/Finance/types/finance'
 
 interface Props {
@@ -71,8 +76,8 @@ interface Props {
   accounts: Account[]
   categories: Category[]
   filters: {
-    account_id?: string
-    category_id?: string
+    account_ids?: string[]
+    category_ids?: string[]
     type?: string
     search?: string
     date_from?: string
@@ -102,6 +107,8 @@ export default function TransactionsIndex({
   filters,
   totals,
 }: Props) {
+  const { t } = useTranslation()
+  const getCategoryName = useCategoryName()
   const [showForm, setShowForm] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
@@ -110,6 +117,7 @@ export default function TransactionsIndex({
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false)
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false)
+  const [showLinkDialog, setShowLinkDialog] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [searchQuery, setSearchQuery] = useState(filters.search || '')
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -205,6 +213,20 @@ export default function TransactionsIndex({
     )
   }
 
+  const handleMultiFilterChange = (key: string, values: string[]) => {
+    router.get(
+      route('dashboard.finance.transactions.index'),
+      {
+        ...filters,
+        [key]: values.length > 0 ? values : undefined,
+      },
+      {
+        preserveState: true,
+        preserveScroll: true,
+      }
+    )
+  }
+
   const handleSuccess = () => {
     setEditingTransaction(null)
     router.reload({ only: ['transactions'] })
@@ -275,40 +297,56 @@ export default function TransactionsIndex({
     )
   }
 
+  const confirmLinkAsTransfer = () => {
+    router.post(
+      route('dashboard.finance.transactions.link-as-transfer'),
+      { transaction_ids: selectedIds },
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          setShowLinkDialog(false)
+          clearSelection()
+        },
+      }
+    )
+  }
+
   return (
-    <AuthenticatedLayout title="Transactions">
+    <AuthenticatedLayout title={t('page.transactions.title')}>
       <Main>
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
+        <div className="mb-4 md:flex items-center justify-between">
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold tracking-tight">{t('page.transactions.title')}</h1>
             <p className="text-muted-foreground">
-              View and manage your transactions
+              {t('page.transactions.description')}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant="outline"
               onClick={() => setShowFilters(!showFilters)}
             >
               <Filter className="mr-2 h-4 w-4" />
-              {showFilters ? 'Hide' : 'Show'} Filters
+              {showFilters ? t('filter.hide') : t('filter.show')} {t('filter.filters')}
             </Button>
             <Button
               variant="outline"
               onClick={() => setShowExportDialog(true)}
             >
-              <Download className="mr-2 h-4 w-4" />
-              Export
+              <Download className="mr-2 h-4 w-4" /> {t('action.export')}
             </Button>
+            <a href={route('dashboard.finance.transactions.import')}>
+              <Button variant="outline">
+                <Upload className="mr-2 h-4 w-4" /> {t('action.import')}
+              </Button>
+            </a>
             <a href={route('dashboard.finance.smart-input')}>
               <Button variant="outline">
-                <Sparkles className="mr-2 h-4 w-4" />
-                Smart Input
+                <Sparkles className="mr-2 h-4 w-4" /> {t('sidebar.smart_input')}
               </Button>
             </a>
             <Button onClick={() => setShowForm(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Transaction
+              <Plus className="mr-2 h-4 w-4" /> {t('page.transactions.new')}
             </Button>
           </div>
         </div>
@@ -317,7 +355,7 @@ export default function TransactionsIndex({
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search transactions by description..."
+            placeholder={t('page.transactions.search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -328,91 +366,81 @@ export default function TransactionsIndex({
         {showFilters && (
           <div className="flex gap-4 flex-wrap mb-6 p-4 border rounded-lg bg-muted/50">
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Account</label>
-              <Select
-                value={filters.account_id || 'all'}
-                onValueChange={(value) => handleFilterChange('account_id', value)}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="All accounts" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All accounts</SelectItem>
-                  {accounts.map((account) => (
-                    <SelectItem key={account.id} value={String(account.id)}>
-                      {account.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium">{t('filter.account')}</label>
+              <MultiSelect
+                options={accounts.map((account) => ({
+                  value: String(account.id),
+                  label: account.name,
+                }))}
+                value={filters.account_ids || []}
+                onChange={(values) => handleMultiFilterChange('account_ids', values)}
+                placeholder={t('filter.all_accounts')}
+                searchPlaceholder={t('filter.search_accounts')}
+                className="w-56"
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Category</label>
-              <Select
-                value={filters.category_id || 'all'}
-                onValueChange={(value) => handleFilterChange('category_id', value)}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="All categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All categories</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={String(category.id)}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium">{t('filter.category')}</label>
+              <MultiSelect
+                options={categories.map((category) => ({
+                  value: String(category.id),
+                  label: getCategoryName(category),
+                }))}
+                value={filters.category_ids || []}
+                onChange={(values) => handleMultiFilterChange('category_ids', values)}
+                placeholder={t('filter.all_categories')}
+                searchPlaceholder={t('filter.search_categories')}
+                className="w-56"
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Type</label>
+              <label className="text-sm font-medium">{t('filter.type')}</label>
               <Select
                 value={filters.type || 'all'}
                 onValueChange={(value) => handleFilterChange('type', value)}
               >
                 <SelectTrigger className="w-36">
-                  <SelectValue placeholder="All types" />
+                  <SelectValue placeholder={t('filter.all_types')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All types</SelectItem>
-                  <SelectItem value="income">Income</SelectItem>
-                  <SelectItem value="expense">Expense</SelectItem>
-                  <SelectItem value="transfer">Transfer</SelectItem>
+                  <SelectItem value="all">{t('filter.all_types')}</SelectItem>
+                  <SelectItem value="income">{t('filter.income')}</SelectItem>
+                  <SelectItem value="expense">{t('filter.expense')}</SelectItem>
+                  <SelectItem value="transfer">{t('filter.transfer')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">From Date</label>
+              <label className="text-sm font-medium">{t('filter.from_date')}</label>
               <DatePicker
                 value={filters.date_from || undefined}
                 onChange={(date) => handleFilterChange('date_from', date ? format(date, 'yyyy-MM-dd') : 'all')}
-                placeholder="Select date"
+                placeholder={t('filter.select_date')}
                 dateFormat="yyyy-MM-dd"
                 className="w-40"
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">To Date</label>
+              <label className="text-sm font-medium">{t('filter.to_date')}</label>
               <DatePicker
                 value={filters.date_to || undefined}
                 onChange={(date) => handleFilterChange('date_to', date ? format(date, 'yyyy-MM-dd') : 'all')}
-                placeholder="Select date"
+                placeholder={t('filter.select_date')}
                 dateFormat="yyyy-MM-dd"
                 className="w-40"
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Amount From</label>
+              <label className="text-sm font-medium">{t('filter.amount_from')}</label>
               <Input
                 type="number"
                 min="0"
-                placeholder="Min amount"
+                placeholder={t('filter.min_amount')}
                 value={filters.amount_from || ''}
                 onChange={(e) => handleFilterChange('amount_from', e.target.value || 'all')}
                 className="w-36"
@@ -420,18 +448,18 @@ export default function TransactionsIndex({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Amount To</label>
+              <label className="text-sm font-medium">{t('filter.amount_to')}</label>
               <Input
                 type="number"
                 min="0"
-                placeholder="Max amount"
+                placeholder={t('filter.max_amount')}
                 value={filters.amount_to || ''}
                 onChange={(e) => handleFilterChange('amount_to', e.target.value || 'all')}
                 className="w-36"
               />
             </div>
 
-            {(filters.account_id || filters.category_id || filters.type || filters.date_from || filters.date_to || filters.amount_from || filters.amount_to) && (
+            {((filters.account_ids && filters.account_ids.length > 0) || (filters.category_ids && filters.category_ids.length > 0) || filters.type || filters.date_from || filters.date_to || filters.amount_from || filters.amount_to) && (
               <div className="flex flex-col gap-1.5 justify-end">
                 <Button
                   variant="ghost"
@@ -444,7 +472,7 @@ export default function TransactionsIndex({
                     )
                   }}
                 >
-                  Clear Filters
+                  {t('filter.clear')}
                 </Button>
               </div>
             )}
@@ -452,22 +480,22 @@ export default function TransactionsIndex({
         )}
 
         {/* Totals Summary - show when filters are active */}
-        {(filters.account_id || filters.category_id || filters.type || filters.date_from || filters.date_to || filters.amount_from || filters.amount_to || filters.search) && (
+        {((filters.account_ids && filters.account_ids.length > 0) || (filters.category_ids && filters.category_ids.length > 0) || filters.type || filters.date_from || filters.date_to || filters.amount_from || filters.amount_to || filters.search) && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="p-4 border rounded-lg bg-background">
-              <p className="text-sm text-muted-foreground">Total Transactions</p>
+              <p className="text-sm text-muted-foreground">{t('page.transactions.total_transactions')}</p>
               <p className="text-2xl font-bold">{totals.count.toLocaleString()}</p>
             </div>
             <div className="p-4 border rounded-lg bg-background">
-              <p className="text-sm text-muted-foreground">Total Income</p>
+              <p className="text-sm text-muted-foreground">{t('page.transactions.total_income')}</p>
               <p className="text-2xl font-bold text-green-600">{formatMoney(totals.income)}</p>
             </div>
             <div className="p-4 border rounded-lg bg-background">
-              <p className="text-sm text-muted-foreground">Total Expense</p>
+              <p className="text-sm text-muted-foreground">{t('page.transactions.total_expense')}</p>
               <p className="text-2xl font-bold text-red-600">{formatMoney(totals.expense)}</p>
             </div>
             <div className="p-4 border rounded-lg bg-background">
-              <p className="text-sm text-muted-foreground">Net</p>
+              <p className="text-sm text-muted-foreground">{t('page.transactions.net')}</p>
               <p className={`text-2xl font-bold ${totals.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {formatMoney(totals.net)}
               </p>
@@ -479,23 +507,29 @@ export default function TransactionsIndex({
         {selectedIds.length > 0 && (
           <div className="flex items-center gap-4 p-3 bg-muted rounded-lg mb-4">
             <span className="text-sm font-medium">
-              {selectedIds.length} transaction{selectedIds.length !== 1 ? 's' : ''} selected
+              {t('bulk.selected_count', { count: selectedIds.length })}
             </span>
             <Button size="sm" onClick={() => setShowBulkEditDialog(true)}>
               <Pencil className="mr-2 h-4 w-4" />
-              Edit Selected
+              {t('bulk.edit_selected')}
             </Button>
+            {selectedIds.length === 2 && (
+              <Button size="sm" variant="outline" onClick={() => setShowLinkDialog(true)}>
+                <Link2 className="mr-2 h-4 w-4" />
+                {t('bulk.link_as_transfer')}
+              </Button>
+            )}
             <Button
               size="sm"
               variant="destructive"
               onClick={() => setShowBulkDeleteDialog(true)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Delete Selected
+              {t('bulk.delete_selected')}
             </Button>
             <Button variant="ghost" size="sm" onClick={clearSelection}>
               <X className="mr-2 h-4 w-4" />
-              Clear
+              {t('action.clear')}
             </Button>
           </div>
         )}
@@ -511,16 +545,16 @@ export default function TransactionsIndex({
                       <Checkbox
                         checked={isAllSelected}
                         onCheckedChange={toggleSelectAll}
-                        aria-label="Select all"
+                        aria-label={t('action.select_all')}
                         data-state={isSomeSelected ? 'indeterminate' : undefined}
                       />
                     </TableHead>
-                    <TableHead className="w-12">Type</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="w-12">{t('table.type')}</TableHead>
+                    <TableHead>{t('table.description')}</TableHead>
+                    <TableHead>{t('table.category')}</TableHead>
+                    <TableHead>{t('table.account')}</TableHead>
+                    <TableHead>{t('table.date')}</TableHead>
+                    <TableHead className="text-right">{t('table.amount')}</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -552,7 +586,7 @@ export default function TransactionsIndex({
                       <TableCell>
                         <div className="max-w-xl">
                           <p className="font-medium">
-                            {transaction.description || 'No description'}
+                            {transaction.description || t('common.no_description')}
                           </p>
                           {transaction.notes && (
                             <p className="text-xs text-muted-foreground line-clamp-1">
@@ -564,12 +598,12 @@ export default function TransactionsIndex({
                       <TableCell>
                         {transaction.category ? (
                           <Badge variant="secondary">
-                            {transaction.category.name}
+                            {getCategoryName(transaction.category)}
                           </Badge>
                         ) : transaction.type === 'transfer' ? (
-                          <span className="text-muted-foreground">Transfer</span>
+                          <span className="text-muted-foreground">{t('filter.transfer')}</span>
                         ) : (
-                          <span className="text-muted-foreground">Uncategorized</span>
+                          <span className="text-muted-foreground">{t('common.uncategorized')}</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -617,7 +651,7 @@ export default function TransactionsIndex({
                                 onClick={() => handleEdit(transaction)}
                               >
                                 <Pencil className="mr-2 h-4 w-4" />
-                                Edit
+                                {t('action.edit')}
                               </DropdownMenuItem>
                             )}
                             {!transaction.is_reconciled ? (
@@ -625,14 +659,14 @@ export default function TransactionsIndex({
                                 onClick={() => handleReconcile(transaction)}
                               >
                                 <CheckCircle className="mr-2 h-4 w-4" />
-                                Mark Reconciled
+                                {t('action.mark_reconciled')}
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem
                                 onClick={() => handleUnreconcile(transaction)}
                               >
                                 <XCircle className="mr-2 h-4 w-4" />
-                                Unreconcile
+                                {t('action.unreconcile')}
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem
@@ -640,7 +674,7 @@ export default function TransactionsIndex({
                               className="text-red-600"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
+                              {t('action.delete')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -655,7 +689,7 @@ export default function TransactionsIndex({
             {transactions.last_page > 1 && (
               <div className="flex items-center justify-between mt-4">
                 <p className="text-sm text-muted-foreground">
-                  Showing {transactions.from} to {transactions.to} of {transactions.total} transactions
+                  {t('pagination.showing', { from: transactions.from, to: transactions.to, total: transactions.total })}
                 </p>
                 <div className="flex items-center gap-1">
                   {/* First & Previous */}
@@ -751,13 +785,13 @@ export default function TransactionsIndex({
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Inbox className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No transactions yet</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('page.transactions.empty_title')}</h3>
             <p className="text-muted-foreground mb-4">
-              Start tracking your finances by recording your first transaction
+              {t('page.transactions.empty_description')}
             </p>
             <Button onClick={() => setShowForm(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Record Transaction
+              {t('page.transactions.record')}
             </Button>
           </div>
         )}
@@ -776,19 +810,18 @@ export default function TransactionsIndex({
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+              <AlertDialogTitle>{t('dialog.delete_transaction.title')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete this transaction? This will also
-                reverse the balance update.
+                {t('dialog.delete_transaction.description')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('action.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDelete}
                 className="bg-red-600 hover:bg-red-700"
               >
-                Delete
+                {t('action.delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -798,19 +831,36 @@ export default function TransactionsIndex({
         <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete {selectedIds.length} Transaction{selectedIds.length !== 1 ? 's' : ''}</AlertDialogTitle>
+              <AlertDialogTitle>{t('dialog.bulk_delete.title', { count: selectedIds.length })}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete {selectedIds.length} selected transaction{selectedIds.length !== 1 ? 's' : ''}?
-                This will also reverse all balance updates. This action cannot be undone.
+                {t('dialog.bulk_delete.description', { count: selectedIds.length })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('action.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmBulkDelete}
                 className="bg-red-600 hover:bg-red-700"
               >
-                Delete {selectedIds.length} Transaction{selectedIds.length !== 1 ? 's' : ''}
+                {t('dialog.bulk_delete.confirm', { count: selectedIds.length })}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Link as Transfer Confirmation */}
+        <AlertDialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('dialog.link_transfer.title')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('dialog.link_transfer.description')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('action.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmLinkAsTransfer}>
+                {t('dialog.link_transfer.confirm')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

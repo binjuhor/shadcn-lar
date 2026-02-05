@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, ComposedChart, ReferenceLine } from 'recharts'
 import {
   Card,
@@ -24,24 +25,7 @@ interface CashflowChartProps {
   currencyCode: string
 }
 
-const chartConfig = {
-  passiveIncome: {
-    label: 'Passive Income',
-    color: 'hsl(142, 76%, 36%)',
-  },
-  essentialExpense: {
-    label: 'Essential Expense',
-    color: 'hsl(0, 84%, 60%)',
-  },
-  expense: {
-    label: 'Total Expense',
-    color: 'hsl(0, 60%, 75%)',
-  },
-  passiveCoverage: {
-    label: 'Coverage %',
-    color: 'hsl(199, 89%, 48%)',
-  },
-} satisfies ChartConfig
+// chartConfig moved inside component for i18n
 
 function formatCurrency(value: number, code: string): string {
   return new Intl.NumberFormat('vi-VN', {
@@ -60,7 +44,27 @@ function formatFullCurrency(value: number, code: string): string {
 }
 
 export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
+  const { t } = useTranslation()
   const { monthlyData, averages, financialFreedomProgress } = data
+
+  const chartConfig = {
+    passiveIncome: {
+      label: t('page.reports.passive_income'),
+      color: 'hsl(142, 76%, 36%)',
+    },
+    essentialExpense: {
+      label: t('page.reports.essential_expense'),
+      color: 'hsl(0, 84%, 60%)',
+    },
+    expense: {
+      label: t('page.reports.total_expense'),
+      color: 'hsl(0, 60%, 75%)',
+    },
+    passiveCoverage: {
+      label: t('page.reports.coverage_percent'),
+      color: 'hsl(199, 89%, 48%)',
+    },
+  } satisfies ChartConfig
 
   const maxCoverage = Math.max(...monthlyData.map((d) => d.passiveCoverage), 100)
   const coverageAxisMax = Math.ceil(maxCoverage / 25) * 25
@@ -74,11 +78,11 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
   }
 
   const getProgressLabel = (progress: number) => {
-    if (progress >= 100) return 'Financial Freedom!'
-    if (progress >= 75) return 'Almost There'
-    if (progress >= 50) return 'Halfway'
-    if (progress >= 25) return 'Getting Started'
-    return 'Building Foundation'
+    if (progress >= 100) return t('page.reports.progress_freedom')
+    if (progress >= 75) return t('page.reports.progress_almost')
+    if (progress >= 50) return t('page.reports.progress_halfway')
+    if (progress >= 25) return t('page.reports.progress_started')
+    return t('page.reports.progress_building')
   }
 
   return (
@@ -88,10 +92,10 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
-              Financial Freedom Progress
+              {t('page.reports.financial_freedom_progress')}
             </CardTitle>
             <CardDescription>
-              Passive income vs expenses - Track your path to financial independence
+              {t('page.reports.financial_freedom_description')}
             </CardDescription>
           </div>
         </div>
@@ -121,7 +125,7 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 text-green-600" />
-              Avg Passive Income
+              {t('page.reports.avg_passive_income')}
             </div>
             <div className="text-lg font-bold text-green-600">
               {formatFullCurrency(averages.passiveIncome, currencyCode)}
@@ -130,7 +134,7 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
               <Wallet className="h-3 w-3 text-red-600" />
-              Avg Essential Expense
+              {t('page.reports.avg_essential_expense')}
             </div>
             <div className="text-lg font-bold text-red-600">
               {formatFullCurrency(averages.essentialExpense, currencyCode)}
@@ -139,7 +143,7 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
               <Wallet className="h-3 w-3 text-red-400" />
-              Avg Total Expense
+              {t('page.reports.avg_total_expense')}
             </div>
             <div className="text-lg font-bold text-red-400">
               {formatFullCurrency(averages.expense, currencyCode)}
@@ -148,7 +152,7 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
               <Target className="h-3 w-3 text-blue-600" />
-              Avg Coverage
+              {t('page.reports.avg_coverage')}
             </div>
             <div className="text-lg font-bold text-blue-600">
               {averages.coverage}%
@@ -201,15 +205,15 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
                     if (name === 'passiveCoverage') {
                       return (
                         <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground">Coverage:</span>
+                          <span className="text-muted-foreground">{t('page.reports.coverage')}:</span>
                           <span className="font-mono font-medium">{value}%</span>
                         </div>
                       )
                     }
                     const labels: Record<string, string> = {
-                      passiveIncome: 'Passive:',
-                      essentialExpense: 'Essential:',
-                      expense: 'Total:',
+                      passiveIncome: t('page.reports.passive') + ':',
+                      essentialExpense: t('page.reports.essential') + ':',
+                      expense: t('common.total') + ':',
                     }
                     return (
                       <div className="flex items-center gap-2">
@@ -253,9 +257,7 @@ export function CashflowChart({ data, currencyCode }: CashflowChartProps) {
 
         <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
           <p>
-            <strong>Financial Freedom Goal:</strong> When your passive income covers 100% of your essential expenses (needs),
-            you've achieved financial independence. Essential expenses are categorized as "needs" like housing, food, utilities,
-            healthcare, and insurance. The coverage % is calculated as Passive Income / Essential Expenses.
+            <strong>{t('page.reports.financial_freedom_goal')}:</strong> {t('page.reports.financial_freedom_explanation')}
           </p>
         </div>
       </CardContent>

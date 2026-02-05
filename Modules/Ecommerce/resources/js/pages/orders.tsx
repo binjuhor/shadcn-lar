@@ -22,6 +22,7 @@ import { router } from "@inertiajs/react"
 import { PageProps } from "@/types"
 import { useToast } from "@/hooks/use-toast"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
+import { useTranslation } from "react-i18next"
 
 interface OrdersPageProps extends PageProps {
   orders?: {
@@ -38,6 +39,7 @@ export default function Orders({
   orders = { data: [], current_page: 1, last_page: 1, per_page: 15, total: 0 },
   filters: initialFilters = {}
 }: OrdersPageProps) {
+  const { t } = useTranslation()
   const [filters, setFilters] = useState<OrderFilters>(initialFilters)
   const [searchTerm, setSearchTerm] = useState(initialFilters?.search || "")
   const { toast } = useToast()
@@ -90,15 +92,15 @@ export default function Orders({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
-        return <Badge variant="outline" className="text-green-600 border-green-600">Completed</Badge>
+        return <Badge variant="outline" className="text-green-600 border-green-600">{t('page.ecommerce.orders.status.completed')}</Badge>
       case "processing":
-        return <Badge variant="outline" className="text-blue-600 border-blue-600">Processing</Badge>
+        return <Badge variant="outline" className="text-blue-600 border-blue-600">{t('page.ecommerce.orders.status.processing')}</Badge>
       case "pending":
-        return <Badge variant="secondary">Pending</Badge>
+        return <Badge variant="secondary">{t('page.ecommerce.orders.status.pending')}</Badge>
       case "cancelled":
-        return <Badge variant="destructive">Cancelled</Badge>
+        return <Badge variant="destructive">{t('page.ecommerce.orders.status.cancelled')}</Badge>
       case "refunded":
-        return <Badge variant="outline">Refunded</Badge>
+        return <Badge variant="outline">{t('page.ecommerce.orders.status.refunded')}</Badge>
       default:
         return <Badge>{status}</Badge>
     }
@@ -107,11 +109,11 @@ export default function Orders({
   const getPaymentStatusBadge = (status: string) => {
     switch (status) {
       case "paid":
-        return <Badge variant="outline" className="text-green-600 border-green-600">Paid</Badge>
+        return <Badge variant="outline" className="text-green-600 border-green-600">{t('page.ecommerce.orders.payment_status.paid')}</Badge>
       case "unpaid":
-        return <Badge variant="secondary">Unpaid</Badge>
+        return <Badge variant="secondary">{t('page.ecommerce.orders.payment_status.unpaid')}</Badge>
       case "refunded":
-        return <Badge variant="outline">Refunded</Badge>
+        return <Badge variant="outline">{t('page.ecommerce.orders.payment_status.refunded')}</Badge>
       default:
         return <Badge>{status}</Badge>
     }
@@ -136,15 +138,15 @@ export default function Orders({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Order Number</TableHead>
-          <TableHead>Customer</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Payment</TableHead>
-          <TableHead>Total</TableHead>
-          <TableHead className="hidden md:table-cell">Items</TableHead>
-          <TableHead className="hidden md:table-cell">Date</TableHead>
+          <TableHead>{t('page.ecommerce.orders.table.order_number')}</TableHead>
+          <TableHead>{t('page.ecommerce.orders.table.customer')}</TableHead>
+          <TableHead>{t('page.ecommerce.orders.table.status')}</TableHead>
+          <TableHead>{t('page.ecommerce.orders.table.payment')}</TableHead>
+          <TableHead>{t('page.ecommerce.orders.table.total')}</TableHead>
+          <TableHead className="hidden md:table-cell">{t('page.ecommerce.orders.table.items')}</TableHead>
+          <TableHead className="hidden md:table-cell">{t('page.ecommerce.orders.table.date')}</TableHead>
           <TableHead>
-            <span className="sr-only">Actions</span>
+            <span className="sr-only">{t('common.actions.actions')}</span>
           </TableHead>
         </TableRow>
       </TableHeader>
@@ -170,7 +172,7 @@ export default function Orders({
               {formatPrice(order.total)}
             </TableCell>
             <TableCell className="hidden md:table-cell">
-              {order.items?.length || 0} items
+              {t('page.ecommerce.orders.table.items_count', { count: order.items?.length || 0 })}
             </TableCell>
             <TableCell className="hidden md:table-cell">
               {formatDate(order.created_at)}
@@ -180,15 +182,15 @@ export default function Orders({
                 <DropdownMenuTrigger asChild>
                   <Button aria-haspopup="true" size="icon" variant="ghost">
                     <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Toggle menu</span>
+                    <span className="sr-only">{t('page.ecommerce.orders.table.toggle_menu')}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t('common.actions.actions')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => router.get(route('dashboard.ecommerce.orders.show', order.id))}>
                     <Eye className="mr-2 h-4 w-4" />
-                    View Details
+                    {t('common.actions.view_details')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -201,55 +203,55 @@ export default function Orders({
 
   return (
     <>
-      <AuthenticatedLayout title="Orders">
+      <AuthenticatedLayout title={t('page.ecommerce.orders.title')}>
         <Main>
           <div className="grid flex-1 items-start gap-4 md:gap-8">
             <Tabs defaultValue={filters.status || "all"} onValueChange={handleTabChange}>
               <div className="flex items-center">
                 <TabsList>
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="pending">Pending</TabsTrigger>
-                  <TabsTrigger value="processing">Processing</TabsTrigger>
-                  <TabsTrigger value="completed">Completed</TabsTrigger>
-                  <TabsTrigger value="cancelled" className="hidden sm:flex">Cancelled</TabsTrigger>
-                  <TabsTrigger value="refunded" className="hidden sm:flex">Refunded</TabsTrigger>
+                  <TabsTrigger value="all">{t('common.filters.all')}</TabsTrigger>
+                  <TabsTrigger value="pending">{t('page.ecommerce.orders.status.pending')}</TabsTrigger>
+                  <TabsTrigger value="processing">{t('page.ecommerce.orders.status.processing')}</TabsTrigger>
+                  <TabsTrigger value="completed">{t('page.ecommerce.orders.status.completed')}</TabsTrigger>
+                  <TabsTrigger value="cancelled" className="hidden sm:flex">{t('page.ecommerce.orders.status.cancelled')}</TabsTrigger>
+                  <TabsTrigger value="refunded" className="hidden sm:flex">{t('page.ecommerce.orders.status.refunded')}</TabsTrigger>
                 </TabsList>
                 <div className="ml-auto flex items-center gap-2">
                   <div className="relative">
-                    <Input placeholder="Search orders..." value={searchTerm}
+                    <Input placeholder={t('page.ecommerce.orders.search_placeholder')} value={searchTerm}
                       onChange={(e) => handleSearch(e.target.value)} className="w-64" />
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="sm" className="h-7 gap-1">
                         <ListFilter className="h-3.5 w-3.5" />
-                        <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Filter</span>
+                        <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">{t('common.actions.filter')}</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuLabel>Filter by Payment Status</DropdownMenuLabel>
+                      <DropdownMenuLabel>{t('page.ecommerce.orders.filter_payment_status')}</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuCheckboxItem checked={!filters.payment_status}
                         onCheckedChange={(checked) => { if (checked) handleFilterChange({ payment_status: undefined }) }}>
-                        All Payment Status
+                        {t('page.ecommerce.orders.all_payment_status')}
                       </DropdownMenuCheckboxItem>
                       <DropdownMenuCheckboxItem checked={filters.payment_status === 'paid'}
                         onCheckedChange={(checked) => handleFilterChange({ payment_status: checked ? 'paid' : undefined })}>
-                        Paid
+                        {t('page.ecommerce.orders.payment_status.paid')}
                       </DropdownMenuCheckboxItem>
                       <DropdownMenuCheckboxItem checked={filters.payment_status === 'unpaid'}
                         onCheckedChange={(checked) => handleFilterChange({ payment_status: checked ? 'unpaid' : undefined })}>
-                        Unpaid
+                        {t('page.ecommerce.orders.payment_status.unpaid')}
                       </DropdownMenuCheckboxItem>
                       <DropdownMenuCheckboxItem checked={filters.payment_status === 'refunded'}
                         onCheckedChange={(checked) => handleFilterChange({ payment_status: checked ? 'refunded' : undefined })}>
-                        Refunded
+                        {t('page.ecommerce.orders.payment_status.refunded')}
                       </DropdownMenuCheckboxItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                   <Button size="sm" variant="outline" className="h-7 gap-1">
                     <File className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export</span>
+                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">{t('common.actions.export')}</span>
                   </Button>
                 </div>
               </div>
@@ -257,8 +259,8 @@ export default function Orders({
               <TabsContent value="all">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Orders</CardTitle>
-                    <CardDescription>Manage your orders and track their status.</CardDescription>
+                    <CardTitle>{t('page.ecommerce.orders.title')}</CardTitle>
+                    <CardDescription>{t('page.ecommerce.orders.description')}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {renderOrdersTable()}
@@ -267,10 +269,10 @@ export default function Orders({
                     <div className="text-xs text-muted-foreground">
                       {orders?.current_page && orders?.per_page && orders?.total ? (
                         <>
-                          Showing <strong>{((orders.current_page - 1) * orders.per_page) + 1}-{Math.min(orders.current_page * orders.per_page, orders.total)}</strong> of <strong>{orders.total}</strong> orders
+                          {t('page.ecommerce.orders.pagination.showing')} <strong>{((orders.current_page - 1) * orders.per_page) + 1}-{Math.min(orders.current_page * orders.per_page, orders.total)}</strong> {t('page.ecommerce.orders.pagination.of')} <strong>{orders.total}</strong> {t('page.ecommerce.orders.pagination.orders')}
                         </>
                       ) : (
-                        <>Showing <strong>0</strong> orders</>
+                        <>{t('page.ecommerce.orders.pagination.showing')} <strong>0</strong> {t('page.ecommerce.orders.pagination.orders')}</>
                       )}
                     </div>
 
@@ -308,8 +310,8 @@ export default function Orders({
                 <TabsContent key={status} value={status}>
                   <Card>
                     <CardHeader>
-                      <CardTitle>Orders</CardTitle>
-                      <CardDescription>Manage your orders and track their status.</CardDescription>
+                      <CardTitle>{t('page.ecommerce.orders.title')}</CardTitle>
+                      <CardDescription>{t('page.ecommerce.orders.description')}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       {renderOrdersTable()}

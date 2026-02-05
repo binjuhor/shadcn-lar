@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { router } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Plus, MoreHorizontal, Pencil, Trash2, Tags } from 'lucide-react'
 import { CategoryForm } from './components/category-form'
+import { useCategoryName } from '@/hooks/use-category-name'
 import type { Category } from '@modules/Finance/types/finance'
 
 interface Props {
@@ -36,6 +38,8 @@ interface Props {
 }
 
 export default function CategoriesIndex({ categories }: Props) {
+  const { t } = useTranslation()
+  const getCategoryName = useCategoryName()
   const [showForm, setShowForm] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
@@ -89,6 +93,7 @@ export default function CategoriesIndex({ categories }: Props) {
   const renderCategory = (category: Category) => {
     const isSystem = !category.user_id
     const children = categories.filter((c) => c.parent_id === category.id)
+    const displayName = getCategoryName(category)
 
     return (
       <div key={category.id} className="space-y-2">
@@ -102,19 +107,19 @@ export default function CategoriesIndex({ categories }: Props) {
               className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-medium"
               style={{ backgroundColor: category.color || '#6b7280' }}
             >
-              {category.name.slice(0, 2).toUpperCase()}
+              {displayName.slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <p className="font-medium">{category.name}</p>
+              <p className="font-medium">{displayName}</p>
               <div className="flex gap-1">
                 {isSystem && (
                   <Badge variant="outline" className="text-xs">
-                    System
+                    {t('common.system')}
                   </Badge>
                 )}
                 {!category.is_active && (
                   <Badge variant="secondary" className="text-xs">
-                    Inactive
+                    {t('common.inactive')}
                   </Badge>
                 )}
               </div>
@@ -130,7 +135,7 @@ export default function CategoriesIndex({ categories }: Props) {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleEdit(category)}>
                   <Pencil className="mr-2 h-4 w-4" />
-                  Edit
+                  {t('common.edit')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -138,7 +143,7 @@ export default function CategoriesIndex({ categories }: Props) {
                   className="text-red-600"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
+                  {t('common.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -159,7 +164,7 @@ export default function CategoriesIndex({ categories }: Props) {
     if (rootCategories.length === 0) {
       return (
         <div className="text-center py-8 text-muted-foreground">
-          No {type} categories yet
+          {type === 'income' ? t('page.categories.no_income') : t('page.categories.no_expense')}
         </div>
       )
     }
@@ -172,18 +177,18 @@ export default function CategoriesIndex({ categories }: Props) {
   }
 
   return (
-    <AuthenticatedLayout title="Categories">
+    <AuthenticatedLayout title={t('page.categories.title')}>
       <Main>
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Categories</h1>
+        <div className="mb-4 md:flex items-center justify-between">
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold tracking-tight">{t('page.categories.title')}</h1>
             <p className="text-muted-foreground">
-              Organize your transactions with categories
+              {t('page.categories.description')}
             </p>
           </div>
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            New Category
+            {t('page.categories.new')}
           </Button>
         </div>
 
@@ -194,7 +199,7 @@ export default function CategoriesIndex({ categories }: Props) {
             size="sm"
             onClick={() => setFilterType('all')}
           >
-            All
+            {t('filter.all')}
           </Button>
           <Button
             variant={filterType === 'income' ? 'default' : 'outline'}
@@ -202,7 +207,7 @@ export default function CategoriesIndex({ categories }: Props) {
             onClick={() => setFilterType('income')}
             className={filterType === 'income' ? '' : 'text-green-600'}
           >
-            Income
+            {t('filter.income')}
           </Button>
           <Button
             variant={filterType === 'expense' ? 'default' : 'outline'}
@@ -210,20 +215,20 @@ export default function CategoriesIndex({ categories }: Props) {
             onClick={() => setFilterType('expense')}
             className={filterType === 'expense' ? '' : 'text-red-600'}
           >
-            Expense
+            {t('filter.expense')}
           </Button>
         </div>
 
         {categories.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Tags className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No categories yet</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('page.categories.no_categories')}</h3>
             <p className="text-muted-foreground mb-4">
-              Create categories to organize your transactions
+              {t('page.categories.create_prompt')}
             </p>
             <Button onClick={() => setShowForm(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Create Category
+              {t('page.categories.create')}
             </Button>
           </div>
         ) : (
@@ -234,7 +239,7 @@ export default function CategoriesIndex({ categories }: Props) {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-green-600">
                     <div className="w-3 h-3 rounded-full bg-green-600" />
-                    Income Categories
+                    {t('page.categories.income')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -249,7 +254,7 @@ export default function CategoriesIndex({ categories }: Props) {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-red-600">
                     <div className="w-3 h-3 rounded-full bg-red-600" />
-                    Expense Categories
+                    {t('page.categories.expense')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -273,19 +278,18 @@ export default function CategoriesIndex({ categories }: Props) {
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Category</AlertDialogTitle>
+              <AlertDialogTitle>{t('page.categories.delete_title')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete "{selectedCategory?.name}"?
-                Transactions using this category will become uncategorized.
+                {t('page.categories.delete_description', { name: selectedCategory ? getCategoryName(selectedCategory) : '' })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDelete}
                 className="bg-red-600 hover:bg-red-700"
               >
-                Delete
+                {t('common.delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

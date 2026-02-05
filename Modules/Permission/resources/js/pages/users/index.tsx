@@ -1,4 +1,5 @@
 import { AuthenticatedLayout } from '@/layouts'
+import { useTranslation } from 'react-i18next'
 import { Main } from '@/components/layout/main'
 import { PageProps, Role } from '@/types'
 import { columns } from './components/users-columns'
@@ -31,6 +32,8 @@ export default function Users({
   roles = [],
   filters = {},
 }: UsersPageProps) {
+  const { t } = useTranslation()
+
   // Ensure users has proper structure
   const safeUsers: PaginatedUsers = {
     data: users?.data ?? [],
@@ -42,13 +45,13 @@ export default function Users({
 
   return (
     <UsersProvider>
-      <AuthenticatedLayout title="Users">
+      <AuthenticatedLayout title={t('page.users.title')}>
         <Main>
           <div className="mb-2 flex items-center justify-between space-y-2 flex-wrap">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">User List</h2>
+              <h2 className="text-2xl font-bold tracking-tight">{t('page.users.list')}</h2>
               <p className="text-muted-foreground">
-                Manage your users and their roles here.
+                {t('page.users.description')}
               </p>
             </div>
             <UsersPrimaryButtons />

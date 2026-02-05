@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useForm } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,27 +31,9 @@ interface AccountFormProps {
   onSuccess?: () => void
 }
 
-const accountTypes: { value: AccountType; label: string }[] = [
-  { value: 'bank', label: 'Bank Account' },
-  { value: 'credit_card', label: 'Credit Card' },
-  { value: 'investment', label: 'Investment' },
-  { value: 'e_wallet', label: 'E-Wallet (Payoneer, PayPal, etc.)' },
-  { value: 'cash', label: 'Cash' },
-  { value: 'loan', label: 'Loan' },
-  { value: 'other', label: 'Other' },
-]
-
 const colors = [
   '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
   '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
-]
-
-const rateSources: { value: string; label: string }[] = [
-  { value: '__default__', label: 'Default (Best available)' },
-  { value: 'payoneer', label: 'Payoneer' },
-  { value: 'vietcombank', label: 'Vietcombank' },
-  { value: 'exchangerate_api', label: 'ExchangeRate API' },
-  { value: 'open_exchange_rates', label: 'Open Exchange Rates' },
 ]
 
 export function AccountForm({
@@ -60,7 +43,26 @@ export function AccountForm({
   currencies,
   onSuccess,
 }: AccountFormProps) {
+  const { t } = useTranslation()
   const isEditing = !!account
+
+  const accountTypes: { value: AccountType; label: string }[] = [
+    { value: 'bank', label: t('account_type.bank') },
+    { value: 'credit_card', label: t('account_type.credit_card') },
+    { value: 'investment', label: t('account_type.investment') },
+    { value: 'e_wallet', label: t('account_type.e_wallet') },
+    { value: 'cash', label: t('account_type.cash') },
+    { value: 'loan', label: t('account_type.loan') },
+    { value: 'other', label: t('account_type.other') },
+  ]
+
+  const rateSources: { value: string; label: string }[] = [
+    { value: '__default__', label: t('form.rate_source.default') },
+    { value: 'payoneer', label: t('form.rate_source.payoneer') },
+    { value: 'vietcombank', label: t('form.rate_source.vietcombank') },
+    { value: 'exchangerate_api', label: t('form.rate_source.exchangerate_api') },
+    { value: 'open_exchange_rates', label: t('form.rate_source.open_exchange_rates') },
+  ]
 
   const defaultCurrency = currencies.find(c => c.is_default)?.code || 'VND'
 
@@ -193,23 +195,23 @@ export function AccountForm({
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>
-            {isEditing ? 'Edit Account' : 'Create Account'}
+            {isEditing ? t('form.account.edit') : t('form.account.create')}
           </SheetTitle>
           <SheetDescription>
             {isEditing
-              ? 'Update your account details'
-              : 'Add a new account to track your finances'}
+              ? t('form.account.edit_description')
+              : t('form.account.create_description')}
           </SheetDescription>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Account Name</Label>
+            <Label htmlFor="name">{t('form.account_name')}</Label>
             <Input
               id="name"
               value={data.name}
               onChange={(e) => setData('name', e.target.value)}
-              placeholder="e.g., Main Checking"
+              placeholder={t('form.account_name_placeholder')}
             />
             {errors.name && (
               <p className="text-sm text-red-600">{errors.name}</p>
@@ -217,13 +219,13 @@ export function AccountForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="account_type">Account Type</Label>
+            <Label htmlFor="account_type">{t('form.account_type')}</Label>
             <Select
               value={data.account_type}
               onValueChange={(value) => setData('account_type', value as AccountType)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select type" />
+                <SelectValue placeholder={t('form.select_type_placeholder')} />
               </SelectTrigger>
               <SelectContent>
                 {accountTypes.map((type) => (
@@ -242,9 +244,9 @@ export function AccountForm({
           {!isDefaultCreditType && (
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="has_credit_limit">Has Credit Limit</Label>
+                <Label htmlFor="has_credit_limit">{t('form.has_credit_limit')}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Enable for accounts with overdraft or credit line (e.g., MyCash)
+                  {t('form.has_credit_limit_description')}
                 </p>
               </div>
               <Switch
@@ -256,13 +258,13 @@ export function AccountForm({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="currency_code">Currency</Label>
+            <Label htmlFor="currency_code">{t('form.currency')}</Label>
             <Select
               value={data.currency_code}
               onValueChange={(value) => setData('currency_code', value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select currency" />
+                <SelectValue placeholder={t('form.select_currency')} />
               </SelectTrigger>
               <SelectContent>
                 {currencies.map((currency) => (
@@ -278,13 +280,13 @@ export function AccountForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="rate_source">Exchange Rate Source</Label>
+            <Label htmlFor="rate_source">{t('form.exchange_rate_source')}</Label>
             <Select
               value={data.rate_source}
               onValueChange={(value) => setData('rate_source', value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select rate source" />
+                <SelectValue placeholder={t('form.select_rate_source')} />
               </SelectTrigger>
               <SelectContent>
                 {rateSources.map((source) => (
@@ -295,7 +297,7 @@ export function AccountForm({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Used for currency conversion (e.g., Payoneer account uses Payoneer rates)
+              {t('form.rate_source_description')}
             </p>
             {errors.rate_source && (
               <p className="text-sm text-red-600">{errors.rate_source}</p>
@@ -306,7 +308,7 @@ export function AccountForm({
           {!hasCreditLimit && (
             <div className="space-y-2">
               <Label htmlFor="balance">
-                {isEditing ? 'Current Balance' : 'Initial Balance'}
+                {isEditing ? t('form.current_balance') : t('form.initial_balance')}
               </Label>
               <Input
                 id="balance"
@@ -322,12 +324,12 @@ export function AccountForm({
                     setData('initial_balance', e.target.value)
                   }
                 }}
-                placeholder="0.00"
+                placeholder={t('form.balance_placeholder')}
               />
               <p className="text-xs text-muted-foreground">
                 {isEditing
-                  ? 'Adjust this to correct balance discrepancies.'
-                  : 'Starting balance when you create this account.'}
+                  ? t('form.balance_description_edit')
+                  : t('form.balance_description_create')}
               </p>
               {(errors.initial_balance || errors.current_balance) && (
                 <p className="text-sm text-red-600">{errors.initial_balance || errors.current_balance}</p>
@@ -338,7 +340,7 @@ export function AccountForm({
           {/* For credit accounts: Credit Limit field */}
           {hasCreditLimit && (
             <div className="space-y-2">
-              <Label htmlFor="initial_balance">Credit Limit</Label>
+              <Label htmlFor="initial_balance">{t('form.credit_limit')}</Label>
               <Input
                 id="initial_balance"
                 type="number"
@@ -347,12 +349,12 @@ export function AccountForm({
                 max="999999999999999999"
                 value={data.initial_balance}
                 onChange={(e) => setData('initial_balance', e.target.value)}
-                placeholder="0.00"
+                placeholder={t('form.balance_placeholder')}
               />
               <p className="text-xs text-muted-foreground">
                 {data.account_type === 'credit_card'
-                  ? 'Your total credit limit.'
-                  : 'Your total loan amount.'}
+                  ? t('form.credit_limit_description_card')
+                  : t('form.credit_limit_description_loan')}
               </p>
               {errors.initial_balance && (
                 <p className="text-sm text-red-600">{errors.initial_balance}</p>
@@ -363,7 +365,7 @@ export function AccountForm({
           {/* For credit accounts: Available Credit field */}
           {hasCreditLimit && (
             <div className="space-y-2">
-              <Label htmlFor="current_balance">Available Credit</Label>
+              <Label htmlFor="current_balance">{t('form.available_credit')}</Label>
               <Input
                 id="current_balance"
                 type="number"
@@ -372,10 +374,10 @@ export function AccountForm({
                 max={data.initial_balance}
                 value={data.current_balance}
                 onChange={(e) => setData('current_balance', e.target.value)}
-                placeholder="0.00"
+                placeholder={t('form.balance_placeholder')}
               />
               <p className="text-xs text-muted-foreground">
-                Amount of credit still available. Amount Owed = Credit Limit - Available Credit
+                {t('form.available_credit_description')}
               </p>
               {errors.current_balance && (
                 <p className="text-sm text-red-600">{errors.current_balance}</p>
@@ -384,12 +386,12 @@ export function AccountForm({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
+            <Label htmlFor="description">{t('form.description_optional')}</Label>
             <Textarea
               id="description"
               value={data.description}
               onChange={(e) => setData('description', e.target.value)}
-              placeholder="Add a description..."
+              placeholder={t('form.description_placeholder')}
               rows={3}
             />
             {errors.description && (
@@ -398,7 +400,7 @@ export function AccountForm({
           </div>
 
           <div className="space-y-2">
-            <Label>Color</Label>
+            <Label>{t('form.color')}</Label>
             <div className="flex gap-2 flex-wrap">
               {colors.map((color) => (
                 <button
@@ -418,9 +420,9 @@ export function AccountForm({
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="is_active">Active</Label>
+              <Label htmlFor="is_active">{t('form.is_active')}</Label>
               <p className="text-xs text-muted-foreground">
-                Inactive accounts won't show in transactions
+                {t('form.is_active_description')}
               </p>
             </div>
             <Switch
@@ -432,9 +434,9 @@ export function AccountForm({
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="exclude_from_total">Exclude from Total</Label>
+              <Label htmlFor="exclude_from_total">{t('form.exclude_from_total')}</Label>
               <p className="text-xs text-muted-foreground">
-                This account won't be included in net worth
+                {t('form.exclude_from_total_description')}
               </p>
             </div>
             <Switch
@@ -451,14 +453,14 @@ export function AccountForm({
               onClick={handleClose}
               disabled={processing}
             >
-              Cancel
+              {t('action.cancel')}
             </Button>
             <Button type="submit" disabled={processing}>
               {processing
-                ? 'Saving...'
+                ? t('common.saving')
                 : isEditing
-                  ? 'Update Account'
-                  : 'Create Account'}
+                  ? t('form.update_account_button')
+                  : t('form.create_account_button')}
             </Button>
           </SheetFooter>
         </form>

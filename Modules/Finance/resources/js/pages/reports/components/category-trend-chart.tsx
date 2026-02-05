@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Legend } from 'recharts'
 import {
   Card,
@@ -164,6 +165,7 @@ export function CategoryTrendChart({
   onIncomeCategoryChange,
   onExpenseCategoryChange,
 }: CategoryTrendChartProps) {
+  const { t } = useTranslation()
   const incomeCategories = categories.filter((c) => c.type === 'income' || c.type === 'both')
   const expenseCategories = categories.filter((c) => c.type === 'expense' || c.type === 'both')
 
@@ -201,26 +203,26 @@ export function CategoryTrendChart({
           <div>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
-              Category Comparison
+              {t('page.reports.category_comparison')}
             </CardTitle>
             <CardDescription>
-              Compare income vs expense category performance over 12 months
+              {t('page.reports.category_comparison_description')}
             </CardDescription>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <CategorySelector
-              label="Income Category"
+              label={t('page.reports.income_category')}
               categories={incomeCategories}
               selectedId={selectedIncomeCategoryId}
               onChange={onIncomeCategoryChange}
-              placeholder="Select income..."
+              placeholder={t('page.reports.select_income')}
             />
             <CategorySelector
-              label="Expense Category"
+              label={t('page.reports.expense_category')}
               categories={expenseCategories}
               selectedId={selectedExpenseCategoryId}
               onChange={onExpenseCategoryChange}
-              placeholder="Select expense..."
+              placeholder={t('page.reports.select_expense')}
             />
           </div>
         </div>
@@ -231,7 +233,7 @@ export function CategoryTrendChart({
           <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed">
             <div className="text-center text-muted-foreground">
               <BarChart3 className="mx-auto h-12 w-12 opacity-50" />
-              <p className="mt-2">Select categories to compare their performance</p>
+              <p className="mt-2">{t('page.reports.select_categories_prompt')}</p>
             </div>
           </div>
         ) : (
@@ -248,25 +250,25 @@ export function CategoryTrendChart({
                     />
                     {incomeTrendData.category?.name}
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="grid md:grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-muted-foreground">Total:</span>
+                      <span className="text-muted-foreground">{t('common.total')}:</span>
                       <div className="font-semibold">
                         {formatFullCurrency(incomeTrendData.totalAmount, currencyCode)}
                       </div>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Monthly Avg:</span>
+                      <span className="text-muted-foreground">{t('page.reports.monthly_avg')}:</span>
                       <div className="font-semibold">
                         {formatFullCurrency(incomeTrendData.averageAmount, currencyCode)}
                       </div>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Transactions:</span>
+                      <span className="text-muted-foreground">{t('page.reports.transactions')}:</span>
                       <div className="font-semibold">{incomeTrendData.transactionCount}</div>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Trend:</span>
+                      <span className="text-muted-foreground">{t('page.reports.trend')}:</span>
                       <div className={`font-semibold ${getTrendColor(incomeTrendData.trend, true)}`}>
                         {incomeTrendData.trend > 0 ? '+' : ''}{incomeTrendData.trend.toFixed(1)}%
                       </div>
@@ -274,7 +276,7 @@ export function CategoryTrendChart({
                   </div>
                   {incomeTrendData.bestMonth && (
                     <div className="mt-2 border-t border-green-200 pt-2 text-xs dark:border-green-900">
-                      <span className="text-muted-foreground">Best: </span>
+                      <span className="text-muted-foreground">{t('page.reports.best')}: </span>
                       <span className="font-medium">{incomeTrendData.bestMonth.period}</span>
                       <span className="text-muted-foreground"> - </span>
                       <span>{formatFullCurrency(incomeTrendData.bestMonth.amount, currencyCode)}</span>
@@ -283,7 +285,7 @@ export function CategoryTrendChart({
                 </div>
               ) : (
                 <div className="flex items-center justify-center rounded-lg border border-dashed p-3 min-h-[120px]">
-                  <span className="text-xs text-muted-foreground">Select an income category</span>
+                  <span className="text-xs text-muted-foreground">{t('page.reports.select_income_category')}</span>
                 </div>
               )}
 
@@ -297,25 +299,25 @@ export function CategoryTrendChart({
                     />
                     {expenseTrendData.category?.name}
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="grid md:grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-muted-foreground">Total:</span>
+                      <span className="text-muted-foreground">{t('common.total')}:</span>
                       <div className="font-semibold">
                         {formatFullCurrency(expenseTrendData.totalAmount, currencyCode)}
                       </div>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Monthly Avg:</span>
+                      <span className="text-muted-foreground">{t('page.reports.monthly_avg')}:</span>
                       <div className="font-semibold">
                         {formatFullCurrency(expenseTrendData.averageAmount, currencyCode)}
                       </div>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Transactions:</span>
+                      <span className="text-muted-foreground">{t('page.reports.transactions')}:</span>
                       <div className="font-semibold">{expenseTrendData.transactionCount}</div>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Trend:</span>
+                      <span className="text-muted-foreground">{t('page.reports.trend')}:</span>
                       <div className={`font-semibold ${getTrendColor(expenseTrendData.trend, false)}`}>
                         {expenseTrendData.trend > 0 ? '+' : ''}{expenseTrendData.trend.toFixed(1)}%
                       </div>
@@ -323,7 +325,7 @@ export function CategoryTrendChart({
                   </div>
                   {expenseTrendData.bestMonth && (
                     <div className="mt-2 border-t border-red-200 pt-2 text-xs dark:border-red-900">
-                      <span className="text-muted-foreground">Highest: </span>
+                      <span className="text-muted-foreground">{t('page.reports.highest')}: </span>
                       <span className="font-medium">{expenseTrendData.bestMonth.period}</span>
                       <span className="text-muted-foreground"> - </span>
                       <span>{formatFullCurrency(expenseTrendData.bestMonth.amount, currencyCode)}</span>
@@ -332,7 +334,7 @@ export function CategoryTrendChart({
                 </div>
               ) : (
                 <div className="flex items-center justify-center rounded-lg border border-dashed p-3 min-h-[120px]">
-                  <span className="text-xs text-muted-foreground">Select an expense category</span>
+                  <span className="text-xs text-muted-foreground">{t('page.reports.select_expense_category')}</span>
                 </div>
               )}
             </div>
@@ -341,11 +343,11 @@ export function CategoryTrendChart({
             {incomeTrendData && expenseTrendData && (
               <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-900 dark:bg-blue-950/20">
                 <div className="mb-3 text-sm font-medium text-blue-700 dark:text-blue-400">
-                  Net Income Analysis
+                  {t('page.reports.net_income_analysis')}
                 </div>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground">Total Net</div>
+                    <div className="text-xs text-muted-foreground">{t('page.reports.total_net')}</div>
                     <div className={`text-lg font-bold ${
                       incomeTrendData.totalAmount - expenseTrendData.totalAmount >= 0
                         ? 'text-green-600'
@@ -356,7 +358,7 @@ export function CategoryTrendChart({
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground">Monthly Avg Net</div>
+                    <div className="text-xs text-muted-foreground">{t('page.reports.monthly_avg_net')}</div>
                     <div className={`text-lg font-bold ${
                       incomeTrendData.averageAmount - expenseTrendData.averageAmount >= 0
                         ? 'text-green-600'
@@ -367,7 +369,7 @@ export function CategoryTrendChart({
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground">Coverage Ratio</div>
+                    <div className="text-xs text-muted-foreground">{t('page.reports.coverage_ratio')}</div>
                     <div className={`text-lg font-bold ${
                       incomeTrendData.totalAmount >= expenseTrendData.totalAmount
                         ? 'text-green-600'
@@ -379,13 +381,13 @@ export function CategoryTrendChart({
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground">Status</div>
+                    <div className="text-xs text-muted-foreground">{t('page.reports.status')}</div>
                     <div className={`text-lg font-bold ${
                       incomeTrendData.totalAmount >= expenseTrendData.totalAmount
                         ? 'text-green-600'
                         : 'text-red-600'
                     }`}>
-                      {incomeTrendData.totalAmount >= expenseTrendData.totalAmount ? 'Surplus' : 'Deficit'}
+                      {incomeTrendData.totalAmount >= expenseTrendData.totalAmount ? t('page.reports.surplus') : t('page.reports.deficit')}
                     </div>
                   </div>
                 </div>
@@ -417,8 +419,8 @@ export function CategoryTrendChart({
                   content={
                     <ChartTooltipContent
                       className="w-[200px]"
-                      formatter={(value, name) => {
-                        const label = name === 'income'
+                      formatter={(value, _name, item) => {
+                        const label = item.dataKey === 'income'
                           ? incomeTrendData?.category?.name || 'Income'
                           : expenseTrendData?.category?.name || 'Expense'
                         return (
@@ -455,8 +457,7 @@ export function CategoryTrendChart({
 
             <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
               <p>
-                <strong>Tip:</strong> Compare income and expense categories to understand your financial patterns.
-                Ideally, income categories should show growth while expense categories remain stable or decrease.
+                <strong>{t('page.reports.tip')}:</strong> {t('page.reports.category_comparison_tip')}
               </p>
             </div>
           </>

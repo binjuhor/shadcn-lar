@@ -1,4 +1,5 @@
 
+import { useTranslation } from 'react-i18next'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,6 +15,7 @@ import {
 import {Link, usePage} from "@inertiajs/react"
 
 export function ProfileDropdown() {
+  const { t } = useTranslation()
   const {auth} = usePage().props
   return (
     <DropdownMenu modal={false}>
@@ -38,27 +40,27 @@ export function ProfileDropdown() {
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <Link href='/dashboard/settings'>
-              Profile
+              {t('nav.profile')}
               <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href='/dashboard/settings'>
-              Billing
+              {t('nav.billing')}
               <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href='/dashboard/settings'>
-              Settings
+              {t('nav.settings')}
               <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem>New Team</DropdownMenuItem>
+          <DropdownMenuItem>{t('nav.new_team')}</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem>
-          <Link className="block w-full text-left" href={route('logout')} method="post" as="button">Log out</Link>
+          <Link className="block w-full text-left" href={route('logout')} method="post" as="button">{t('nav.logout')}</Link>
           <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>

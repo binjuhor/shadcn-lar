@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import {
   Card,
@@ -22,16 +23,7 @@ interface IncomeExpenseTrendProps {
   currencyCode: string
 }
 
-const chartConfig = {
-  income: {
-    label: 'Income',
-    color: 'hsl(142, 76%, 36%)',
-  },
-  expense: {
-    label: 'Expense',
-    color: 'hsl(0, 84%, 60%)',
-  },
-} satisfies ChartConfig
+// chartConfig moved inside component for i18n
 
 function formatCurrency(value: number, code: string): string {
   return new Intl.NumberFormat('vi-VN', {
@@ -60,6 +52,19 @@ function formatPeriod(period: string): string {
 }
 
 export function IncomeExpenseTrend({ data, currencyCode }: IncomeExpenseTrendProps) {
+  const { t } = useTranslation()
+
+  const chartConfig = {
+    income: {
+      label: t('filter.income'),
+      color: 'hsl(142, 76%, 36%)',
+    },
+    expense: {
+      label: t('filter.expense'),
+      color: 'hsl(0, 84%, 60%)',
+    },
+  } satisfies ChartConfig
+
   const formattedData = data.map((item) => ({
     ...item,
     periodLabel: formatPeriod(item.period),
@@ -76,26 +81,26 @@ export function IncomeExpenseTrend({ data, currencyCode }: IncomeExpenseTrendPro
     <Card>
       <CardHeader className="flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-4">
-          <CardTitle>Income vs Expense</CardTitle>
+          <CardTitle>{t('page.reports.income_vs_expense')}</CardTitle>
           <CardDescription>
-            Track your income and expenses over time
+            {t('page.reports.income_vs_expense_description')}
           </CardDescription>
         </div>
-        <div className="flex">
+        <div className="flex flex-wrap">
           <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
-            <span className="text-xs text-muted-foreground">Net</span>
+            <span className="text-xs text-muted-foreground">{t('page.reports.net')}</span>
             <span className={`text-sm font-bold leading-none ${netChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {netChange >= 0 ? '+' : ''}{formatFullCurrency(netChange, currencyCode)}
             </span>
           </div>
           <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
-            <span className="text-xs text-muted-foreground">Income</span>
+            <span className="text-xs text-muted-foreground">{t('filter.income')}</span>
             <span className="text-sm font-bold leading-none text-green-600">
               {formatFullCurrency(totals.income, currencyCode)}
             </span>
           </div>
           <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
-            <span className="text-xs text-muted-foreground">Expense</span>
+            <span className="text-xs text-muted-foreground">{t('filter.expense')}</span>
             <span className="text-sm font-bold leading-none text-red-600">
               {formatFullCurrency(totals.expense, currencyCode)}
             </span>
@@ -130,7 +135,7 @@ export function IncomeExpenseTrend({ data, currencyCode }: IncomeExpenseTrendPro
                   formatter={(value, name) => (
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">
-                        {name === 'income' ? 'Income' : 'Expense'}:
+                        {name === 'income' ? t('filter.income') : t('filter.expense')}:
                       </span>
                       <span className="font-mono font-medium">
                         {formatCurrency(value as number, currencyCode)}

@@ -1,4 +1,5 @@
 import { AuthenticatedLayout } from "@/layouts"
+import { useTranslation } from "react-i18next"
 import {
   MoreHorizontal,
   PlusCircle,
@@ -80,6 +81,7 @@ interface PermissionsPageProps extends PageProps {
 }
 
 export default function Permissions({ permissions, groups, filters: initialFilters = {} }: PermissionsPageProps) {
+  const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState(initialFilters?.search || "")
   const [selectedGroup, setSelectedGroup] = useState(initialFilters?.group || "")
   const { toast } = useToast()
@@ -102,19 +104,19 @@ export default function Permissions({ permissions, groups, filters: initialFilte
   }
 
   const handleDelete = (permission: Permission) => {
-    if (confirm(`Are you sure you want to delete the permission "${permission.name}"?`)) {
+    if (confirm(t('page.permissions.delete_confirm', { name: permission.name }))) {
       router.delete(route('dashboard.permissions.destroy', permission.id), {
         onSuccess: () => {
           toast({
-            title: "Permission deleted!",
-            description: `"${permission.name}" has been deleted successfully.`,
+            title: t('page.permissions.deleted'),
+            description: t('page.permissions.deleted_description', { name: permission.name }),
           })
         },
         onError: (errors) => {
           toast({
             variant: "destructive",
-            title: "Error deleting permission",
-            description: Object.values(errors)[0] as string || "Something went wrong.",
+            title: t('page.permissions.delete_error'),
+            description: Object.values(errors)[0] as string || t('common.error'),
           })
         }
       })
@@ -176,31 +178,31 @@ export default function Permissions({ permissions, groups, filters: initialFilte
   }
 
   return (
-    <AuthenticatedLayout title="Permissions">
+    <AuthenticatedLayout title={t('page.permissions.title')}>
       <Main>
         <div className="grid flex-1 items-start gap-4 md:gap-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Permissions</h2>
+          <div className="md:flex items-center justify-between">
+            <div className="mb-4">
+              <h2 className="text-2xl font-bold tracking-tight">{t('page.permissions.title')}</h2>
               <p className="text-muted-foreground">
-                Manage permissions for your application
+                {t('page.permissions.description')}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Input
-                  placeholder="Search permissions..."
+                  placeholder={t('page.permissions.search_placeholder')}
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="w-64"
+                  className="md:w-64"
                 />
               </div>
               <Select value={selectedGroup || 'all'} onValueChange={handleGroupFilter}>
                 <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Filter by group" />
+                  <SelectValue placeholder={t('page.permissions.filter_by_group')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Groups</SelectItem>
+                  <SelectItem value="all">{t('page.permissions.all_groups')}</SelectItem>
                   {groups.map((group) => (
                     <SelectItem key={group} value={group} className="capitalize">
                       {group}
@@ -215,7 +217,7 @@ export default function Permissions({ permissions, groups, filters: initialFilte
               >
                 <PlusCircle className="h-3.5 w-3.5" />
                 <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                  Add Permission
+                  {t('page.permissions.add')}
                 </span>
               </Button>
             </div>
@@ -223,22 +225,22 @@ export default function Permissions({ permissions, groups, filters: initialFilte
 
           <Card>
             <CardHeader>
-              <CardTitle>All Permissions</CardTitle>
+              <CardTitle>{t('page.permissions.all')}</CardTitle>
               <CardDescription>
-                A list of all permissions available in your application.
+                {t('page.permissions.all_description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Group</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Assigned to Roles</TableHead>
-                    <TableHead className="hidden md:table-cell">Created</TableHead>
+                    <TableHead>{t('table.name')}</TableHead>
+                    <TableHead>{t('page.permissions.group')}</TableHead>
+                    <TableHead>{t('page.permissions.action')}</TableHead>
+                    <TableHead>{t('page.permissions.assigned_to_roles')}</TableHead>
+                    <TableHead className="hidden md:table-cell">{t('table.created')}</TableHead>
                     <TableHead>
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{t('table.actions')}</span>
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -246,7 +248,7 @@ export default function Permissions({ permissions, groups, filters: initialFilte
                   {!permissions.data || permissions.data.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="h-24 text-center">
-                        No permissions found.
+                        {t('page.permissions.no_permissions')}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -269,7 +271,7 @@ export default function Permissions({ permissions, groups, filters: initialFilte
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{permission.roles_count} roles</Badge>
+                          <Badge variant="secondary">{permission.roles_count} {t('page.permissions.roles')}</Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           {formatDate(permission.created_at)}
@@ -287,13 +289,13 @@ export default function Permissions({ permissions, groups, filters: initialFilte
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuLabel>{t('table.actions')}</DropdownMenuLabel>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() => router.get(route('dashboard.permissions.edit', permission.id))}
                               >
                                 <Edit className="mr-2 h-4 w-4" />
-                                Edit
+                                {t('action.edit')}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -301,7 +303,7 @@ export default function Permissions({ permissions, groups, filters: initialFilte
                                 onClick={() => handleDelete(permission)}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                                {t('action.delete')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -316,10 +318,14 @@ export default function Permissions({ permissions, groups, filters: initialFilte
               <div className="text-xs text-muted-foreground">
                 {permissions?.current_page && permissions?.per_page && permissions?.total ? (
                   <>
-                    Showing <strong>{((permissions.current_page - 1) * permissions.per_page) + 1}-{Math.min(permissions.current_page * permissions.per_page, permissions.total)}</strong> of <strong>{permissions.total}</strong> permissions
+                    {t('page.permissions.showing', {
+                      from: ((permissions.current_page - 1) * permissions.per_page) + 1,
+                      to: Math.min(permissions.current_page * permissions.per_page, permissions.total),
+                      total: permissions.total
+                    })}
                   </>
                 ) : (
-                  <>Showing <strong>0</strong> permissions</>
+                  <>{t('page.permissions.showing_zero')}</>
                 )}
               </div>
 

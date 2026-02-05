@@ -1,4 +1,5 @@
 import { AuthenticatedLayout } from "@/layouts"
+import { useTranslation } from "react-i18next"
 import {
   File,
   ListFilter,
@@ -74,6 +75,7 @@ interface RolesPageProps extends PageProps {
 }
 
 export default function Roles({ roles, filters: initialFilters = {} }: RolesPageProps) {
+  const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState(initialFilters?.search || "")
   const { toast } = useToast()
 
@@ -89,25 +91,25 @@ export default function Roles({ roles, filters: initialFilters = {} }: RolesPage
     if (role.name === 'Super Admin') {
       toast({
         variant: "destructive",
-        title: "Cannot delete",
-        description: "The Super Admin role cannot be deleted.",
+        title: t('page.roles.cannot_delete'),
+        description: t('page.roles.cannot_delete_super_admin'),
       })
       return
     }
 
-    if (confirm(`Are you sure you want to delete the role "${role.name}"?`)) {
+    if (confirm(t('page.roles.delete_confirm', { name: role.name }))) {
       router.delete(route('dashboard.roles.destroy', role.id), {
         onSuccess: () => {
           toast({
-            title: "Role deleted!",
-            description: `"${role.name}" has been deleted successfully.`,
+            title: t('page.roles.deleted'),
+            description: t('page.roles.deleted_description', { name: role.name }),
           })
         },
         onError: (errors) => {
           toast({
             variant: "destructive",
-            title: "Error deleting role",
-            description: Object.values(errors)[0] as string || "Something went wrong.",
+            title: t('page.roles.delete_error'),
+            description: Object.values(errors)[0] as string || t('common.error'),
           })
         }
       })
@@ -161,20 +163,20 @@ export default function Roles({ roles, filters: initialFilters = {} }: RolesPage
   }
 
   return (
-    <AuthenticatedLayout title="Roles">
+    <AuthenticatedLayout title={t('page.roles.title')}>
       <Main>
         <div className="grid flex-1 items-start gap-4 md:gap-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Roles</h2>
+          <div className="md:flex items-center justify-between">
+            <div className="mb-4">
+              <h2 className="text-2xl font-bold tracking-tight">{t('page.roles.title')}</h2>
               <p className="text-muted-foreground">
-                Manage roles and their permissions
+                {t('page.roles.description')}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Input
-                  placeholder="Search roles..."
+                  placeholder={t('page.roles.search_placeholder')}
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
                   className="w-64"
@@ -187,7 +189,7 @@ export default function Roles({ roles, filters: initialFilters = {} }: RolesPage
               >
                 <PlusCircle className="h-3.5 w-3.5" />
                 <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                  Add Role
+                  {t('page.roles.add')}
                 </span>
               </Button>
             </div>
@@ -195,21 +197,21 @@ export default function Roles({ roles, filters: initialFilters = {} }: RolesPage
 
           <Card>
             <CardHeader>
-              <CardTitle>All Roles</CardTitle>
+              <CardTitle>{t('page.roles.all')}</CardTitle>
               <CardDescription>
-                A list of all roles in your application with their assigned permissions.
+                {t('page.roles.all_description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Permissions</TableHead>
-                    <TableHead>Users</TableHead>
-                    <TableHead className="hidden md:table-cell">Created</TableHead>
+                    <TableHead>{t('table.name')}</TableHead>
+                    <TableHead>{t('table.permissions')}</TableHead>
+                    <TableHead>{t('table.users')}</TableHead>
+                    <TableHead className="hidden md:table-cell">{t('table.created')}</TableHead>
                     <TableHead>
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{t('table.actions')}</span>
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -217,7 +219,7 @@ export default function Roles({ roles, filters: initialFilters = {} }: RolesPage
                   {!roles.data || roles.data.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="h-24 text-center">
-                        No roles found.
+                        {t('page.roles.no_roles')}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -228,7 +230,7 @@ export default function Roles({ roles, filters: initialFilters = {} }: RolesPage
                             <Shield className="h-4 w-4 text-muted-foreground" />
                             <span>{role.name}</span>
                             {role.name === 'Super Admin' && (
-                              <Badge variant="secondary" className="text-xs">System</Badge>
+                              <Badge variant="secondary" className="text-xs">{t('common.system')}</Badge>
                             )}
                           </div>
                         </TableCell>
@@ -241,16 +243,16 @@ export default function Roles({ roles, filters: initialFilters = {} }: RolesPage
                             ))}
                             {role.permissions.length > 3 && (
                               <Badge variant="secondary" className="text-xs">
-                                +{role.permissions.length - 3} more
+                                {t('page.roles.more', { count: role.permissions.length - 3 })}
                               </Badge>
                             )}
                             {role.permissions.length === 0 && (
-                              <span className="text-sm text-muted-foreground">No permissions</span>
+                              <span className="text-sm text-muted-foreground">{t('page.roles.no_permissions')}</span>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{role.users_count} users</Badge>
+                          <Badge variant="outline">{role.users_count} {t('page.roles.users')}</Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           {formatDate(role.created_at)}
@@ -268,13 +270,13 @@ export default function Roles({ roles, filters: initialFilters = {} }: RolesPage
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuLabel>{t('table.actions')}</DropdownMenuLabel>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() => router.get(route('dashboard.roles.edit', role.id))}
                               >
                                 <Edit className="mr-2 h-4 w-4" />
-                                Edit
+                                {t('action.edit')}
                               </DropdownMenuItem>
                               {role.name !== 'Super Admin' && (
                                 <>
@@ -284,7 +286,7 @@ export default function Roles({ roles, filters: initialFilters = {} }: RolesPage
                                     onClick={() => handleDelete(role)}
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
+                                    {t('action.delete')}
                                   </DropdownMenuItem>
                                 </>
                               )}
@@ -301,10 +303,14 @@ export default function Roles({ roles, filters: initialFilters = {} }: RolesPage
               <div className="text-xs text-muted-foreground">
                 {roles?.current_page && roles?.per_page && roles?.total ? (
                   <>
-                    Showing <strong>{((roles.current_page - 1) * roles.per_page) + 1}-{Math.min(roles.current_page * roles.per_page, roles.total)}</strong> of <strong>{roles.total}</strong> roles
+                    {t('page.roles.showing', {
+                      from: ((roles.current_page - 1) * roles.per_page) + 1,
+                      to: Math.min(roles.current_page * roles.per_page, roles.total),
+                      total: roles.total
+                    })}
                   </>
                 ) : (
-                  <>Showing <strong>0</strong> roles</>
+                  <>{t('page.roles.showing_zero')}</>
                 )}
               </div>
 

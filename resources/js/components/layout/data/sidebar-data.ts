@@ -74,40 +74,48 @@ export const sidebarData: SidebarData = {
   navGroups: [
     {
       title: 'General',
+      titleKey: 'nav.general',
       items: [
         {
           title: 'Dashboard',
+          titleKey: 'nav.dashboard',
           url: '/dashboard',
           icon: IconLayoutDashboard,
         },
         {
           title: 'Tasks',
+          titleKey: 'nav.tasks',
           url: '/dashboard/tasks',
           icon: IconChecklist,
         },
         {
           title: 'Mail',
+          titleKey: 'nav.mail',
           url: '/dashboard/mail',
           icon: IconMail,
         },
         {
           title: 'Apps',
+          titleKey: 'nav.apps',
           url: '/dashboard/apps',
           icon: IconPackages,
         },
         {
           title: 'Chats',
+          titleKey: 'nav.chats',
           url: '/dashboard/chats',
           badge: '3',
           icon: IconMessages,
         },
         {
           title: 'Ai Chats',
+          titleKey: 'nav.ai_chats',
           url: '/dashboard/chat-ai',
           icon: IconRobot,
         },
         {
           title: 'Charts',
+          titleKey: 'nav.charts',
           url: '/dashboard/charts',
           icon: IconChartBar,
         },
@@ -115,17 +123,20 @@ export const sidebarData: SidebarData = {
     },
     {
       title: 'Invoices',
+      titleKey: 'nav.invoices',
       collapsible: true,
       requiresModule: 'Invoice',
       items: [
         {
           title: 'All Invoices',
+          titleKey: 'nav.all_invoices',
           url: '/dashboard/invoices',
           icon: IconFileInvoice,
           permission: 'invoices.view',
         },
         {
           title: 'Reports',
+          titleKey: 'nav.reports',
           url: '/dashboard/invoices-reports',
           icon: IconChartBar,
         },
@@ -133,61 +144,73 @@ export const sidebarData: SidebarData = {
     },
     {
       title: 'Finance',
+      titleKey: 'nav.finance',
       collapsible: true,
       requiresModule: 'Finance',
       items: [
         {
           title: 'Dashboard',
+          titleKey: 'nav.dashboard',
           url: '/dashboard/finance',
           icon: IconWallet,
         },
         {
           title: 'Accounts',
+          titleKey: 'nav.accounts',
           url: '/dashboard/finance/accounts',
           icon: IconBuildingBank,
         },
         {
           title: 'Reports',
+          titleKey: 'nav.reports',
           url: '/dashboard/finance/reports',
           icon: IconChartBar,
         },
         {
           title: 'Transactions',
+          titleKey: 'nav.transactions',
           url: '/dashboard/finance/transactions',
           icon: IconArrowsExchange,
         },
         {
           title: 'Smart Input',
+          titleKey: 'nav.smart_input',
           url: '/dashboard/finance/smart-input',
           icon: IconSparkles,
         },
         {
           title: 'Budgets',
+          titleKey: 'nav.budgets',
           url: '/dashboard/finance/budgets',
           icon: IconPigMoney,
         },
         {
           title: 'Savings Goals',
+          titleKey: 'nav.savings_goals',
           url: '/dashboard/finance/savings-goals',
           icon: IconTarget,
         },
         {
           title: 'Financial Plans',
+          titleKey: 'nav.financial_plans',
           url: '/dashboard/finance/plans',
           icon: IconCalendarEvent,
         },
         {
           title: 'Recurring',
+          titleKey: 'nav.recurring',
           url: '/dashboard/finance/recurring-transactions',
           icon: IconRepeat,
         },
         {
           title: 'Categories',
+          titleKey: 'nav.categories',
           url: '/dashboard/finance/categories',
           icon: IconCategory,
         },
         {
           title: 'Exchange Rates',
+          titleKey: 'nav.exchange_rates',
           url: '/dashboard/finance/exchange-rates',
           icon: IconCurrencyDollar,
         },
@@ -195,22 +218,26 @@ export const sidebarData: SidebarData = {
     },
     {
       title: 'Access Control',
+      titleKey: 'nav.access_control',
       collapsible: true,
       items: [
         {
           title: 'Roles',
+          titleKey: 'nav.roles',
           url: '/dashboard/roles',
           icon: IconShield,
           permission: 'roles.view',
         },
         {
           title: 'Permissions',
+          titleKey: 'nav.permissions',
           url: '/dashboard/permissions',
           icon: IconKey,
           permission: 'permissions.view',
         },
         {
           title: 'Users',
+          titleKey: 'nav.users',
           url: '/dashboard/users',
           icon: IconUsers,
           permission: 'users.view',
@@ -219,35 +246,41 @@ export const sidebarData: SidebarData = {
     },
     {
       title: 'Ecommerce',
+      titleKey: 'nav.ecommerce',
       collapsible: true,
       requiresModule: 'Ecommerce',
       items: [
         {
           title: 'Products',
+          titleKey: 'nav.products',
           url: '/dashboard/ecommerce/products',
           icon: IconShoppingBagDiscount,
           permission: 'products.view',
         },
         {
           title: 'Add Product',
+          titleKey: 'nav.add_product',
           url: '/dashboard/ecommerce/products/create',
           icon: IconShoe,
           permission: 'products.create',
         },
         {
           title: 'Categories',
+          titleKey: 'nav.categories',
           url: '/dashboard/ecommerce/product-categories',
           icon: IconCategory,
           permission: 'product-categories.view',
         },
         {
           title: 'Tags',
+          titleKey: 'nav.tags',
           url: '/dashboard/ecommerce/product-tags',
           icon: IconTags,
           permission: 'product-tags.view',
         },
         {
           title: 'Orders',
+          titleKey: 'nav.orders',
           url: '/dashboard/ecommerce/orders',
           icon: IconShoppingBag,
           permission: 'orders.view',
@@ -256,29 +289,34 @@ export const sidebarData: SidebarData = {
     },
     {
       title: 'Blog',
+      titleKey: 'nav.blog',
       collapsible: true,
       requiresModule: 'Blog',
       items: [
         {
           title: 'Posts',
+          titleKey: 'nav.posts',
           url: '/dashboard/posts',
           icon: IconArticle,
           permission: 'posts.view',
         },
         {
           title: 'Add Post',
+          titleKey: 'nav.add_post',
           url: '/dashboard/posts/create',
           icon: IconEdit,
           permission: 'posts.create',
         },
         {
           title: 'Categories',
+          titleKey: 'nav.categories',
           url: '/dashboard/categories',
           icon: IconCategory,
           permission: 'categories.view',
         },
         {
           title: 'Tags',
+          titleKey: 'nav.tags',
           url: '/dashboard/tags',
           icon: IconTags,
           permission: 'tags.view',
@@ -287,60 +325,73 @@ export const sidebarData: SidebarData = {
     },
     {
       title: 'Pages',
+      titleKey: 'nav.pages',
       collapsible: true,
       items: [
         {
           title: 'Auth',
+          titleKey: 'nav.auth',
           icon: IconLockAccess,
           items: [
             {
               title: 'Sign In',
+              titleKey: 'nav.sign_in',
               url: '/sign-in',
             },
             {
               title: 'Sign In (2 Col)',
+              titleKey: 'nav.sign_in_2_col',
               url: '/sign-in-2',
             },
             {
               title: 'Sign Up',
+              titleKey: 'nav.sign_up',
               url: '/sign-up',
             },
             {
               title: 'Forgot Password',
+              titleKey: 'nav.forgot_password',
               url: '/forgot-pass',
             },
             {
               title: 'OTP',
+              titleKey: 'nav.otp',
               url: '/otp',
             },
           ],
         },
         {
           title: 'Errors',
+          titleKey: 'nav.errors',
           icon: IconBug,
           items: [
             {
               title: 'Unauthorized',
+              titleKey: 'nav.unauthorized',
               url: '/401',
               icon: IconLock,
             },
             {
               title: 'Forbidden',
+              titleKey: 'nav.forbidden',
               url: '/403',
               icon: IconUserOff,
             },
             {
               title: 'Not Found',
+              titleKey: 'nav.not_found',
               url: '/404',
               icon: IconError404,
             },
             {
               title: 'Internal Server Error',
+              titleKey: 'nav.internal_server_error',
               url: '/500',
               icon: IconServerOff,
             },
             {
               title: 'Maintenance Error',
+              titleKey: 'nav.maintenance_error',
               url: '/503',
               icon: IconBarrierBlock,
             },
@@ -350,44 +401,53 @@ export const sidebarData: SidebarData = {
     },
     {
       title: 'Other',
+      titleKey: 'nav.other',
       collapsible: true,
       items: [
         {
           title: 'Settings',
+          titleKey: 'nav.settings',
           icon: IconSettings,
           items: [
             {
               title: 'Profile',
+              titleKey: 'nav.profile',
               url: '/dashboard/settings',
               icon: IconUserCog,
             },
             {
               title: 'Account',
+              titleKey: 'nav.account',
               url: '/dashboard/settings/account',
               icon: IconTool,
             },
             {
               title: 'Appearance',
+              titleKey: 'nav.appearance',
               url: '/dashboard/settings/appearance',
               icon: IconPalette,
             },
             {
               title: 'Notifications',
+              titleKey: 'nav.notifications',
               url: '/dashboard/settings/notifications',
               icon: IconNotification,
             },
             {
               title: 'Display',
+              titleKey: 'nav.display',
               url: '/dashboard/settings/display',
               icon: IconBrowserCheck,
             },
             {
               title: 'Finance',
+              titleKey: 'nav.finance',
               url: '/dashboard/settings/finance',
               icon: IconCurrencyDollar,
             },
             {
               title: 'Modules',
+              titleKey: 'nav.modules',
               url: '/dashboard/settings/modules',
               icon: IconPackages,
             },
@@ -395,6 +455,7 @@ export const sidebarData: SidebarData = {
         },
         {
           title: 'Help Center',
+          titleKey: 'nav.help_center',
           url: '/dashboard/help-center',
           icon: IconHelp,
         },

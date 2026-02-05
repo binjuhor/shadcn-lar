@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import {AppSidebar} from "@/components/layout/app-sidebar"
 import {Header} from '@/components/layout/header'
 import {TopNav} from '@/components/layout/top-nav'
@@ -9,35 +10,8 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import {ThemeSwitch} from "@/components/theme-switch"
-import {Head} from "@inertiajs/react";
-
-
-const topNav = [
-  {
-    title: 'Overview',
-    href: '/dashboard',
-    isActive: true,
-    disabled: false,
-  },
-  {
-    title: 'Customers',
-    href: '/dashboard/users',
-    isActive: false,
-    disabled: true,
-  },
-  {
-    title: 'Products',
-    href: '/dashboard/products',
-    isActive: false,
-    disabled: true,
-  },
-  {
-    title: 'Settings',
-    href: '/dashboard/settings',
-    isActive: false,
-    disabled: true,
-  },
-]
+import {LanguageSwitcher} from "@/components/language-switcher"
+import {Head, usePage} from "@inertiajs/react";
 
 export function AuthenticatedLayout({
     children,
@@ -45,6 +19,22 @@ export function AuthenticatedLayout({
     showHeader = true,
     withTopNav = true,
   }: any) {
+  const { t } = useTranslation()
+  const { url } = usePage()
+
+  const navItems = [
+    { title: t('nav.accounts'), href: '/dashboard/finance/accounts' },
+    { title: t('nav.transactions'), href: '/dashboard/finance/transactions' },
+    { title: t('nav.smart_input'), href: '/dashboard/finance/smart-input' },
+    { title: t('nav.settings'), href: '/dashboard/settings' },
+  ]
+
+  const topNav = navItems.map(item => ({
+    ...item,
+    isActive: url.startsWith(item.href),
+    disabled: false,
+  }))
+
   return (
     <>
       <Head title={title ?? 'Dashboard'}/>
@@ -56,6 +46,7 @@ export function AuthenticatedLayout({
             {!withTopNav && <Search/>}
             <div className='ml-auto flex items-center space-x-4'>
               {withTopNav && <Search/>}
+              <LanguageSwitcher/>
               <ThemeSwitch/>
               <ProfileDropdown/>
             </div>

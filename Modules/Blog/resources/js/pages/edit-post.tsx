@@ -4,6 +4,7 @@ import {
   CalendarIcon,
   X,
 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -49,6 +50,7 @@ interface EditBlogPostPageProps extends PageProps {
 }
 
 export default function EditBlogPost({ post, categories, tags }: EditBlogPostPageProps) {
+  const { t } = useTranslation()
   const [data, setData] = useState<BlogPostFormData>({
     title: post.title,
     slug: post.slug,
@@ -189,8 +191,8 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
       onSuccess: () => {
         setProcessing(false)
         toast({
-          title: "Post updated!",
-          description: "Your blog post has been updated successfully.",
+          title: t('page.blog.posts.toast.updated_title'),
+          description: t('page.blog.posts.toast.updated_description'),
         })
       },
       onError: (errors) => {
@@ -198,8 +200,8 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
         console.error('Validation errors:', errors)
         toast({
           variant: "destructive",
-          title: "Error updating post",
-          description: "Please check your form and try again.",
+          title: t('page.blog.posts.toast.error_updating'),
+          description: t('page.blog.posts.toast.check_form'),
         })
       }
     })
@@ -209,7 +211,7 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
 
   return (
     <>
-      <AuthenticatedLayout title={`Edit: ${post.title}`}>
+      <AuthenticatedLayout title={t('page.blog.posts.edit.title', { title: post.title })}>
         <Main>
           <div className="grid flex-1 items-start gap-4 md:gap-8">
             <div className="grid flex-1 auto-rows-max gap-4">
@@ -221,10 +223,10 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                   onClick={() => window.history.back()}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  <span className="sr-only">Back</span>
+                  <span className="sr-only">{t('common.actions.back')}</span>
                 </Button>
                 <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
-                  Edit Blog Post
+                  {t('page.blog.posts.edit.title_short')}
                 </h1>
                 <div className="hidden items-center gap-2 md:ml-auto md:flex">
                   <Button
@@ -233,14 +235,14 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                     onClick={() => handleSubmit('draft')}
                     disabled={processing}
                   >
-                    Save Draft
+                    {t('page.blog.posts.actions.save_draft')}
                   </Button>
                   <Button
                     size="sm"
                     onClick={() => handleSubmit()}
                     disabled={processing}
                   >
-                    {processing ? 'Updating...' : 'Update Post'}
+                    {processing ? t('page.blog.posts.actions.updating') : t('page.blog.posts.actions.update_post')}
                   </Button>
                 </div>
               </div>
@@ -249,20 +251,20 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                 <div className="grid auto-rows-max items-start gap-4 lg:gap-8">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Post Details</CardTitle>
+                      <CardTitle>{t('page.blog.posts.form.details_title')}</CardTitle>
                       <CardDescription>
-                        Update the basic information for your blog post
+                        {t('page.blog.posts.form.update_details_description')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="grid gap-6">
                         <div className="grid gap-3">
-                          <Label htmlFor="title">Title</Label>
+                          <Label htmlFor="title">{t('page.blog.posts.form.title_label')}</Label>
                           <Input
                             id="title"
                             type="text"
                             className="w-full"
-                            placeholder="Enter post title..."
+                            placeholder={t('page.blog.posts.form.title_placeholder')}
                             value={data.title}
                             onChange={(e) => setData(prev => ({ ...prev, title: e.target.value }))}
                           />
@@ -270,7 +272,7 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
 
                         <div className="grid gap-3">
                           <div className="flex items-center justify-between">
-                            <Label htmlFor="slug">Slug (URL)</Label>
+                            <Label htmlFor="slug">{t('page.blog.posts.form.slug')}</Label>
                             <Button
                               type="button"
                               variant="ghost"
@@ -278,27 +280,27 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                               onClick={() => setData(prev => ({ ...prev, slug: generateSlug(data.title) }))}
                               className="h-7 text-xs"
                             >
-                              Auto-generate
+                              {t('page.blog.posts.form.auto_generate')}
                             </Button>
                           </div>
                           <Input
                             id="slug"
                             type="text"
                             className="w-full font-mono text-sm"
-                            placeholder="post-url-slug"
+                            placeholder={t('page.blog.posts.form.slug_placeholder')}
                             value={data.slug}
                             onChange={(e) => setData(prev => ({ ...prev, slug: e.target.value }))}
                           />
                           <p className="text-xs text-muted-foreground">
-                            URL: /blog/{data.slug || 'your-post-slug'}
+                            {t('page.blog.posts.form.slug_url', { slug: data.slug || 'your-post-slug' })}
                           </p>
                         </div>
 
                         <div className="grid gap-3">
-                          <Label htmlFor="excerpt">Excerpt</Label>
+                          <Label htmlFor="excerpt">{t('page.blog.posts.form.excerpt')}</Label>
                           <Textarea
                             id="excerpt"
-                            placeholder="Enter a brief summary of your post..."
+                            placeholder={t('page.blog.posts.form.excerpt_placeholder')}
                             className="min-h-20"
                             value={data.excerpt}
                             onChange={(e) => setData(prev => ({ ...prev, excerpt: e.target.value }))}
@@ -306,14 +308,14 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                         </div>
 
                         <div className="grid gap-3">
-                          <Label htmlFor="content">Content</Label>
+                          <Label htmlFor="content">{t('page.blog.posts.form.content')}</Label>
                           <MinimalTiptapEditor
                             value={content}
                             onChange={handleContentChange}
                             className="w-full"
                             editorContentClassName="p-5"
                             output="html"
-                            placeholder="Write your blog post content..."
+                            placeholder={t('page.blog.posts.form.content_placeholder')}
                             autofocus={false}
                             editable={true}
                             editorClassName="focus:outline-none min-h-[400px]"
@@ -321,21 +323,21 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                         </div>
 
                         <div className="grid gap-3">
-                          <Label htmlFor="meta_title">SEO Title</Label>
+                          <Label htmlFor="meta_title">{t('page.blog.posts.form.seo_title')}</Label>
                           <Input
                             id="meta_title"
                             type="text"
-                            placeholder="SEO optimized title..."
+                            placeholder={t('page.blog.posts.form.seo_title_placeholder')}
                             value={data.meta_title}
                             onChange={(e) => setData(prev => ({ ...prev, meta_title: e.target.value }))}
                           />
                         </div>
 
                         <div className="grid gap-3">
-                          <Label htmlFor="meta_description">SEO Description</Label>
+                          <Label htmlFor="meta_description">{t('page.blog.posts.form.seo_description')}</Label>
                           <Textarea
                             id="meta_description"
-                            placeholder="SEO meta description..."
+                            placeholder={t('page.blog.posts.form.seo_description_placeholder')}
                             className="min-h-20"
                             value={data.meta_description}
                             onChange={(e) => setData(prev => ({ ...prev, meta_description: e.target.value }))}
@@ -349,11 +351,11 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                 <div className="grid auto-rows-max items-start gap-4 lg:gap-8">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Publication</CardTitle>
+                      <CardTitle>{t('page.blog.posts.form.publication')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid gap-3">
-                        <Label htmlFor="status">Status</Label>
+                        <Label htmlFor="status">{t('common.fields.status')}</Label>
                         <Select
                           value={data.status}
                           onValueChange={(value: 'draft' | 'published' | 'archived' | 'scheduled') =>
@@ -364,10 +366,10 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="draft">Draft</SelectItem>
-                            <SelectItem value="published">Published</SelectItem>
-                            <SelectItem value="scheduled">Scheduled</SelectItem>
-                            <SelectItem value="archived">Archived</SelectItem>
+                            <SelectItem value="draft">{t('common.statuses.draft')}</SelectItem>
+                            <SelectItem value="published">{t('common.statuses.published')}</SelectItem>
+                            <SelectItem value="scheduled">{t('common.statuses.scheduled')}</SelectItem>
+                            <SelectItem value="archived">{t('common.statuses.archived')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -379,14 +381,14 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                           onCheckedChange={(checked) => setData(prev => ({ ...prev, is_featured: checked }))}
                         />
                         <Label htmlFor="featured" className="text-sm font-medium">
-                          Featured Post
+                          {t('page.blog.posts.form.featured_post')}
                         </Label>
                       </div>
 
                       {(data.status === 'published' || data.status === 'scheduled') && (
                         <>
                           <div className="grid gap-3">
-                            <Label>Publication Date</Label>
+                            <Label>{t('page.blog.posts.form.publication_date')}</Label>
                             <Popover open={publishedDateOpen} onOpenChange={setPublishedDateOpen}>
                               <PopoverTrigger asChild>
                                 <Button
@@ -397,7 +399,7 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                                   )}
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {publishedDate ? format(publishedDate, "PPP") : <span>Pick a date</span>}
+                                  {publishedDate ? format(publishedDate, "PPP") : <span>{t('page.blog.posts.form.pick_date')}</span>}
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0" align="start">
@@ -418,7 +420,7 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                             </Popover>
                           </div>
                           <div className="grid gap-3">
-                            <Label htmlFor="published_time">Publication Time</Label>
+                            <Label htmlFor="published_time">{t('page.blog.posts.form.publication_time')}</Label>
                             <Input
                               id="published_time"
                               type="time"
@@ -433,9 +435,9 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Featured Image</CardTitle>
+                      <CardTitle>{t('page.blog.posts.form.featured_image')}</CardTitle>
                       <CardDescription>
-                        Upload a thumbnail image for your blog post
+                        {t('page.blog.posts.form.featured_image_description')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -454,9 +456,9 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Category</CardTitle>
+                      <CardTitle>{t('common.fields.category')}</CardTitle>
                       <CardDescription>
-                        Select a category for your post
+                        {t('page.blog.posts.form.category_description')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -465,7 +467,7 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                         onValueChange={(value) => setData(prev => ({ ...prev, category_id: parseInt(value) }))}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
+                          <SelectValue placeholder={t('page.blog.posts.form.select_category')} />
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map((category) => (
@@ -480,9 +482,9 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Tags</CardTitle>
+                      <CardTitle>{t('page.blog.posts.tags')}</CardTitle>
                       <CardDescription>
-                        Add relevant tags to your post
+                        {t('page.blog.posts.form.tags_description')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -507,7 +509,7 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                         {selectedTagObjects.length > 0 && (
                           <div>
                             <Label className="text-sm font-medium mb-2 block">
-                              Selected Tags:
+                              {t('page.blog.posts.form.selected_tags')}
                             </Label>
                             <div className="flex flex-wrap gap-1">
                               {selectedTagObjects.map((tag) => (
@@ -535,14 +537,14 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                   onClick={() => handleSubmit('draft')}
                   disabled={processing}
                 >
-                  Save Draft
+                  {t('page.blog.posts.actions.save_draft')}
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => handleSubmit()}
                   disabled={processing}
                 >
-                  {processing ? 'Updating...' : 'Update Post'}
+                  {processing ? t('page.blog.posts.actions.updating') : t('page.blog.posts.actions.update_post')}
                 </Button>
               </div>
             </div>

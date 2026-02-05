@@ -6,6 +6,7 @@ import {
   Trash2,
   Loader2,
 } from "lucide-react"
+import { useTranslation } from 'react-i18next'
 
 import {Badge} from "@/components/ui/badge"
 import {Button} from "@/components/ui/button"
@@ -68,6 +69,7 @@ const initialFormData: BlogTagFormData = {
 }
 
 export default function BlogTags({ tags }: BlogTagsPageProps) {
+  const { t } = useTranslation()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editingTag, setEditingTag] = useState<BlogTag | null>(null)
@@ -93,8 +95,8 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
   const handleCreateTag = async () => {
     if (!formData.name.trim()) {
       toast({
-        title: "Error",
-        description: "Tag name is required",
+        title: t('common.messages.error'),
+        description: t('page.blog.tags.toast.name_required'),
         variant: "destructive",
       })
       return
@@ -114,8 +116,8 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
       await axios.post('/dashboard/tags', cleanedData)
 
       toast({
-        title: "Success",
-        description: "Tag created successfully",
+        title: t('common.messages.create_success'),
+        description: t('page.blog.tags.toast.created'),
       })
 
       setFormData(initialFormData)
@@ -123,7 +125,7 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
       router.reload()
     } catch (error) {
       toast({
-        title: "Error",
+        title: t('common.messages.error'),
         description: getErrorMessage(error),
         variant: "destructive",
       })
@@ -147,8 +149,8 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
   const handleUpdateTag = async () => {
     if (!editingTag || !formData.name.trim()) {
       toast({
-        title: "Error",
-        description: "Tag name is required",
+        title: t('common.messages.error'),
+        description: t('page.blog.tags.toast.name_required'),
         variant: "destructive",
       })
       return
@@ -168,8 +170,8 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
       await axios.put(`/dashboard/tags/${editingTag.slug}`, cleanedData)
 
       toast({
-        title: "Success",
-        description: "Tag updated successfully",
+        title: t('common.messages.update_success'),
+        description: t('page.blog.tags.toast.updated'),
       })
 
       setFormData(initialFormData)
@@ -178,7 +180,7 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
       router.reload()
     } catch (error) {
       toast({
-        title: "Error",
+        title: t('common.messages.error'),
         description: getErrorMessage(error),
         variant: "destructive",
       })
@@ -188,7 +190,7 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
   }
 
   const handleDeleteTag = async (tag: BlogTag) => {
-    if (!confirm("Are you sure you want to delete this tag?")) {
+    if (!confirm(t('page.blog.tags.toast.delete_confirm'))) {
       return
     }
 
@@ -197,14 +199,14 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
       await axios.delete(`/dashboard/tags/${tag.slug}`)
 
       toast({
-        title: "Success",
-        description: "Tag deleted successfully",
+        title: t('common.messages.delete_success'),
+        description: t('page.blog.tags.toast.deleted'),
       })
 
       router.reload()
     } catch (error) {
       toast({
-        title: "Error",
+        title: t('common.messages.error'),
         description: getErrorMessage(error),
         variant: "destructive",
       })
@@ -223,13 +225,13 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
 
   return (
     <>
-      <AuthenticatedLayout title="Blog Tags">
+      <AuthenticatedLayout title={t('page.blog.tags.title')}>
         <Main>
           <div className="grid flex-1 items-start gap-4 md:gap-8">
             <div className="flex items-center gap-4">
               <div className="relative flex-1 md:max-w-sm">
                 <Input
-                  placeholder="Search tags..."
+                  placeholder={t('page.blog.tags.search_placeholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -240,30 +242,30 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                     <Button size="sm" className="h-7 gap-1">
                       <PlusCircle className="h-3.5 w-3.5" />
                       <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Add Tag
+                        {t('page.blog.tags.add_tag')}
                       </span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Create Tag</DialogTitle>
+                      <DialogTitle>{t('page.blog.tags.create.title')}</DialogTitle>
                       <DialogDescription>
-                        Add a new tag for organizing your blog posts.
+                        {t('page.blog.tags.create.description')}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="create-name">Name *</Label>
+                        <Label htmlFor="create-name">{t('page.blog.tags.form.name')} *</Label>
                         <Input
                           id="create-name"
                           value={formData.name}
                           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="Tag name"
+                          placeholder={t('page.blog.tags.form.name_placeholder')}
                         />
                       </div>
                       <div className="grid gap-2">
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="create-slug">Slug (URL)</Label>
+                          <Label htmlFor="create-slug">{t('page.blog.tags.form.slug')}</Label>
                           <Button
                             type="button"
                             variant="ghost"
@@ -271,33 +273,33 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                             onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(formData.name) }))}
                             className="h-7 text-xs"
                           >
-                            Auto-generate
+                            {t('page.blog.tags.form.auto_generate')}
                           </Button>
                         </div>
                         <Input
                           id="create-slug"
                           type="text"
                           className="w-full font-mono text-sm"
-                          placeholder="tag-url-slug"
+                          placeholder={t('page.blog.tags.form.slug_placeholder')}
                           value={formData.slug}
                           onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
                         />
                         <p className="text-xs text-muted-foreground">
-                          URL: /tags/{formData.slug || 'your-tag-slug'}
+                          {t('page.blog.tags.form.url_preview', { slug: formData.slug || 'your-tag-slug' })}
                         </p>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="create-description">Description</Label>
+                        <Label htmlFor="create-description">{t('common.fields.description')}</Label>
                         <Textarea
                           id="create-description"
                           value={formData.description}
                           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Brief description of the tag"
+                          placeholder={t('page.blog.tags.form.description_placeholder')}
                           rows={3}
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="create-color">Color</Label>
+                        <Label htmlFor="create-color">{t('common.fields.color')}</Label>
                         <Input
                           id="create-color"
                           type="color"
@@ -306,7 +308,7 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                         />
                       </div>
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="create-active">Active</Label>
+                        <Label htmlFor="create-active">{t('common.fields.active')}</Label>
                         <Switch
                           id="create-active"
                           checked={formData.is_active}
@@ -324,7 +326,7 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                         }}
                         disabled={isLoading}
                       >
-                        Cancel
+                        {t('common.actions.cancel')}
                       </Button>
                       <Button
                         type="submit"
@@ -332,7 +334,7 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                         disabled={!formData.name.trim() || isLoading}
                       >
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Create Tag
+                        {t('page.blog.tags.create.submit')}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -343,9 +345,9 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
             <div className="grid gap-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>All Tags</CardTitle>
+                  <CardTitle>{t('page.blog.tags.title')}</CardTitle>
                   <CardDescription>
-                    Manage tags for organizing your blog posts. Tags help readers find related content.
+                    {t('page.blog.tags.description')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -366,7 +368,7 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                     ))}
                     {filteredTags.length > 20 && (
                       <Badge variant="outline">
-                        +{filteredTags.length - 20} more
+                        +{filteredTags.length - 20} {t('page.blog.tags.more')}
                       </Badge>
                     )}
                   </div>
@@ -374,13 +376,13 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Slug</TableHead>
-                        <TableHead className="hidden md:table-cell">Usage</TableHead>
-                        <TableHead className="hidden md:table-cell">Status</TableHead>
-                        <TableHead className="hidden md:table-cell">Created</TableHead>
+                        <TableHead>{t('common.fields.name')}</TableHead>
+                        <TableHead>{t('common.fields.slug')}</TableHead>
+                        <TableHead className="hidden md:table-cell">{t('page.blog.tags.table.usage')}</TableHead>
+                        <TableHead className="hidden md:table-cell">{t('common.fields.status')}</TableHead>
+                        <TableHead className="hidden md:table-cell">{t('page.blog.tags.table.created')}</TableHead>
                         <TableHead>
-                          <span className="sr-only">Actions</span>
+                          <span className="sr-only">{t('common.actions.actions')}</span>
                         </TableHead>
                       </TableRow>
                     </TableHeader>
@@ -399,11 +401,11 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                             {tag.slug}
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
-                            {tag.usage_count || 0} posts
+                            {t('page.blog.tags.table.posts_count', { count: tag.usage_count || 0 })}
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
                             <Badge variant={tag.is_active ? "default" : "secondary"}>
-                              {tag.is_active ? "Active" : "Inactive"}
+                              {tag.is_active ? t('common.statuses.active') : t('common.statuses.inactive')}
                             </Badge>
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
@@ -418,15 +420,15 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                                   variant="ghost"
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
-                                  <span className="sr-only">Toggle menu</span>
+                                  <span className="sr-only">{t('page.blog.tags.table.toggle_menu')}</span>
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuLabel>{t('common.actions.actions')}</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => handleEditTag(tag)}>
                                   <Edit className="mr-2 h-4 w-4" />
-                                  Edit
+                                  {t('common.actions.edit')}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -434,7 +436,7 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                                   onClick={() => handleDeleteTag(tag)}
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
+                                  {t('common.actions.delete')}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -446,7 +448,7 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                 </CardContent>
                 <CardFooter>
                   <div className="text-xs text-muted-foreground">
-                    Showing <strong>{filteredTags.length}</strong> of <strong>{tags.length}</strong> tags
+                    {t('page.blog.tags.table.showing')} <strong>{filteredTags.length}</strong> {t('page.blog.tags.table.of')} <strong>{tags.length}</strong> {t('page.blog.tags.table.tags')}
                   </div>
                 </CardFooter>
               </Card>
@@ -455,24 +457,24 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Edit Tag</DialogTitle>
+                  <DialogTitle>{t('page.blog.tags.edit.title')}</DialogTitle>
                   <DialogDescription>
-                    Update the tag information.
+                    {t('page.blog.tags.edit.description')}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-name">Name *</Label>
+                    <Label htmlFor="edit-name">{t('page.blog.tags.form.name')} *</Label>
                     <Input
                       id="edit-name"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Tag name"
+                      placeholder={t('page.blog.tags.form.name_placeholder')}
                     />
                   </div>
                   <div className="grid gap-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="edit-slug">Slug (URL)</Label>
+                      <Label htmlFor="edit-slug">{t('page.blog.tags.form.slug')}</Label>
                       <Button
                         type="button"
                         variant="ghost"
@@ -480,33 +482,33 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                         onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(formData.name) }))}
                         className="h-7 text-xs"
                       >
-                        Auto-generate
+                        {t('page.blog.tags.form.auto_generate')}
                       </Button>
                     </div>
                     <Input
                       id="edit-slug"
                       type="text"
                       className="w-full font-mono text-sm"
-                      placeholder="tag-url-slug"
+                      placeholder={t('page.blog.tags.form.slug_placeholder')}
                       value={formData.slug}
                       onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
                     />
                     <p className="text-xs text-muted-foreground">
-                      URL: /tags/{formData.slug || 'your-tag-slug'}
+                      {t('page.blog.tags.form.url_preview', { slug: formData.slug || 'your-tag-slug' })}
                     </p>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-description">Description</Label>
+                    <Label htmlFor="edit-description">{t('common.fields.description')}</Label>
                     <Textarea
                       id="edit-description"
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Brief description of the tag"
+                      placeholder={t('page.blog.tags.form.description_placeholder')}
                       rows={3}
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-color">Color</Label>
+                    <Label htmlFor="edit-color">{t('common.fields.color')}</Label>
                     <Input
                       id="edit-color"
                       type="color"
@@ -515,7 +517,7 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="edit-active">Active</Label>
+                    <Label htmlFor="edit-active">{t('common.fields.active')}</Label>
                     <Switch
                       id="edit-active"
                       checked={formData.is_active}
@@ -534,7 +536,7 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                     }}
                     disabled={isLoading}
                   >
-                    Cancel
+                    {t('common.actions.cancel')}
                   </Button>
                   <Button
                     type="submit"
@@ -542,7 +544,7 @@ export default function BlogTags({ tags }: BlogTagsPageProps) {
                     disabled={!formData.name.trim() || isLoading}
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Update Tag
+                    {t('page.blog.tags.edit.submit')}
                   </Button>
                 </DialogFooter>
               </DialogContent>

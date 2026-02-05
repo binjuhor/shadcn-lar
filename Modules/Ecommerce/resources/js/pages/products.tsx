@@ -8,6 +8,7 @@ import {
   Edit,
   Trash2,
 } from "lucide-react"
+import { useTranslation } from 'react-i18next'
 
 import {Badge} from "@/components/ui/badge"
 import {Button} from "@/components/ui/button"
@@ -77,6 +78,7 @@ export default function Products({
   categories = [],
   tags = []
 }: ProductsPageProps) {
+  const { t } = useTranslation()
   const [filters, setFilters] = useState<ProductFilters>(initialFilters)
   const [searchTerm, setSearchTerm] = useState(initialFilters?.search || "")
   const { toast } = useToast()
@@ -104,19 +106,19 @@ export default function Products({
   }
 
   const handleDelete = (product: Product) => {
-    if (confirm('Are you sure you want to delete this product?')) {
+    if (confirm(t('page.ecommerce.products.toast.delete_confirm'))) {
       router.delete(route('dashboard.ecommerce.products.destroy', product.slug), {
         onSuccess: () => {
           toast({
-            title: "Product deleted!",
-            description: `"${product.name}" has been deleted successfully.`,
+            title: t('page.ecommerce.products.toast.delete_success'),
+            description: t('page.ecommerce.products.toast.delete_success_description', { name: product.name }),
           })
         },
         onError: () => {
           toast({
             variant: "destructive",
-            title: "Error deleting product",
-            description: "Something went wrong. Please try again.",
+            title: t('page.ecommerce.products.toast.delete_error'),
+            description: t('common.messages.error_try_again'),
           })
         }
       })
@@ -164,11 +166,11 @@ export default function Products({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge variant="outline" className="text-green-600 border-green-600">Active</Badge>
+        return <Badge variant="outline" className="text-green-600 border-green-600">{t('common.statuses.active')}</Badge>
       case "draft":
-        return <Badge variant="secondary">Draft</Badge>
+        return <Badge variant="secondary">{t('common.statuses.draft')}</Badge>
       case "archived":
-        return <Badge variant="outline">Archived</Badge>
+        return <Badge variant="outline">{t('common.statuses.archived')}</Badge>
       default:
         return <Badge>{status}</Badge>
     }
@@ -176,12 +178,12 @@ export default function Products({
 
   const getStockBadge = (product: Product) => {
     if (product.is_out_of_stock) {
-      return <Badge variant="destructive">Out of Stock</Badge>
+      return <Badge variant="destructive">{t('page.ecommerce.products.status.out_of_stock')}</Badge>
     }
     if (product.is_low_stock) {
-      return <Badge variant="outline" className="text-orange-600 border-orange-600">Low Stock</Badge>
+      return <Badge variant="outline" className="text-orange-600 border-orange-600">{t('page.ecommerce.products.status.low_stock')}</Badge>
     }
-    return <Badge variant="outline" className="text-green-600 border-green-600">In Stock</Badge>
+    return <Badge variant="outline" className="text-green-600 border-green-600">{t('page.ecommerce.products.status.in_stock')}</Badge>
   }
 
   const formatPrice = (price: number) => {
@@ -219,19 +221,19 @@ export default function Products({
       <TableHeader>
         <TableRow>
           <TableHead className="hidden w-[100px] sm:table-cell">
-            <span className="sr-only">Image</span>
+            <span className="sr-only">{t('page.ecommerce.products.table.image')}</span>
           </TableHead>
-          <TableHead>Name</TableHead>
-          <TableHead>SKU</TableHead>
-          <TableHead>Price</TableHead>
-          <TableHead>Stock</TableHead>
-          <TableHead>Category</TableHead>
-          <TableHead>Status</TableHead>
+          <TableHead>{t('page.ecommerce.products.table.name')}</TableHead>
+          <TableHead>{t('page.ecommerce.products.table.sku')}</TableHead>
+          <TableHead>{t('page.ecommerce.products.table.price')}</TableHead>
+          <TableHead>{t('page.ecommerce.products.table.stock')}</TableHead>
+          <TableHead>{t('page.ecommerce.products.table.category')}</TableHead>
+          <TableHead>{t('page.ecommerce.products.table.status')}</TableHead>
           <TableHead className="hidden md:table-cell">
-            Created
+            {t('page.ecommerce.products.table.created')}
           </TableHead>
           <TableHead>
-            <span className="sr-only">Actions</span>
+            <span className="sr-only">{t('common.actions.actions')}</span>
           </TableHead>
         </TableRow>
       </TableHeader>
@@ -239,7 +241,7 @@ export default function Products({
         {!products.data || products.data.length === 0 ? (
           <TableRow>
             <TableCell colSpan={9} className="h-24 text-center">
-              No products found.
+              {t('page.ecommerce.products.table.no_products')}
             </TableCell>
           </TableRow>
         ) : (
@@ -247,7 +249,7 @@ export default function Products({
           <TableRow key={product.id}>
             <TableCell className="hidden sm:table-cell">
               <img
-                alt="Product image"
+                alt={t('page.ecommerce.products.table.product_image')}
                 className="aspect-square rounded-md object-cover"
                 height="64"
                 src={product.featured_image_url || "/placeholder.svg"}
@@ -259,7 +261,7 @@ export default function Products({
                 <span>{product.name}</span>
                 {product.is_featured && (
                   <Badge variant="secondary" className="w-fit text-xs">
-                    Featured
+                    {t('page.ecommerce.products.status.featured')}
                   </Badge>
                 )}
               </div>
@@ -286,7 +288,7 @@ export default function Products({
             </TableCell>
             <TableCell>
               <div className="flex flex-col gap-1">
-                <span className="text-sm">{product.stock_quantity} units</span>
+                <span className="text-sm">{t('page.ecommerce.products.table.units', { count: product.stock_quantity })}</span>
                 {getStockBadge(product)}
               </div>
             </TableCell>
@@ -312,23 +314,23 @@ export default function Products({
                     variant="ghost"
                   >
                     <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Toggle menu</span>
+                    <span className="sr-only">{t('common.actions.toggle_menu')}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t('common.actions.actions')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => router.get(route('dashboard.ecommerce.products.show', product.slug))}
                   >
                     <Eye className="mr-2 h-4 w-4" />
-                    View
+                    {t('common.actions.view')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => router.get(route('dashboard.ecommerce.products.edit', product.slug))}
                   >
                     <Edit className="mr-2 h-4 w-4" />
-                    Edit
+                    {t('common.actions.edit')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -336,7 +338,7 @@ export default function Products({
                     onClick={() => handleDelete(product)}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
+                    {t('common.actions.delete')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -350,23 +352,23 @@ export default function Products({
 
   return (
     <>
-      <AuthenticatedLayout title="Products">
+      <AuthenticatedLayout title={t('page.ecommerce.products.title')}>
         <Main>
           <div className="grid flex-1 items-start gap-4 md:gap-8">
             <Tabs defaultValue={filters.status || "all"} onValueChange={handleTabChange}>
               <div className="flex items-center">
                 <TabsList>
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="active">Active</TabsTrigger>
-                  <TabsTrigger value="draft">Draft</TabsTrigger>
+                  <TabsTrigger value="all">{t('common.filters.all')}</TabsTrigger>
+                  <TabsTrigger value="active">{t('common.statuses.active')}</TabsTrigger>
+                  <TabsTrigger value="draft">{t('common.statuses.draft')}</TabsTrigger>
                   <TabsTrigger value="archived" className="hidden sm:flex">
-                    Archived
+                    {t('common.statuses.archived')}
                   </TabsTrigger>
                 </TabsList>
                 <div className="ml-auto flex items-center gap-2">
                   <div className="relative">
                     <Input
-                      placeholder="Search products..."
+                      placeholder={t('page.ecommerce.products.search_placeholder')}
                       value={searchTerm}
                       onChange={(e) => handleSearch(e.target.value)}
                       className="w-64"
@@ -377,12 +379,12 @@ export default function Products({
                       <Button variant="outline" size="sm" className="h-7 gap-1">
                         <ListFilter className="h-3.5 w-3.5" />
                         <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                          Filter
+                          {t('common.actions.filter')}
                         </span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuLabel>Filter by</DropdownMenuLabel>
+                      <DropdownMenuLabel>{t('common.filters.filter_by')}</DropdownMenuLabel>
                       <DropdownMenuSeparator />
 
                       <DropdownMenuCheckboxItem
@@ -391,11 +393,11 @@ export default function Products({
                           handleFilterChange({ featured: checked ? true : undefined })
                         }
                       >
-                        Featured Only
+                        {t('page.ecommerce.products.filter.featured_only')}
                       </DropdownMenuCheckboxItem>
 
                       <DropdownMenuSeparator />
-                      <DropdownMenuLabel className="text-xs">Category</DropdownMenuLabel>
+                      <DropdownMenuLabel className="text-xs">{t('page.ecommerce.products.filter.category')}</DropdownMenuLabel>
 
                       {categories.length > 0 ? (
                         <>
@@ -407,7 +409,7 @@ export default function Products({
                               }
                             }}
                           >
-                            All Categories
+                            {t('page.ecommerce.products.filter.all_categories')}
                           </DropdownMenuCheckboxItem>
                           {categories.map((category) => (
                             <DropdownMenuCheckboxItem
@@ -423,7 +425,7 @@ export default function Products({
                         </>
                       ) : (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                          No categories
+                          {t('page.ecommerce.products.filter.no_categories')}
                         </div>
                       )}
                     </DropdownMenuContent>
@@ -431,7 +433,7 @@ export default function Products({
                   <Button size="sm" variant="outline" className="h-7 gap-1">
                     <File className="h-3.5 w-3.5" />
                     <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                      Export
+                      {t('common.actions.export')}
                     </span>
                   </Button>
                   <Button
@@ -441,7 +443,7 @@ export default function Products({
                   >
                     <PlusCircle className="h-3.5 w-3.5" />
                     <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                      Add Product
+                      {t('page.ecommerce.products.actions.add_product')}
                     </span>
                   </Button>
                 </div>
@@ -449,10 +451,10 @@ export default function Products({
 
               {hasActiveFilters() && (
                 <div className="flex items-center gap-2 pt-2">
-                  <span className="text-sm text-muted-foreground">Active filters:</span>
+                  <span className="text-sm text-muted-foreground">{t('common.filters.active_filters')}:</span>
                   {filters.featured && (
                     <Badge variant="secondary" className="gap-1">
-                      Featured
+                      {t('page.ecommerce.products.status.featured')}
                       <button
                         onClick={() => handleFilterChange({ featured: undefined })}
                         className="ml-1 hover:bg-secondary-foreground/20 rounded-full"
@@ -478,7 +480,7 @@ export default function Products({
                     onClick={clearAllFilters}
                     className="h-6 text-xs"
                   >
-                    Clear all
+                    {t('common.filters.clear_all')}
                   </Button>
                 </div>
               )}
@@ -486,9 +488,9 @@ export default function Products({
               <TabsContent value="all">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Products</CardTitle>
+                    <CardTitle>{t('page.ecommerce.products.title')}</CardTitle>
                     <CardDescription>
-                      Manage your products and view their inventory status.
+                      {t('page.ecommerce.products.description')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -497,12 +499,13 @@ export default function Products({
                   <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="text-xs text-muted-foreground">
                       {products?.current_page && products?.per_page && products?.total ? (
-                        <>
-                          Showing <strong>{((products.current_page - 1) * products.per_page) + 1}-{Math.min(products.current_page * products.per_page, products.total)}</strong> of <strong>{products.total}</strong>{" "}
-                          products
-                        </>
+                        t('page.ecommerce.products.pagination.showing', {
+                          from: ((products.current_page - 1) * products.per_page) + 1,
+                          to: Math.min(products.current_page * products.per_page, products.total),
+                          total: products.total
+                        })
                       ) : (
-                        <>Showing <strong>0</strong> products</>
+                        t('page.ecommerce.products.pagination.showing_zero')
                       )}
                     </div>
 
@@ -563,9 +566,9 @@ export default function Products({
               <TabsContent value="active">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Products</CardTitle>
+                    <CardTitle>{t('page.ecommerce.products.title')}</CardTitle>
                     <CardDescription>
-                      Manage your products and view their inventory status.
+                      {t('page.ecommerce.products.description')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -577,9 +580,9 @@ export default function Products({
               <TabsContent value="draft">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Products</CardTitle>
+                    <CardTitle>{t('page.ecommerce.products.title')}</CardTitle>
                     <CardDescription>
-                      Manage your products and view their inventory status.
+                      {t('page.ecommerce.products.description')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -591,9 +594,9 @@ export default function Products({
               <TabsContent value="archived">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Products</CardTitle>
+                    <CardTitle>{t('page.ecommerce.products.title')}</CardTitle>
                     <CardDescription>
-                      Manage your products and view their inventory status.
+                      {t('page.ecommerce.products.description')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

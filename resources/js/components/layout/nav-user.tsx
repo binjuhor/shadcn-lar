@@ -1,4 +1,5 @@
 import { Link } from "@inertiajs/react"
+import { useTranslation } from 'react-i18next'
 import {
   BadgeCheck,
   Bell,
@@ -33,6 +34,7 @@ export function NavUser({
     avatar: string
   }
 }) {
+  const { t } = useTranslation()
   const { isMobile } = useSidebar()
 
   // Generate initials from user name
@@ -85,7 +87,7 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <Sparkles />
-                Upgrade to Pro
+                {t('nav.upgrade_to_pro')}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -93,26 +95,26 @@ export function NavUser({
               <DropdownMenuItem asChild>
                 <Link href='/dashboard/settings/account'>
                   <BadgeCheck />
-                  Account
+                  {t('nav.account')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href='/dashboard/settings'>
                   <CreditCard />
-                  Billing
+                  {t('nav.billing')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href='/dashboard/settings/notifications'>
                   <Bell />
-                  Notifications
+                  {t('nav.notifications')}
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <LogOut />
-              <Link className="block w-full text-left" href={route('logout')} method="post" as="button">Log out</Link>
+              <Link className="block w-full text-left" href={route('logout')} method="post" as="button">{t('nav.logout')}</Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Pie, PieChart, Cell, Label } from 'recharts'
 import {
   Card,
@@ -36,6 +37,7 @@ function formatFullCurrency(value: number, code: string): string {
 }
 
 export function CategoryBreakdown({ data, currencyCode }: CategoryBreakdownProps) {
+  const { t } = useTranslation()
   const total = data.reduce((sum, item) => sum + item.amount, 0)
 
   const chartConfig = data.reduce((config, item) => {
@@ -50,11 +52,11 @@ export function CategoryBreakdown({ data, currencyCode }: CategoryBreakdownProps
     return (
       <Card className="h-full">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Expense by Category</CardTitle>
-          <CardDescription>No expense data for this period</CardDescription>
+          <CardTitle className="text-base">{t('page.reports.expense_by_category')}</CardTitle>
+          <CardDescription>{t('page.reports.no_expense_data')}</CardDescription>
         </CardHeader>
         <CardContent className="flex h-[200px] items-center justify-center">
-          <p className="text-muted-foreground">No data available</p>
+          <p className="text-muted-foreground">{t('page.reports.no_data')}</p>
         </CardContent>
       </Card>
     )
@@ -63,9 +65,9 @@ export function CategoryBreakdown({ data, currencyCode }: CategoryBreakdownProps
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Expense by Category</CardTitle>
+        <CardTitle className="text-base">{t('page.reports.expense_by_category')}</CardTitle>
         <CardDescription>
-          Top spending categories
+          {t('page.reports.top_spending_categories')}
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-4">
@@ -119,7 +121,7 @@ export function CategoryBreakdown({ data, currencyCode }: CategoryBreakdownProps
                           y={(viewBox.cy || 0) + 16}
                           className="fill-muted-foreground text-xs"
                         >
-                          Total
+                          {t('common.total')}
                         </tspan>
                       </text>
                     )

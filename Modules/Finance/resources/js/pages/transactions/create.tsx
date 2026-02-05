@@ -1,6 +1,7 @@
 import { Link, useForm, router } from '@inertiajs/react'
 import { format } from 'date-fns'
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -43,6 +44,7 @@ interface ConversionPreview {
 }
 
 export default function CreateTransaction({ accounts, categories }: Props) {
+  const { t } = useTranslation()
   const { data, setData, post, processing, errors, transform, reset } = useForm({
     type: 'expense' as TransactionType,
     account_id: '',
@@ -150,7 +152,7 @@ export default function CreateTransaction({ accounts, categories }: Props) {
   }
 
   return (
-    <AuthenticatedLayout title="New Transaction">
+    <AuthenticatedLayout title={t('form.transaction.create')}>
       <Main>
         <div className="mb-4">
           <Link
@@ -158,15 +160,15 @@ export default function CreateTransaction({ accounts, categories }: Props) {
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Transactions
+            {t('action.back_to_transactions')}
           </Link>
         </div>
 
         <Card className="max-w-2xl">
           <CardHeader>
-            <CardTitle>New Transaction</CardTitle>
+            <CardTitle>{t('form.transaction.create')}</CardTitle>
             <CardDescription>
-              Record a new financial transaction
+              {t('form.transaction.create_description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -178,25 +180,25 @@ export default function CreateTransaction({ accounts, categories }: Props) {
                     value="expense"
                     className="data-[state=active]:bg-red-500 data-[state=active]:text-white data-[state=inactive]:text-red-600"
                   >
-                    Expense
+                    {t('transaction.expense')}
                   </TabsTrigger>
                   <TabsTrigger
                     value="income"
                     className="data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=inactive]:text-green-600"
                   >
-                    Income
+                    {t('transaction.income')}
                   </TabsTrigger>
                   <TabsTrigger
                     value="transfer"
                     className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=inactive]:text-blue-600"
                   >
-                    Transfer
+                    {t('transaction.transfer')}
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
 
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount</Label>
+                <Label htmlFor="amount">{t('form.amount')}</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -204,7 +206,7 @@ export default function CreateTransaction({ accounts, categories }: Props) {
                   min="0"
                   value={data.amount}
                   onChange={(e) => setData('amount', e.target.value)}
-                  placeholder="0.00"
+                  placeholder={t('form.balance_placeholder')}
                   className="text-2xl font-bold h-14"
                 />
                 {errors.amount && (
@@ -214,14 +216,14 @@ export default function CreateTransaction({ accounts, categories }: Props) {
 
               <div className="space-y-2">
                 <Label htmlFor="account_id">
-                  {data.type === 'transfer' ? 'From Account' : 'Account'}
+                  {data.type === 'transfer' ? t('form.from_account') : t('form.account')}
                 </Label>
                 <Select
                   value={data.account_id}
                   onValueChange={(value) => setData('account_id', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select account" />
+                    <SelectValue placeholder={t('form.select_account')} />
                   </SelectTrigger>
                   <SelectContent>
                     {accounts.filter(a => a.is_active).map((account) => (
@@ -239,13 +241,13 @@ export default function CreateTransaction({ accounts, categories }: Props) {
               {data.type === 'transfer' && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="transfer_account_id">To Account</Label>
+                    <Label htmlFor="transfer_account_id">{t('form.to_account')}</Label>
                     <Select
                       value={data.transfer_account_id}
                       onValueChange={(value) => setData('transfer_account_id', value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select destination account" />
+                        <SelectValue placeholder={t('form.select_destination_account')} />
                       </SelectTrigger>
                       <SelectContent>
                         {accounts
@@ -267,7 +269,7 @@ export default function CreateTransaction({ accounts, categories }: Props) {
                     <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/30 p-4">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                         <RefreshCw className={`h-4 w-4 ${loadingPreview ? 'animate-spin' : ''}`} />
-                        <span>Currency Conversion</span>
+                        <span>{t('form.currency_conversion')}</span>
                       </div>
                       {conversionPreview.error ? (
                         <p className="text-sm text-red-600">{conversionPreview.error}</p>
@@ -295,13 +297,13 @@ export default function CreateTransaction({ accounts, categories }: Props) {
 
               {data.type !== 'transfer' && (
                 <div className="space-y-2">
-                  <Label htmlFor="category_id">Category</Label>
+                  <Label htmlFor="category_id">{t('form.category')}</Label>
                   <Select
                     value={data.category_id}
                     onValueChange={(value) => setData('category_id', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue placeholder={t('form.select_category')} />
                     </SelectTrigger>
                     <SelectContent>
                       {currentCategories.map((category) => (
@@ -318,11 +320,11 @@ export default function CreateTransaction({ accounts, categories }: Props) {
               )}
 
               <div className="space-y-2">
-                <Label>Date</Label>
+                <Label>{t('form.date')}</Label>
                 <DatePicker
                   value={data.transaction_date}
                   onChange={(date) => setData('transaction_date', date ? format(date, 'yyyy-MM-dd') : '')}
-                  placeholder="Select date"
+                  placeholder={t('filter.select_date')}
                 />
                 {errors.transaction_date && (
                   <p className="text-sm text-red-600">{errors.transaction_date}</p>
@@ -330,12 +332,12 @@ export default function CreateTransaction({ accounts, categories }: Props) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t('form.description')}</Label>
                 <Input
                   id="description"
                   value={data.description}
                   onChange={(e) => setData('description', e.target.value)}
-                  placeholder="e.g., Grocery shopping"
+                  placeholder={t('form.description_placeholder_transaction')}
                 />
                 {errors.description && (
                   <p className="text-sm text-red-600">{errors.description}</p>
@@ -343,12 +345,12 @@ export default function CreateTransaction({ accounts, categories }: Props) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Label htmlFor="notes">{t('form.notes_optional')}</Label>
                 <Textarea
                   id="notes"
                   value={data.notes}
                   onChange={(e) => setData('notes', e.target.value)}
-                  placeholder="Additional notes..."
+                  placeholder={t('form.additional_notes')}
                   rows={2}
                 />
               </div>
@@ -360,10 +362,10 @@ export default function CreateTransaction({ accounts, categories }: Props) {
                   onClick={() => router.visit(route('dashboard.finance.transactions.index'))}
                   disabled={processing}
                 >
-                  Cancel
+                  {t('action.cancel')}
                 </Button>
                 <Button type="submit" disabled={processing}>
-                  {processing ? 'Saving...' : 'Save Transaction'}
+                  {processing ? t('common.saving') : t('form.save_transaction')}
                 </Button>
               </div>
             </form>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { Header } from '@/components/layout/header'
 import { TopNav } from '@/components/layout/top-nav'
@@ -6,6 +7,7 @@ import { Search } from '@/components/search'
 import { Head, usePage } from '@inertiajs/react'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { LanguageSwitcher } from '@/components/language-switcher'
 import { Separator } from '@/components/ui/separator'
 import SidebarNav from '@/pages/settings/components/sidebar-nav'
 import { Main } from '@/components/layout'
@@ -13,36 +15,23 @@ import { settingsNavItems } from '@/pages/settings/data/nav-items'
 import { usePermission } from '@/hooks/use-permission'
 import { PageProps } from '@/types'
 
-const topNav = [
-  {
-    title: 'Overview',
-    href: '/dashboard',
-    isActive: true,
-    disabled: false,
-  },
-  {
-    title: 'Customers',
-    href: '/dashboard/users',
-    isActive: false,
-    disabled: true,
-  },
-  {
-    title: 'Products',
-    href: '/dashboard/products',
-    isActive: false,
-    disabled: true,
-  },
-  {
-    title: 'Settings',
-    href: '/dashboard/settings',
-    isActive: false,
-    disabled: true,
-  },
-]
-
 export function SettingLayout({ children, title }: { children: React.ReactNode; title?: string }) {
+  const { t } = useTranslation()
   const { isSuperAdmin } = usePermission()
-  const { enabledModules } = usePage<PageProps>().props
+  const { url, props: { enabledModules } } = usePage<PageProps>()
+
+  const navItems = [
+    { title: t('nav.accounts'), href: '/dashboard/finance/accounts' },
+    { title: t('nav.transactions'), href: '/dashboard/finance/transactions' },
+    { title: t('nav.smart_input'), href: '/dashboard/finance/smart-input' },
+    { title: t('nav.settings'), href: '/dashboard/settings' },
+  ]
+
+  const topNav = navItems.map(item => ({
+    ...item,
+    isActive: url.startsWith(item.href),
+    disabled: false,
+  }))
 
   const filteredNavItems = settingsNavItems.filter(item => {
     if (item.superAdminOnly && !isSuperAdmin()) {
@@ -71,6 +60,7 @@ export function SettingLayout({ children, title }: { children: React.ReactNode; 
             <TopNav links={topNav} />
             <div className='ml-auto flex items-center space-x-4'>
               <Search />
+              <LanguageSwitcher />
               <ThemeSwitch />
               <ProfileDropdown />
             </div>
@@ -79,10 +69,10 @@ export function SettingLayout({ children, title }: { children: React.ReactNode; 
           <Main fixed>
             <div className='space-y-0.5'>
               <h1 className='text-2xl font-bold tracking-tight md:text-3xl'>
-                Settings
+                {t('settings.title')}
               </h1>
               <p className='text-muted-foreground'>
-                Manage your account settings and set e-mail preferences.
+                {t('settings.description')}
               </p>
             </div>
             <Separator className='my-4 lg:my-6' />

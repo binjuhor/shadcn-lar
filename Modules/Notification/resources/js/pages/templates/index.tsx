@@ -49,6 +49,7 @@ import { router } from '@inertiajs/react'
 import { useToast } from '@/hooks/use-toast'
 import { NotificationTemplate, NotificationTemplateFilters, NotificationCategory } from '@/types/notification'
 import { PageProps } from '@/types'
+import { useTranslation } from 'react-i18next'
 
 interface TemplatesPageProps extends PageProps {
   templates: {
@@ -67,6 +68,7 @@ export default function TemplatesIndex({
   filters: initialFilters,
   categories,
 }: TemplatesPageProps) {
+  const { t } = useTranslation()
   const [filters, setFilters] = useState<NotificationTemplateFilters>(initialFilters)
   const [searchTerm, setSearchTerm] = useState(initialFilters.search || '')
   const { toast } = useToast()
@@ -89,14 +91,14 @@ export default function TemplatesIndex({
   }
 
   const handleDelete = (template: NotificationTemplate) => {
-    if (!confirm(`Are you sure you want to delete "${template.name}"?`)) return
+    if (!confirm(t('page.notifications.templates.confirm_delete', { name: template.name }))) return
 
     router.delete(route('dashboard.notifications.templates.destroy', template.id), {
       onSuccess: () => {
-        toast({ title: 'Template deleted successfully!' })
+        toast({ title: t('common.messages.delete_success') })
       },
       onError: () => {
-        toast({ variant: 'destructive', title: 'Failed to delete template.' })
+        toast({ variant: 'destructive', title: t('common.messages.delete_failed') })
       },
     })
   }
@@ -109,7 +111,9 @@ export default function TemplatesIndex({
         preserveState: true,
         onSuccess: () => {
           toast({
-            title: template.is_active ? 'Template deactivated.' : 'Template activated.',
+            title: template.is_active
+              ? t('page.notifications.templates.deactivated')
+              : t('page.notifications.templates.activated'),
           })
           router.reload()
         },
@@ -144,16 +148,16 @@ export default function TemplatesIndex({
   }
 
   return (
-    <AuthenticatedLayout title='Notification Templates'>
+    <AuthenticatedLayout title={t('page.notifications.templates.title')}>
       <Main>
         <div className='grid flex-1 items-start gap-4 md:gap-8'>
           <Card>
             <CardHeader>
               <div className='flex items-center justify-between'>
                 <div>
-                  <CardTitle>Notification Templates</CardTitle>
+                  <CardTitle>{t('page.notifications.templates.title')}</CardTitle>
                   <CardDescription>
-                    Manage reusable notification templates for sending to users.
+                    {t('page.notifications.templates.description')}
                   </CardDescription>
                 </div>
                 <Button
@@ -162,14 +166,14 @@ export default function TemplatesIndex({
                   onClick={() => router.get(route('dashboard.notifications.templates.create'))}
                 >
                   <PlusCircle className='h-3.5 w-3.5' />
-                  <span>Add Template</span>
+                  <span>{t('page.notifications.templates.add_template')}</span>
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               <div className='flex items-center gap-4 mb-4'>
                 <Input
-                  placeholder='Search templates...'
+                  placeholder={t('page.notifications.templates.search_placeholder')}
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
                   className='max-w-sm'
@@ -178,17 +182,17 @@ export default function TemplatesIndex({
                   <DropdownMenuTrigger asChild>
                     <Button variant='outline' size='sm' className='h-8 gap-1'>
                       <ListFilter className='h-3.5 w-3.5' />
-                      <span>Filter</span>
+                      <span>{t('common.actions.filter')}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align='end' className='w-48'>
-                    <DropdownMenuLabel>Category</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t('common.fields.category')}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuCheckboxItem
                       checked={!filters.category}
                       onCheckedChange={() => handleFilterChange({ category: undefined })}
                     >
-                      All Categories
+                      {t('page.notifications.templates.all_categories')}
                     </DropdownMenuCheckboxItem>
                     {categories.map((cat) => (
                       <DropdownMenuCheckboxItem
@@ -204,13 +208,13 @@ export default function TemplatesIndex({
                       </DropdownMenuCheckboxItem>
                     ))}
                     <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Status</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t('common.fields.status')}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuCheckboxItem
                       checked={!filters.status}
                       onCheckedChange={() => handleFilterChange({ status: undefined })}
                     >
-                      All
+                      {t('page.notifications.templates.all')}
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={filters.status === 'active'}
@@ -220,7 +224,7 @@ export default function TemplatesIndex({
                         })
                       }
                     >
-                      Active
+                      {t('common.statuses.active')}
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={filters.status === 'inactive'}
@@ -230,7 +234,7 @@ export default function TemplatesIndex({
                         })
                       }
                     >
-                      Inactive
+                      {t('common.statuses.inactive')}
                     </DropdownMenuCheckboxItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -239,13 +243,13 @@ export default function TemplatesIndex({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Channels</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t('common.fields.name')}</TableHead>
+                    <TableHead>{t('page.notifications.templates.subject')}</TableHead>
+                    <TableHead>{t('common.fields.category')}</TableHead>
+                    <TableHead>{t('page.notifications.templates.channels')}</TableHead>
+                    <TableHead>{t('common.fields.status')}</TableHead>
                     <TableHead>
-                      <span className='sr-only'>Actions</span>
+                      <span className='sr-only'>{t('common.actions.actions')}</span>
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -253,7 +257,7 @@ export default function TemplatesIndex({
                   {templates.data.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className='text-center py-8 text-muted-foreground'>
-                        No templates found.
+                        {t('page.notifications.templates.empty')}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -275,9 +279,9 @@ export default function TemplatesIndex({
                         </TableCell>
                         <TableCell>
                           {template.is_active ? (
-                            <Badge className='bg-green-500'>Active</Badge>
+                            <Badge className='bg-green-500'>{t('common.statuses.active')}</Badge>
                           ) : (
-                            <Badge variant='secondary'>Inactive</Badge>
+                            <Badge variant='secondary'>{t('common.statuses.inactive')}</Badge>
                           )}
                         </TableCell>
                         <TableCell>
@@ -288,7 +292,7 @@ export default function TemplatesIndex({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align='end'>
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuLabel>{t('common.actions.actions')}</DropdownMenuLabel>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() =>
@@ -296,11 +300,11 @@ export default function TemplatesIndex({
                                 }
                               >
                                 <Edit className='mr-2 h-4 w-4' />
-                                Edit
+                                {t('common.actions.edit')}
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleToggleStatus(template)}>
                                 <Power className='mr-2 h-4 w-4' />
-                                {template.is_active ? 'Deactivate' : 'Activate'}
+                                {template.is_active ? t('page.notifications.templates.deactivate') : t('page.notifications.templates.activate')}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -308,7 +312,7 @@ export default function TemplatesIndex({
                                 onClick={() => handleDelete(template)}
                               >
                                 <Trash2 className='mr-2 h-4 w-4' />
-                                Delete
+                                {t('common.actions.delete')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -321,15 +325,14 @@ export default function TemplatesIndex({
             </CardContent>
             <CardFooter className='flex flex-col sm:flex-row items-center justify-between gap-4'>
               <div className='text-xs text-muted-foreground'>
-                Showing{' '}
-                <strong>
-                  {Math.min(
+                {t('page.notifications.templates.pagination.showing', {
+                  from: Math.min(
                     (templates.current_page - 1) * templates.per_page + 1,
                     templates.total
-                  )}
-                  -{Math.min(templates.current_page * templates.per_page, templates.total)}
-                </strong>{' '}
-                of <strong>{templates.total}</strong> templates
+                  ),
+                  to: Math.min(templates.current_page * templates.per_page, templates.total),
+                  total: templates.total
+                })}
               </div>
               {templates.last_page > 1 && (
                 <Pagination>

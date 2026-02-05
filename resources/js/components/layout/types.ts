@@ -14,6 +14,7 @@ interface Team {
 
 interface BaseNavItem {
   title: string
+  titleKey?: string
   badge?: string
   icon?: React.ElementType
   permission?: string | string[]
@@ -33,6 +34,7 @@ type NavItem = NavCollapsible | NavLink
 
 interface NavGroup {
   title: string
+  titleKey?: string
   items: NavItem[]
   collapsible?: boolean
   requiresModule?: string

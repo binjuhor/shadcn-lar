@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useForm } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -49,6 +50,7 @@ export function CategoryForm({
   parentCategories,
   onSuccess,
 }: CategoryFormProps) {
+  const { t } = useTranslation()
   const isEditing = !!category
 
   const getFormDefaults = () => ({
@@ -119,23 +121,23 @@ export function CategoryForm({
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>
-            {isEditing ? 'Edit Category' : 'Create Category'}
+            {isEditing ? t('form.category.edit') : t('form.category.create')}
           </SheetTitle>
           <SheetDescription>
             {isEditing
-              ? 'Update your category settings'
-              : 'Add a new category to organize transactions'}
+              ? t('form.category.edit_description')
+              : t('form.category.create_description')}
           </SheetDescription>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Category Name</Label>
+            <Label htmlFor="name">{t('form.category_name')}</Label>
             <Input
               id="name"
               value={data.name}
               onChange={(e) => setData('name', e.target.value)}
-              placeholder="e.g., Groceries"
+              placeholder={t('form.category_name_placeholder')}
             />
             {errors.name && (
               <p className="text-sm text-red-600">{errors.name}</p>
@@ -143,7 +145,7 @@ export function CategoryForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="type">Type</Label>
+            <Label htmlFor="type">{t('form.type')}</Label>
             <Select
               value={data.type}
               onValueChange={(value: 'income' | 'expense') => {
@@ -152,27 +154,27 @@ export function CategoryForm({
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select type" />
+                <SelectValue placeholder={t('form.select_type')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="income">Income</SelectItem>
-                <SelectItem value="expense">Expense</SelectItem>
+                <SelectItem value="income">{t('transaction.income')}</SelectItem>
+                <SelectItem value="expense">{t('transaction.expense')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {filteredParents.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="parent_id">Parent Category (Optional)</Label>
+              <Label htmlFor="parent_id">{t('form.parent_category_optional')}</Label>
               <Select
                 value={data.parent_id || '__none__'}
                 onValueChange={(value) => setData('parent_id', value === '__none__' ? '' : value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="No parent (top level)" />
+                  <SelectValue placeholder={t('form.no_parent')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">No parent (top level)</SelectItem>
+                  <SelectItem value="__none__">{t('form.no_parent')}</SelectItem>
                   {filteredParents.map((parent) => (
                     <SelectItem key={parent.id} value={String(parent.id)}>
                       {parent.name}
@@ -184,7 +186,7 @@ export function CategoryForm({
           )}
 
           <div className="space-y-2">
-            <Label>Icon</Label>
+            <Label>{t('form.icon')}</Label>
             <div className="flex gap-2 flex-wrap">
               {icons.map((icon) => (
                 <button
@@ -204,7 +206,7 @@ export function CategoryForm({
           </div>
 
           <div className="space-y-2">
-            <Label>Color</Label>
+            <Label>{t('form.color')}</Label>
             <div className="flex gap-2 flex-wrap">
               {colors.map((color) => (
                 <button
@@ -224,9 +226,9 @@ export function CategoryForm({
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="is_active">Active</Label>
+              <Label htmlFor="is_active">{t('form.is_active')}</Label>
               <p className="text-xs text-muted-foreground">
-                Inactive categories won't appear in selection
+                {t('form.category_is_active_description')}
               </p>
             </div>
             <Switch
@@ -239,9 +241,9 @@ export function CategoryForm({
           {data.type === 'income' && (
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="is_passive">Passive Income</Label>
+                <Label htmlFor="is_passive">{t('form.passive_income')}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Income generated without active work (investments, dividends, etc.)
+                  {t('form.passive_income_description')}
                 </p>
               </div>
               <Switch
@@ -254,23 +256,23 @@ export function CategoryForm({
 
           {data.type === 'expense' && (
             <div className="space-y-2">
-              <Label htmlFor="expense_type">Expense Type</Label>
+              <Label htmlFor="expense_type">{t('form.expense_type')}</Label>
               <Select
                 value={data.expense_type || '__none__'}
                 onValueChange={(value) => setData('expense_type', value === '__none__' ? '' : value as ExpenseType)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select expense type" />
+                  <SelectValue placeholder={t('form.select_expense_type')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">Not specified</SelectItem>
-                  <SelectItem value="essential">Essential (Needs)</SelectItem>
-                  <SelectItem value="discretionary">Discretionary (Wants)</SelectItem>
-                  <SelectItem value="savings">Savings (Goals)</SelectItem>
+                  <SelectItem value="__none__">{t('form.not_specified')}</SelectItem>
+                  <SelectItem value="essential">{t('form.expense_type_essential')}</SelectItem>
+                  <SelectItem value="discretionary">{t('form.expense_type_discretionary')}</SelectItem>
+                  <SelectItem value="savings">{t('form.expense_type_savings')}</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Used to track financial freedom progress
+                {t('form.expense_type_description')}
               </p>
             </div>
           )}
@@ -282,14 +284,14 @@ export function CategoryForm({
               onClick={handleClose}
               disabled={processing}
             >
-              Cancel
+              {t('action.cancel')}
             </Button>
             <Button type="submit" disabled={processing}>
               {processing
-                ? 'Saving...'
+                ? t('common.saving')
                 : isEditing
-                  ? 'Update Category'
-                  : 'Create Category'}
+                  ? t('form.update_category_button')
+                  : t('form.create_category_button')}
             </Button>
           </SheetFooter>
         </form>

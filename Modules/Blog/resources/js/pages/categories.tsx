@@ -6,6 +6,7 @@ import {
   Trash2,
   Loader2,
 } from "lucide-react"
+import { useTranslation } from 'react-i18next'
 
 import {Button} from "@/components/ui/button"
 import {
@@ -79,6 +80,7 @@ const initialFormData: BlogCategoryFormData = {
 }
 
 export default function BlogCategories({ categories }: BlogCategoriesPageProps) {
+  const { t } = useTranslation()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<BlogCategory | null>(null)
@@ -99,8 +101,8 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
   const handleCreateCategory = async () => {
     if (!formData.name.trim()) {
       toast({
-        title: "Error",
-        description: "Category name is required",
+        title: t('common.messages.error'),
+        description: t('page.blog.categories.toast.name_required'),
         variant: "destructive",
       })
       return
@@ -111,8 +113,8 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
       await axios.post('/dashboard/categories', formData)
 
       toast({
-        title: "Success",
-        description: "Category created successfully",
+        title: t('common.messages.create_success'),
+        description: t('page.blog.categories.toast.created'),
       })
 
       setFormData(initialFormData)
@@ -120,7 +122,7 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
       router.reload()
     } catch (error) {
       toast({
-        title: "Error",
+        title: t('common.messages.error'),
         description: getErrorMessage(error),
         variant: "destructive",
       })
@@ -148,8 +150,8 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
   const handleUpdateCategory = async () => {
     if (!editingCategory || !formData.name.trim()) {
       toast({
-        title: "Error",
-        description: "Category name is required",
+        title: t('common.messages.error'),
+        description: t('page.blog.categories.toast.name_required'),
         variant: "destructive",
       })
       return
@@ -160,8 +162,8 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
       await axios.put(`/dashboard/categories/${editingCategory.slug}`, formData)
 
       toast({
-        title: "Success",
-        description: "Category updated successfully",
+        title: t('common.messages.update_success'),
+        description: t('page.blog.categories.toast.updated'),
       })
 
       setFormData(initialFormData)
@@ -170,7 +172,7 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
       router.reload()
     } catch (error) {
       toast({
-        title: "Error",
+        title: t('common.messages.error'),
         description: getErrorMessage(error),
         variant: "destructive",
       })
@@ -180,7 +182,7 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
   }
 
   const handleDeleteCategory = async (category: BlogCategory) => {
-    if (!confirm("Are you sure you want to delete this category?")) {
+    if (!confirm(t('page.blog.categories.toast.delete_confirm'))) {
       return
     }
 
@@ -189,14 +191,14 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
       await axios.delete(`/dashboard/categories/${category.slug}`)
 
       toast({
-        title: "Success",
-        description: "Category deleted successfully",
+        title: t('common.messages.delete_success'),
+        description: t('page.blog.categories.toast.deleted'),
       })
 
       router.reload()
     } catch (error) {
       toast({
-        title: "Error",
+        title: t('common.messages.error'),
         description: getErrorMessage(error),
         variant: "destructive",
       })
@@ -226,7 +228,7 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
 
   return (
     <>
-      <AuthenticatedLayout title="Blog Categories">
+      <AuthenticatedLayout title={t('page.blog.categories.title')}>
         <Main>
           <div className="grid flex-1 items-start gap-4 md:gap-8">
             <div className="flex items-center">
@@ -236,30 +238,30 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                     <Button size="sm" className="h-7 gap-1">
                       <PlusCircle className="h-3.5 w-3.5" />
                       <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Add Category
+                        {t('page.blog.categories.add_category')}
                       </span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>Create Category</DialogTitle>
+                      <DialogTitle>{t('page.blog.categories.create.title')}</DialogTitle>
                       <DialogDescription>
-                        Add a new category for organizing your blog posts.
+                        {t('page.blog.categories.create.description')}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="create-name">Name *</Label>
+                        <Label htmlFor="create-name">{t('page.blog.categories.form.name')} *</Label>
                         <Input
                           id="create-name"
                           value={formData.name}
                           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="Category name"
+                          placeholder={t('page.blog.categories.form.name_placeholder')}
                         />
                       </div>
                       <div className="grid gap-2">
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="create-slug">Slug (URL)</Label>
+                          <Label htmlFor="create-slug">{t('page.blog.categories.form.slug')}</Label>
                           <Button
                             type="button"
                             variant="ghost"
@@ -267,34 +269,34 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                             onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(formData.name) }))}
                             className="h-7 text-xs"
                           >
-                            Auto-generate
+                            {t('page.blog.categories.form.auto_generate')}
                           </Button>
                         </div>
                         <Input
                           id="create-slug"
                           type="text"
                           className="w-full font-mono text-sm"
-                          placeholder="category-url-slug"
+                          placeholder={t('page.blog.categories.form.slug_placeholder')}
                           value={formData.slug}
                           onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
                         />
                         <p className="text-xs text-muted-foreground">
-                          URL: /categories/{formData.slug || 'your-category-slug'}
+                          {t('page.blog.categories.form.url_preview', { slug: formData.slug || 'your-category-slug' })}
                         </p>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="create-description">Description</Label>
+                        <Label htmlFor="create-description">{t('common.fields.description')}</Label>
                         <Textarea
                           id="create-description"
                           value={formData.description}
                           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Brief description of the category"
+                          placeholder={t('page.blog.categories.form.description_placeholder')}
                           rows={3}
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
-                          <Label htmlFor="create-color">Color</Label>
+                          <Label htmlFor="create-color">{t('common.fields.color')}</Label>
                           <Input
                             id="create-color"
                             type="color"
@@ -303,17 +305,17 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                           />
                         </div>
                         <div className="grid gap-2">
-                          <Label htmlFor="create-icon">Icon</Label>
+                          <Label htmlFor="create-icon">{t('page.blog.categories.form.icon')}</Label>
                           <Input
                             id="create-icon"
                             value={formData.icon}
                             onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
-                            placeholder="Icon name"
+                            placeholder={t('page.blog.categories.form.icon_placeholder')}
                           />
                         </div>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="create-parent">Parent Category</Label>
+                        <Label htmlFor="create-parent">{t('page.blog.categories.form.parent_category')}</Label>
                         <Select
                           value={formData.parent_id?.toString() || "none"}
                           onValueChange={(value) => setFormData(prev => ({
@@ -322,10 +324,10 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                           }))}
                         >
                           <SelectTrigger id="create-parent">
-                            <SelectValue placeholder="Select parent category" />
+                            <SelectValue placeholder={t('page.blog.categories.form.select_parent')} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">None (Top Level)</SelectItem>
+                            <SelectItem value="none">{t('page.blog.categories.form.none_top_level')}</SelectItem>
                             {getAvailableParentCategories().map((cat) => (
                               <SelectItem key={cat.id} value={cat.id.toString()}>
                                 {cat.name}
@@ -335,7 +337,7 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                         </Select>
                       </div>
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="create-active">Active</Label>
+                        <Label htmlFor="create-active">{t('common.fields.active')}</Label>
                         <Switch
                           id="create-active"
                           checked={formData.is_active}
@@ -343,21 +345,21 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="create-meta-title">Meta Title</Label>
+                        <Label htmlFor="create-meta-title">{t('page.blog.categories.form.meta_title')}</Label>
                         <Input
                           id="create-meta-title"
                           value={formData.meta_title}
                           onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
-                          placeholder="SEO meta title"
+                          placeholder={t('page.blog.categories.form.meta_title_placeholder')}
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="create-meta-description">Meta Description</Label>
+                        <Label htmlFor="create-meta-description">{t('page.blog.categories.form.meta_description')}</Label>
                         <Textarea
                           id="create-meta-description"
                           value={formData.meta_description}
                           onChange={(e) => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
-                          placeholder="SEO meta description"
+                          placeholder={t('page.blog.categories.form.meta_description_placeholder')}
                           rows={2}
                         />
                       </div>
@@ -372,7 +374,7 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                         }}
                         disabled={isLoading}
                       >
-                        Cancel
+                        {t('common.actions.cancel')}
                       </Button>
                       <Button
                         type="submit"
@@ -380,7 +382,7 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                         disabled={!formData.name.trim() || isLoading}
                       >
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Create Category
+                        {t('page.blog.categories.create.submit')}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -390,22 +392,22 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
 
             <Card>
               <CardHeader>
-                <CardTitle>Blog Categories</CardTitle>
+                <CardTitle>{t('page.blog.categories.title')}</CardTitle>
                 <CardDescription>
-                  Manage categories for organizing your blog posts.
+                  {t('page.blog.categories.description')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Slug</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="hidden md:table-cell">Created</TableHead>
+                      <TableHead>{t('common.fields.name')}</TableHead>
+                      <TableHead>{t('common.fields.slug')}</TableHead>
+                      <TableHead>{t('common.fields.description')}</TableHead>
+                      <TableHead>{t('common.fields.status')}</TableHead>
+                      <TableHead className="hidden md:table-cell">{t('page.blog.categories.table.created')}</TableHead>
                       <TableHead>
-                        <span className="sr-only">Actions</span>
+                        <span className="sr-only">{t('common.actions.actions')}</span>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -419,16 +421,16 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                           {category.slug}
                         </TableCell>
                         <TableCell>
-                          {category.description || "No description"}
+                          {category.description || t('page.blog.categories.table.no_description')}
                         </TableCell>
                         <TableCell>
                           {category.is_active ? (
                             <Badge variant="default">
-                              Active
+                              {t('common.statuses.active')}
                             </Badge>
                           ) : (
                             <Badge variant="secondary">
-                              Inactive
+                              {t('common.statuses.inactive')}
                             </Badge>
                           )}
                         </TableCell>
@@ -444,15 +446,15 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                                 variant="ghost"
                               >
                                 <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Toggle menu</span>
+                                <span className="sr-only">{t('page.blog.categories.table.toggle_menu')}</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuLabel>{t('common.actions.actions')}</DropdownMenuLabel>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleEditCategory(category)}>
                                 <Edit className="mr-2 h-4 w-4" />
-                                Edit
+                                {t('common.actions.edit')}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -460,7 +462,7 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                                 onClick={() => handleDeleteCategory(category)}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                                {t('common.actions.delete')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -472,7 +474,7 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
               </CardContent>
               <CardFooter>
                 <div className="text-xs text-muted-foreground">
-                  Showing <strong>{categories.length}</strong> categories
+                  {t('page.blog.categories.table.showing')} <strong>{categories.length}</strong> {t('page.blog.categories.table.categories')}
                 </div>
               </CardFooter>
             </Card>
@@ -480,24 +482,24 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
               <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Edit Category</DialogTitle>
+                  <DialogTitle>{t('page.blog.categories.edit.title')}</DialogTitle>
                   <DialogDescription>
-                    Update the category information.
+                    {t('page.blog.categories.edit.description')}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-name">Name *</Label>
+                    <Label htmlFor="edit-name">{t('page.blog.categories.form.name')} *</Label>
                     <Input
                       id="edit-name"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Category name"
+                      placeholder={t('page.blog.categories.form.name_placeholder')}
                     />
                   </div>
                   <div className="grid gap-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="edit-slug">Slug (URL)</Label>
+                      <Label htmlFor="edit-slug">{t('page.blog.categories.form.slug')}</Label>
                       <Button
                         type="button"
                         variant="ghost"
@@ -505,34 +507,34 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                         onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(formData.name) }))}
                         className="h-7 text-xs"
                       >
-                        Auto-generate
+                        {t('page.blog.categories.form.auto_generate')}
                       </Button>
                     </div>
                     <Input
                       id="edit-slug"
                       type="text"
                       className="w-full font-mono text-sm"
-                      placeholder="category-url-slug"
+                      placeholder={t('page.blog.categories.form.slug_placeholder')}
                       value={formData.slug}
                       onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
                     />
                     <p className="text-xs text-muted-foreground">
-                      URL: /categories/{formData.slug || 'your-category-slug'}
+                      {t('page.blog.categories.form.url_preview', { slug: formData.slug || 'your-category-slug' })}
                     </p>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-description">Description</Label>
+                    <Label htmlFor="edit-description">{t('common.fields.description')}</Label>
                     <Textarea
                       id="edit-description"
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Brief description of the category"
+                      placeholder={t('page.blog.categories.form.description_placeholder')}
                       rows={3}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="edit-color">Color</Label>
+                      <Label htmlFor="edit-color">{t('common.fields.color')}</Label>
                       <Input
                         id="edit-color"
                         type="color"
@@ -541,17 +543,17 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="edit-icon">Icon</Label>
+                      <Label htmlFor="edit-icon">{t('page.blog.categories.form.icon')}</Label>
                       <Input
                         id="edit-icon"
                         value={formData.icon}
                         onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
-                        placeholder="Icon name"
+                        placeholder={t('page.blog.categories.form.icon_placeholder')}
                       />
                     </div>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-parent">Parent Category</Label>
+                    <Label htmlFor="edit-parent">{t('page.blog.categories.form.parent_category')}</Label>
                     <Select
                       value={formData.parent_id?.toString() || "none"}
                       onValueChange={(value) => setFormData(prev => ({
@@ -560,10 +562,10 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                       }))}
                     >
                       <SelectTrigger id="edit-parent">
-                        <SelectValue placeholder="Select parent category" />
+                        <SelectValue placeholder={t('page.blog.categories.form.select_parent')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">None (Top Level)</SelectItem>
+                        <SelectItem value="none">{t('page.blog.categories.form.none_top_level')}</SelectItem>
                         {getAvailableParentCategories().map((cat) => (
                           <SelectItem key={cat.id} value={cat.id.toString()}>
                             {cat.name}
@@ -573,7 +575,7 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                     </Select>
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="edit-active">Active</Label>
+                    <Label htmlFor="edit-active">{t('common.fields.active')}</Label>
                     <Switch
                       id="edit-active"
                       checked={formData.is_active}
@@ -581,21 +583,21 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-meta-title">Meta Title</Label>
+                    <Label htmlFor="edit-meta-title">{t('page.blog.categories.form.meta_title')}</Label>
                     <Input
                       id="edit-meta-title"
                       value={formData.meta_title}
                       onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
-                      placeholder="SEO meta title"
+                      placeholder={t('page.blog.categories.form.meta_title_placeholder')}
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-meta-description">Meta Description</Label>
+                    <Label htmlFor="edit-meta-description">{t('page.blog.categories.form.meta_description')}</Label>
                     <Textarea
                       id="edit-meta-description"
                       value={formData.meta_description}
                       onChange={(e) => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
-                      placeholder="SEO meta description"
+                      placeholder={t('page.blog.categories.form.meta_description_placeholder')}
                       rows={2}
                     />
                   </div>
@@ -611,7 +613,7 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                     }}
                     disabled={isLoading}
                   >
-                    Cancel
+                    {t('common.actions.cancel')}
                   </Button>
                   <Button
                     type="submit"
@@ -619,7 +621,7 @@ export default function BlogCategories({ categories }: BlogCategoriesPageProps) 
                     disabled={!formData.name.trim() || isLoading}
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Update Category
+                    {t('page.blog.categories.edit.submit')}
                   </Button>
                 </DialogFooter>
               </DialogContent>

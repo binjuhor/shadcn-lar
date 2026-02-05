@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { router } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import {
   Dialog,
@@ -39,6 +40,8 @@ export function BulkEditDialog({
   categories,
   onSuccess,
 }: BulkEditDialogProps) {
+  const { t } = useTranslation()
+  const [transactionType, setTransactionType] = useState<string>('')
   const [accountId, setAccountId] = useState<string>('')
   const [categoryId, setCategoryId] = useState<string>('')
   const [transactionDate, setTransactionDate] = useState<string>('')
@@ -51,6 +54,7 @@ export function BulkEditDialog({
 
     const data: {
       transaction_ids: number[]
+      transaction_type?: string
       account_id?: number
       category_id?: number
       transaction_date?: string
@@ -58,6 +62,9 @@ export function BulkEditDialog({
       transaction_ids: selectedIds,
     }
 
+    if (transactionType && transactionType !== 'none') {
+      data.transaction_type = transactionType
+    }
     if (accountId && accountId !== 'none') {
       data.account_id = parseInt(accountId)
     }
@@ -82,6 +89,7 @@ export function BulkEditDialog({
   }
 
   const resetForm = () => {
+    setTransactionType('')
     setAccountId('')
     setCategoryId('')
     setTransactionDate('')
@@ -95,7 +103,8 @@ export function BulkEditDialog({
   }
 
   const hasChanges = () => {
-    return (accountId && accountId !== 'none') ||
+    return (transactionType && transactionType !== 'none') ||
+           (accountId && accountId !== 'none') ||
            (categoryId && categoryId !== 'none') ||
            transactionDate
   }
@@ -104,22 +113,35 @@ export function BulkEditDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Bulk Edit Transactions</DialogTitle>
+          <DialogTitle>{t('bulk.edit_title')}</DialogTitle>
           <DialogDescription>
-            Update {selectedIds.length} selected transaction{selectedIds.length !== 1 ? 's' : ''}.
-            Leave fields empty to keep their current values.
+            {t('bulk.edit_description', { count: selectedIds.length })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Account</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
+            <Label>{t('form.type')}</Label>
+            <Select value={transactionType} onValueChange={setTransactionType}>
               <SelectTrigger>
-                <SelectValue placeholder="Keep current account" />
+                <SelectValue placeholder={t('bulk.keep_current_type')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Keep current account</SelectItem>
+                <SelectItem value="none">{t('bulk.keep_current_type')}</SelectItem>
+                <SelectItem value="expense">{t('transaction.expense')}</SelectItem>
+                <SelectItem value="income">{t('transaction.income')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>{t('form.account')}</Label>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger>
+                <SelectValue placeholder={t('bulk.keep_current_account')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t('bulk.keep_current_account')}</SelectItem>
                 {accounts.map((account) => (
                   <SelectItem key={account.id} value={String(account.id)}>
                     {account.name}
@@ -130,13 +152,13 @@ export function BulkEditDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Category</Label>
+            <Label>{t('form.category')}</Label>
             <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger>
-                <SelectValue placeholder="Keep current category" />
+                <SelectValue placeholder={t('bulk.keep_current_category')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Keep current category</SelectItem>
+                <SelectItem value="none">{t('bulk.keep_current_category')}</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={String(category.id)}>
                     {category.name}
@@ -147,26 +169,26 @@ export function BulkEditDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Transaction Date</Label>
+            <Label>{t('form.date')}</Label>
             <DatePicker
               value={transactionDate}
               onChange={(date) => setTransactionDate(date ? format(date, 'yyyy-MM-dd') : '')}
-              placeholder="Keep current date"
+              placeholder={t('bulk.keep_current_date')}
             />
           </div>
 
           <p className="text-sm text-muted-foreground">
-            Note: Transfer transactions will be skipped automatically.
+            {t('bulk.transfer_skip_note')}
           </p>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleClose(false)}>
-            Cancel
+            {t('action.cancel')}
           </Button>
           <Button onClick={handleSubmit} disabled={!hasChanges() || isSubmitting}>
             <Pencil className="mr-2 h-4 w-4" />
-            {isSubmitting ? 'Updating...' : 'Update Selected'}
+            {isSubmitting ? t('common.updating') : t('bulk.update_selected')}
           </Button>
         </DialogFooter>
       </DialogContent>

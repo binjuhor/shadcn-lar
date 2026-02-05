@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -44,14 +45,14 @@ const accountTypeIcons: Record<AccountType, React.ElementType> = {
   other: HelpCircle,
 }
 
-const accountTypeLabels: Record<AccountType, string> = {
-  bank: 'Bank',
-  credit_card: 'Credit Card',
-  investment: 'Investment',
-  cash: 'Cash',
-  e_wallet: 'E-Wallet',
-  loan: 'Loan',
-  other: 'Other',
+const accountTypeLabelsMap: Record<AccountType, string> = {
+  bank: 'account_type.bank',
+  credit_card: 'account_type.credit_card',
+  investment: 'account_type.investment',
+  cash: 'account_type.cash',
+  e_wallet: 'account_type.e_wallet',
+  loan: 'account_type.loan',
+  other: 'account_type.other',
 }
 
 function formatMoney(amount: number, currencyCode = 'VND'): string {
@@ -69,6 +70,7 @@ function getUtilizationColor(rate: number): string {
 }
 
 export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
+  const { t } = useTranslation()
   const Icon = accountTypeIcons[account.account_type] || Wallet
   const isNegative = account.balance < 0
   const hasCreditLimit = account.has_credit_limit
@@ -91,7 +93,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
           <div>
             <CardTitle className="text-base">{account.name}</CardTitle>
             <p className="text-xs text-muted-foreground">
-              {accountTypeLabels[account.account_type]}
+              {t(accountTypeLabelsMap[account.account_type])}
             </p>
           </div>
         </div>
@@ -104,7 +106,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onEdit(account)}>
               <Pencil className="mr-2 h-4 w-4" />
-              Edit
+              {t('action.edit')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -112,7 +114,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
               className="text-red-600"
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Delete
+              {t('action.delete')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -123,19 +125,19 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             {/* Credit/Loan account display */}
             <div className="space-y-1">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Credit Limit</span>
+                <span className="text-muted-foreground">{t('page.accounts.credit_limit')}</span>
                 <span className="font-medium">
                   {formatMoney(account.initial_balance, account.currency_code)}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Available</span>
+                <span className="text-muted-foreground">{t('page.accounts.available')}</span>
                 <span className="font-medium text-green-600">
                   {formatMoney(account.current_balance, account.currency_code)}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Amount Owed</span>
+                <span className="text-muted-foreground">{t('page.accounts.amount_owed')}</span>
                 <span className={`font-bold ${amountOwed > 0 ? 'text-red-600' : ''}`}>
                   {formatMoney(amountOwed, account.currency_code)}
                 </span>
@@ -144,7 +146,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             {/* Utilization bar */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Utilization</span>
+                <span>{t('page.accounts.utilization')}</span>
                 <span className={utilizationRate >= 70 ? 'text-red-600 font-medium' : ''}>
                   {utilizationRate}%
                 </span>
@@ -175,10 +177,10 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
       </CardContent>
       <CardFooter className="flex gap-2">
         {!account.is_active && (
-          <Badge variant="secondary">Inactive</Badge>
+          <Badge variant="secondary">{t('common.inactive')}</Badge>
         )}
         {account.exclude_from_total && (
-          <Badge variant="outline">Excluded from total</Badge>
+          <Badge variant="outline">{t('page.accounts.excluded_from_total')}</Badge>
         )}
       </CardFooter>
     </Card>

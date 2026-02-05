@@ -1,4 +1,5 @@
 import { ColumnDef } from '@tanstack/react-table'
+import { TFunction } from 'i18next'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -7,7 +8,7 @@ import { statusColors } from '../data/data'
 import { DataTableColumnHeader } from './data-table-column-header'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export const columns: ColumnDef<Invoice>[] = [
+export const getColumns = (t: TFunction): ColumnDef<Invoice>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -17,7 +18,7 @@ export const columns: ColumnDef<Invoice>[] = [
           (table.getIsSomePageRowsSelected() && 'indeterminate')
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label='Select all'
+        aria-label={t('page.invoice.table.select_all')}
         className='translate-y-[2px]'
       />
     ),
@@ -25,7 +26,7 @@ export const columns: ColumnDef<Invoice>[] = [
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label='Select row'
+        aria-label={t('page.invoice.table.select_row')}
         className='translate-y-[2px]'
       />
     ),
@@ -35,7 +36,7 @@ export const columns: ColumnDef<Invoice>[] = [
   {
     accessorKey: 'invoice_number',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Invoice #' />
+      <DataTableColumnHeader column={column} title={t('page.invoice.table.invoice_number')} />
     ),
     cell: ({ row }) => (
       <span className='font-medium'>{row.getValue('invoice_number')}</span>
@@ -45,7 +46,7 @@ export const columns: ColumnDef<Invoice>[] = [
   {
     accessorKey: 'to_name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Client' />
+      <DataTableColumnHeader column={column} title={t('page.invoice.table.client')} />
     ),
     cell: ({ row }) => (
       <div className='max-w-[200px] truncate'>{row.getValue('to_name')}</div>
@@ -54,7 +55,7 @@ export const columns: ColumnDef<Invoice>[] = [
   {
     accessorKey: 'invoice_date',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Date' />
+      <DataTableColumnHeader column={column} title={t('page.invoice.table.date')} />
     ),
     cell: ({ row }) => {
       const date = new Date(row.getValue('invoice_date'))
@@ -64,7 +65,7 @@ export const columns: ColumnDef<Invoice>[] = [
   {
     accessorKey: 'due_date',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Due Date' />
+      <DataTableColumnHeader column={column} title={t('page.invoice.table.due_date')} />
     ),
     cell: ({ row }) => {
       const date = new Date(row.getValue('due_date'))
@@ -74,7 +75,7 @@ export const columns: ColumnDef<Invoice>[] = [
   {
     accessorKey: 'total',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Total' />
+      <DataTableColumnHeader column={column} title={t('page.invoice.table.total')} />
     ),
     cell: ({ row }) => {
       const total = Number(row.getValue('total'))
@@ -84,7 +85,7 @@ export const columns: ColumnDef<Invoice>[] = [
   {
     accessorKey: 'status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Status' />
+      <DataTableColumnHeader column={column} title={t('common.fields.status')} />
     ),
     cell: ({ row }) => {
       const status = row.getValue('status') as InvoiceStatus

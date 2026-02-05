@@ -34,6 +34,7 @@ import { useToast } from '@/hooks/use-toast'
 import { NotificationCategory, NotificationChannel, NotificationTemplate } from '@/types/notification'
 import { PageProps } from '@/types'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface SendNotificationFormValues {
   recipient_type: 'users' | 'roles' | 'all'
@@ -62,6 +63,7 @@ export default function SendNotification({
   channels,
   roles,
 }: SendNotificationPageProps) {
+  const { t } = useTranslation()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [userSearch, setUserSearch] = useState('')
@@ -133,21 +135,21 @@ export default function SendNotification({
       const result = await response.json()
 
       if (response.ok) {
-        toast({ title: result.message || 'Notification sent successfully!' })
+        toast({ title: result.message || t('page.notifications.send.success') })
         form.reset()
         setSelectedUsers([])
       } else {
         toast({
           variant: 'destructive',
-          title: 'Error sending notification',
-          description: result.message || 'Something went wrong.',
+          title: t('common.messages.error'),
+          description: result.message || t('common.messages.something_went_wrong'),
         })
       }
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Error sending notification',
-        description: 'Network error. Please try again.',
+        title: t('common.messages.error'),
+        description: t('common.messages.network_error'),
       })
     } finally {
       setIsSubmitting(false)
@@ -155,14 +157,14 @@ export default function SendNotification({
   }
 
   return (
-    <AuthenticatedLayout title='Send Notification'>
+    <AuthenticatedLayout title={t('page.notifications.send.title')}>
       <Main>
         <div className='mx-auto max-w-2xl'>
           <Card>
             <CardHeader>
-              <CardTitle>Send Notification</CardTitle>
+              <CardTitle>{t('page.notifications.send.title')}</CardTitle>
               <CardDescription>
-                Send notifications to users, roles, or broadcast to everyone.
+                {t('page.notifications.send.description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -173,7 +175,7 @@ export default function SendNotification({
                     name='recipient_type'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Recipients</FormLabel>
+                        <FormLabel>{t('page.notifications.send.recipients')}</FormLabel>
                         <FormControl>
                           <RadioGroup
                             onValueChange={field.onChange}
@@ -184,19 +186,19 @@ export default function SendNotification({
                               <FormControl>
                                 <RadioGroupItem value='users' />
                               </FormControl>
-                              <FormLabel className='font-normal'>Specific Users</FormLabel>
+                              <FormLabel className='font-normal'>{t('page.notifications.send.specific_users')}</FormLabel>
                             </FormItem>
                             <FormItem className='flex items-center space-x-3 space-y-0'>
                               <FormControl>
                                 <RadioGroupItem value='roles' />
                               </FormControl>
-                              <FormLabel className='font-normal'>By Role</FormLabel>
+                              <FormLabel className='font-normal'>{t('page.notifications.send.by_role')}</FormLabel>
                             </FormItem>
                             <FormItem className='flex items-center space-x-3 space-y-0'>
                               <FormControl>
                                 <RadioGroupItem value='all' />
                               </FormControl>
-                              <FormLabel className='font-normal'>All Users (Broadcast)</FormLabel>
+                              <FormLabel className='font-normal'>{t('page.notifications.send.all_users')}</FormLabel>
                             </FormItem>
                           </RadioGroup>
                         </FormControl>
@@ -207,10 +209,10 @@ export default function SendNotification({
 
                   {recipientType === 'users' && (
                     <FormItem>
-                      <FormLabel>Select Users</FormLabel>
+                      <FormLabel>{t('page.notifications.send.select_users')}</FormLabel>
                       <div className='space-y-2'>
                         <Input
-                          placeholder='Search users by name or email...'
+                          placeholder={t('page.notifications.send.search_users_placeholder')}
                           value={userSearch}
                           onChange={(e) => {
                             setUserSearch(e.target.value)
@@ -260,7 +262,7 @@ export default function SendNotification({
                       name='role_ids'
                       render={() => (
                         <FormItem>
-                          <FormLabel>Select Roles</FormLabel>
+                          <FormLabel>{t('page.notifications.send.select_roles')}</FormLabel>
                           <div className='grid grid-cols-2 gap-4'>
                             {roles.map((role) => (
                               <FormField
@@ -297,9 +299,9 @@ export default function SendNotification({
                     render={({ field }) => (
                       <FormItem className='flex items-center justify-between rounded-lg border p-4'>
                         <div className='space-y-0.5'>
-                          <FormLabel className='text-base'>Use Template</FormLabel>
+                          <FormLabel className='text-base'>{t('page.notifications.send.use_template')}</FormLabel>
                           <FormDescription>
-                            Use a pre-defined template instead of custom content.
+                            {t('page.notifications.send.use_template_description')}
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -315,14 +317,14 @@ export default function SendNotification({
                       name='template_id'
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Template</FormLabel>
+                          <FormLabel>{t('page.notifications.send.template')}</FormLabel>
                           <Select
                             onValueChange={(value) => field.onChange(parseInt(value))}
                             defaultValue={field.value?.toString()}
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder='Select a template' />
+                                <SelectValue placeholder={t('page.notifications.send.select_template')} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -344,9 +346,9 @@ export default function SendNotification({
                         name='title'
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Title</FormLabel>
+                            <FormLabel>{t('common.fields.title')}</FormLabel>
                             <FormControl>
-                              <Input placeholder='Notification title' {...field} />
+                              <Input placeholder={t('page.notifications.send.title_placeholder')} {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -358,10 +360,10 @@ export default function SendNotification({
                         name='message'
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Message</FormLabel>
+                            <FormLabel>{t('common.fields.message')}</FormLabel>
                             <FormControl>
                               <Textarea
-                                placeholder='Notification message...'
+                                placeholder={t('page.notifications.send.message_placeholder')}
                                 rows={4}
                                 {...field}
                               />
@@ -376,11 +378,11 @@ export default function SendNotification({
                         name='category'
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Category</FormLabel>
+                            <FormLabel>{t('common.fields.category')}</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder='Select a category' />
+                                  <SelectValue placeholder={t('page.notifications.send.select_category')} />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -401,7 +403,7 @@ export default function SendNotification({
                         name='channels'
                         render={() => (
                           <FormItem>
-                            <FormLabel>Channels</FormLabel>
+                            <FormLabel>{t('page.notifications.send.channels')}</FormLabel>
                             <div className='grid grid-cols-2 gap-4'>
                               {channels.map((channel) => (
                                 <FormField
@@ -440,11 +442,11 @@ export default function SendNotification({
                     name='action_url'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Action URL (Optional)</FormLabel>
+                        <FormLabel>{t('page.notifications.send.action_url')}</FormLabel>
                         <FormControl>
                           <Input placeholder='https://example.com/path' {...field} />
                         </FormControl>
-                        <FormDescription>Link for the notification action button.</FormDescription>
+                        <FormDescription>{t('page.notifications.send.action_url_description')}</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -455,18 +457,18 @@ export default function SendNotification({
                     name='action_label'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Action Label (Optional)</FormLabel>
+                        <FormLabel>{t('page.notifications.send.action_label')}</FormLabel>
                         <FormControl>
-                          <Input placeholder='View Details' {...field} />
+                          <Input placeholder={t('page.notifications.send.action_label_placeholder')} {...field} />
                         </FormControl>
-                        <FormDescription>Text for the action button.</FormDescription>
+                        <FormDescription>{t('page.notifications.send.action_label_description')}</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
                   <Button type='submit' disabled={isSubmitting}>
-                    {isSubmitting ? 'Sending...' : 'Send Notification'}
+                    {isSubmitting ? t('page.notifications.send.sending') : t('page.notifications.send.send_button')}
                   </Button>
                 </form>
               </Form>

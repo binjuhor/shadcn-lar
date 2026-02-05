@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Card } from '@/components/ui/card'
@@ -73,26 +74,27 @@ function formatMoney(amount: number, currency: string): string {
 }
 
 function SummaryCards({ summary, currency }: { summary: ReportSummary; currency: string }) {
+  const { t } = useTranslation()
   const isPositiveChange = summary.previousPeriodChange >= 0
 
   return (
     <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
       <Card className="p-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Total Invoiced</span>
+          <span className="text-xs text-muted-foreground">{t('page.invoice_reports.total_invoiced')}</span>
           <FileText className="h-3 w-3 text-blue-600" />
         </div>
         <div className="text-lg font-bold mt-1">
           {formatMoney(summary.totalInvoiced, currency)}
         </div>
         <div className="text-xs text-muted-foreground mt-1">
-          {summary.invoiceCount} invoices
+          {summary.invoiceCount} {t('page.invoice_reports.invoices')}
         </div>
       </Card>
 
       <Card className="p-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Paid</span>
+          <span className="text-xs text-muted-foreground">{t('page.invoice_reports.paid')}</span>
           <DollarSign className="h-3 w-3 text-green-600" />
         </div>
         <div className="text-lg font-bold text-green-600 mt-1">
@@ -102,7 +104,7 @@ function SummaryCards({ summary, currency }: { summary: ReportSummary; currency:
 
       <Card className="p-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Pending</span>
+          <span className="text-xs text-muted-foreground">{t('page.invoice_reports.pending')}</span>
           <Clock className="h-3 w-3 text-yellow-600" />
         </div>
         <div className="text-lg font-bold text-yellow-600 mt-1">
@@ -112,7 +114,7 @@ function SummaryCards({ summary, currency }: { summary: ReportSummary; currency:
 
       <Card className="p-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">vs Previous</span>
+          <span className="text-xs text-muted-foreground">{t('page.invoice_reports.vs_previous')}</span>
           {isPositiveChange ? (
             <TrendingUp className="h-3 w-3 text-green-600" />
           ) : (
@@ -135,8 +137,10 @@ export default function InvoiceReports({
   clientBreakdown,
   summary,
 }: Props) {
+  const { t } = useTranslation()
+
   return (
-    <AuthenticatedLayout title="Invoice Reports">
+    <AuthenticatedLayout title={t('page.invoice_reports.title')}>
       <Main>
         <div className="mb-4">
           <Link
@@ -144,15 +148,15 @@ export default function InvoiceReports({
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Invoices
+            {t('page.invoice_reports.back_to_invoices')}
           </Link>
         </div>
 
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Invoice Reports</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t('page.invoice_reports.title')}</h1>
             <p className="text-muted-foreground">
-              Analyze your invoice income and client breakdown
+              {t('page.invoice_reports.description')}
             </p>
           </div>
           <DateRangePicker filters={filters} />

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useForm } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -32,13 +33,7 @@ interface BudgetFormProps {
   onSuccess?: () => void
 }
 
-const periodTypes: { value: BudgetPeriod; label: string }[] = [
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'quarterly', label: 'Quarterly' },
-  { value: 'yearly', label: 'Yearly' },
-  { value: 'custom', label: 'Custom' },
-]
+const periodTypeValues: BudgetPeriod[] = ['weekly', 'monthly', 'quarterly', 'yearly', 'custom']
 
 function getDefaultDates(period: BudgetPeriod) {
   const now = new Date()
@@ -77,7 +72,13 @@ export function BudgetForm({
   currencies,
   onSuccess,
 }: BudgetFormProps) {
+  const { t } = useTranslation()
   const isEditing = !!budget
+
+  const periodTypes = periodTypeValues.map(value => ({
+    value,
+    label: t(`period.${value}`)
+  }))
 
   const defaultDates = getDefaultDates('monthly')
 
@@ -174,23 +175,23 @@ export function BudgetForm({
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>
-            {isEditing ? 'Edit Budget' : 'Create Budget'}
+            {isEditing ? t('form.budget.edit') : t('form.budget.create')}
           </SheetTitle>
           <SheetDescription>
             {isEditing
-              ? 'Update your budget settings'
-              : 'Set up a new budget to track spending'}
+              ? t('form.budget.edit_description')
+              : t('form.budget.create_description')}
           </SheetDescription>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Budget Name</Label>
+            <Label htmlFor="name">{t('form.budget_name')}</Label>
             <Input
               id="name"
               value={data.name}
               onChange={(e) => setData('name', e.target.value)}
-              placeholder="e.g., Monthly Groceries"
+              placeholder={t('form.budget_name_placeholder')}
             />
             {errors.name && (
               <p className="text-sm text-red-600">{errors.name}</p>
@@ -198,16 +199,16 @@ export function BudgetForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="category_id">Category (Optional)</Label>
+            <Label htmlFor="category_id">{t('form.category_optional')}</Label>
             <Select
               value={data.category_id || '__all__'}
               onValueChange={(value) => setData('category_id', value === '__all__' ? '' : value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="All expenses" />
+                <SelectValue placeholder={t('form.all_expenses')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All expenses</SelectItem>
+                <SelectItem value="__all__">{t('form.all_expenses')}</SelectItem>
                 {expenseCategories.map((category) => (
                   <SelectItem key={category.id} value={String(category.id)}>
                     {category.name}
@@ -221,7 +222,7 @@ export function BudgetForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="amount">Budget Amount</Label>
+            <Label htmlFor="amount">{t('form.budget_amount')}</Label>
             <Input
               id="amount"
               type="number"
@@ -229,7 +230,7 @@ export function BudgetForm({
               min="0"
               value={data.amount}
               onChange={(e) => setData('amount', e.target.value)}
-              placeholder="0.00"
+              placeholder={t('form.balance_placeholder')}
             />
             {errors.amount && (
               <p className="text-sm text-red-600">{errors.amount}</p>
@@ -237,13 +238,13 @@ export function BudgetForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="currency_code">Currency</Label>
+            <Label htmlFor="currency_code">{t('form.currency')}</Label>
             <Select
               value={data.currency_code}
               onValueChange={(value) => setData('currency_code', value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select currency" />
+                <SelectValue placeholder={t('form.select_currency')} />
               </SelectTrigger>
               <SelectContent>
                 {currencies.map((currency) => (
@@ -256,13 +257,13 @@ export function BudgetForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="period_type">Period</Label>
+            <Label htmlFor="period_type">{t('form.period')}</Label>
             <Select
               value={data.period_type}
               onValueChange={(value) => setData('period_type', value as BudgetPeriod)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select period" />
+                <SelectValue placeholder={t('form.select_period')} />
               </SelectTrigger>
               <SelectContent>
                 {periodTypes.map((period) => (
@@ -276,20 +277,20 @@ export function BudgetForm({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Start Date</Label>
+              <Label>{t('form.start_date')}</Label>
               <DatePicker
                 value={data.start_date}
                 onChange={(date) => setData('start_date', date ? format(date, 'yyyy-MM-dd') : '')}
-                placeholder="Select start date"
+                placeholder={t('filter.select_date')}
                 disabled={data.period_type !== 'custom'}
               />
             </div>
             <div className="space-y-2">
-              <Label>End Date</Label>
+              <Label>{t('form.end_date')}</Label>
               <DatePicker
                 value={data.end_date}
                 onChange={(date) => setData('end_date', date ? format(date, 'yyyy-MM-dd') : '')}
-                placeholder="Select end date"
+                placeholder={t('filter.select_date')}
                 disabled={data.period_type !== 'custom'}
               />
             </div>
@@ -297,9 +298,9 @@ export function BudgetForm({
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="is_active">Active</Label>
+              <Label htmlFor="is_active">{t('form.is_active')}</Label>
               <p className="text-xs text-muted-foreground">
-                Track spending against this budget
+                {t('form.budget_is_active_description')}
               </p>
             </div>
             <Switch
@@ -311,9 +312,9 @@ export function BudgetForm({
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="rollover">Rollover</Label>
+              <Label htmlFor="rollover">{t('form.rollover')}</Label>
               <p className="text-xs text-muted-foreground">
-                Carry unused budget to next period
+                {t('form.rollover_description')}
               </p>
             </div>
             <Switch
@@ -330,14 +331,14 @@ export function BudgetForm({
               onClick={handleClose}
               disabled={processing}
             >
-              Cancel
+              {t('action.cancel')}
             </Button>
             <Button type="submit" disabled={processing}>
               {processing
-                ? 'Saving...'
+                ? t('common.saving')
                 : isEditing
-                  ? 'Update Budget'
-                  : 'Create Budget'}
+                  ? t('form.update_budget_button')
+                  : t('form.create_budget_button')}
             </Button>
           </SheetFooter>
         </form>

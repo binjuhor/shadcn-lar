@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
-import { useForm } from '@inertiajs/react'
+import { useEffect, useState } from 'react'
+import { useForm, router } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -41,9 +42,11 @@ export function TransactionForm({
   transaction,
   onSuccess,
 }: TransactionFormProps) {
+  const { t } = useTranslation()
   const isEditing = !!transaction
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { data, setData, post, put, processing, errors, reset } = useForm({
+  const { data, setData, post, processing, errors, reset } = useForm({
     type: 'expense' as TransactionType,
     account_id: '',
     category_id: '',
@@ -86,9 +89,20 @@ export function TransactionForm({
     }
 
     if (isEditing) {
-      // Update existing transaction
-      put(route('dashboard.finance.transactions.update', transaction.id), {
+      setIsSubmitting(true)
+      // Use router.put directly with explicit data mapping
+      router.put(route('dashboard.finance.transactions.update', transaction.id), {
+        transaction_type: data.type,
+        account_id: parseInt(data.account_id),
+        category_id: data.category_id ? parseInt(data.category_id) : null,
+        amount: parseFloat(data.amount || '0'),
+        description: data.description,
+        notes: data.notes,
+        transaction_date: data.transaction_date,
+      }, {
+        preserveScroll: true,
         onSuccess: onSuccessCallback,
+        onFinish: () => setIsSubmitting(false),
       })
     } else {
       // Create new transaction
@@ -124,32 +138,34 @@ export function TransactionForm({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{isEditing ? 'Edit Transaction' : 'New Transaction'}</SheetTitle>
+          <SheetTitle>{isEditing ? t('form.transaction.edit') : t('form.transaction.create')}</SheetTitle>
           <SheetDescription>
-            {isEditing ? 'Update transaction details' : 'Record a new financial transaction'}
+            {isEditing ? t('form.transaction.edit_description') : t('form.transaction.create_description')}
           </SheetDescription>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          {/* Transaction Type Tabs - disabled when editing */}
-          {!isEditing && (
+          {/* Transaction Type Tabs - disabled for transfer transactions when editing */}
+          {(!isEditing || (isEditing && transaction?.type !== 'transfer')) && (
             <Tabs value={data.type} onValueChange={(v) => handleTypeChange(v as TransactionType)}>
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className={`grid w-full ${isEditing ? 'grid-cols-2' : 'grid-cols-3'}`}>
                 <TabsTrigger value="expense" className="text-red-600 dark:text-red-400 data-[state=active]:bg-red-100 dark:data-[state=active]:bg-red-900/50 data-[state=active]:text-red-700 dark:data-[state=active]:text-red-300">
-                  Expense
+                  {t('transaction.expense')}
                 </TabsTrigger>
                 <TabsTrigger value="income" className="text-green-600 dark:text-green-400 data-[state=active]:bg-green-100 dark:data-[state=active]:bg-green-900/50 data-[state=active]:text-green-700 dark:data-[state=active]:text-green-300">
-                  Income
+                  {t('transaction.income')}
                 </TabsTrigger>
-                <TabsTrigger value="transfer" className="text-blue-600 dark:text-blue-400 data-[state=active]:bg-blue-100 dark:data-[state=active]:bg-blue-900/50 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300">
-                  Transfer
-                </TabsTrigger>
+                {!isEditing && (
+                  <TabsTrigger value="transfer" className="text-blue-600 dark:text-blue-400 data-[state=active]:bg-blue-100 dark:data-[state=active]:bg-blue-900/50 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300">
+                    {t('transaction.transfer')}
+                  </TabsTrigger>
+                )}
               </TabsList>
             </Tabs>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
+            <Label htmlFor="amount">{t('form.amount')}</Label>
             <Input
               id="amount"
               type="number"
@@ -157,7 +173,7 @@ export function TransactionForm({
               min="0"
               value={data.amount}
               onChange={(e) => setData('amount', e.target.value)}
-              placeholder="0.00"
+              placeholder={t('form.balance_placeholder')}
               className="text-2xl font-bold h-14"
             />
             {errors.amount && (
@@ -167,14 +183,14 @@ export function TransactionForm({
 
           <div className="space-y-2">
             <Label htmlFor="account_id">
-              {data.type === 'transfer' ? 'From Account' : 'Account'}
+              {data.type === 'transfer' ? t('form.from_account') : t('form.account')}
             </Label>
             <Select
               value={data.account_id}
               onValueChange={(value) => setData('account_id', value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select account" />
+                <SelectValue placeholder={t('form.select_account')} />
               </SelectTrigger>
               <SelectContent>
                 {accounts.filter(a => a.is_active).map((account) => (
@@ -191,13 +207,13 @@ export function TransactionForm({
 
           {data.type === 'transfer' && (
             <div className="space-y-2">
-              <Label htmlFor="transfer_account_id">To Account</Label>
+              <Label htmlFor="transfer_account_id">{t('form.to_account')}</Label>
               <Select
                 value={data.transfer_account_id}
                 onValueChange={(value) => setData('transfer_account_id', value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select destination account" />
+                  <SelectValue placeholder={t('form.select_destination_account')} />
                 </SelectTrigger>
                 <SelectContent>
                   {accounts
@@ -217,13 +233,13 @@ export function TransactionForm({
 
           {data.type !== 'transfer' && (
             <div className="space-y-2">
-              <Label htmlFor="category_id">Category</Label>
+              <Label htmlFor="category_id">{t('form.category')}</Label>
               <Select
                 value={data.category_id}
                 onValueChange={(value) => setData('category_id', value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder={t('form.select_category')} />
                 </SelectTrigger>
                 <SelectContent>
                   {currentCategories.map((category) => (
@@ -240,11 +256,11 @@ export function TransactionForm({
           )}
 
           <div className="space-y-2">
-            <Label>Date</Label>
+            <Label>{t('form.date')}</Label>
             <DatePicker
               value={data.transaction_date}
               onChange={(date) => setData('transaction_date', date ? format(date, 'yyyy-MM-dd') : '')}
-              placeholder="Select date"
+              placeholder={t('filter.select_date')}
             />
             {errors.transaction_date && (
               <p className="text-sm text-red-600">{errors.transaction_date}</p>
@@ -252,12 +268,12 @@ export function TransactionForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t('form.description')}</Label>
             <Input
               id="description"
               value={data.description}
               onChange={(e) => setData('description', e.target.value)}
-              placeholder="e.g., Grocery shopping"
+              placeholder={t('form.description_placeholder_transaction')}
             />
             {errors.description && (
               <p className="text-sm text-red-600">{errors.description}</p>
@@ -265,12 +281,12 @@ export function TransactionForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Label htmlFor="notes">{t('form.notes_optional')}</Label>
             <Textarea
               id="notes"
               value={data.notes}
               onChange={(e) => setData('notes', e.target.value)}
-              placeholder="Additional notes..."
+              placeholder={t('form.additional_notes')}
               rows={2}
             />
           </div>
@@ -280,12 +296,12 @@ export function TransactionForm({
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={processing}
+              disabled={processing || isSubmitting}
             >
-              Cancel
+              {t('action.cancel')}
             </Button>
-            <Button type="submit" disabled={processing}>
-              {processing ? 'Saving...' : isEditing ? 'Update Transaction' : 'Save Transaction'}
+            <Button type="submit" disabled={processing || isSubmitting}>
+              {(processing || isSubmitting) ? t('common.saving') : isEditing ? t('form.update_transaction_button') : t('form.save_transaction')}
             </Button>
           </SheetFooter>
         </form>

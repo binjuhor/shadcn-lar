@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { router } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -30,11 +31,11 @@ interface Props {
   accounts: Account[]
 }
 
-const filterStatuses: { value: string; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'active', label: 'Active' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'paused', label: 'Paused' },
+const getFilterStatuses = (t: any): { value: string; label: string }[] => [
+  { value: 'all', label: t('page.savings.filter.all') },
+  { value: 'active', label: t('page.savings.filter.active') },
+  { value: 'completed', label: t('page.savings.filter.completed') },
+  { value: 'paused', label: t('page.savings.filter.paused') },
 ]
 
 function formatMoney(amount: number, currencyCode = 'VND'): string {
@@ -45,6 +46,7 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
 }
 
 export default function SavingsGoalsIndex({ goals, currencies, accounts }: Props) {
+  const { t } = useTranslation()
   const [showForm, setShowForm] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showContributionForm, setShowContributionForm] = useState(false)
@@ -52,6 +54,8 @@ export default function SavingsGoalsIndex({ goals, currencies, accounts }: Props
   const [selectedGoal, setSelectedGoal] = useState<SavingsGoal | null>(null)
   const [filterStatus, setFilterStatus] = useState('all')
   const [showCompleted, setShowCompleted] = useState(false)
+
+  const filterStatuses = getFilterStatuses(t)
 
   const filteredGoals = useMemo(() => {
     if (filterStatus === 'all') {
@@ -127,18 +131,18 @@ export default function SavingsGoalsIndex({ goals, currencies, accounts }: Props
   }
 
   return (
-    <AuthenticatedLayout title="Savings Goals">
+    <AuthenticatedLayout title={t('page.savings.title')}>
       <Main>
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Savings Goals</h1>
+        <div className="mb-4 md:flex items-center justify-between">
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold tracking-tight">{t('page.savings.title')}</h1>
             <p className="text-muted-foreground">
-              Track your financial targets and savings progress
+              {t('page.savings.description')}
             </p>
           </div>
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            New Goal
+            {t('page.savings.new')}
           </Button>
         </div>
 
@@ -146,19 +150,19 @@ export default function SavingsGoalsIndex({ goals, currencies, accounts }: Props
         {summary.goalsCount > 0 && (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-3 mb-6">
             <div className="rounded-lg border bg-card p-4">
-              <p className="text-sm text-muted-foreground">Total Saved</p>
+              <p className="text-sm text-muted-foreground">{t('page.savings.total_saved')}</p>
               <p className="text-2xl font-bold text-green-600">
                 {formatMoney(summary.totalSaved, summary.currencyCode)}
               </p>
             </div>
             <div className="rounded-lg border bg-card p-4">
-              <p className="text-sm text-muted-foreground">Total Target</p>
+              <p className="text-sm text-muted-foreground">{t('page.savings.total_target')}</p>
               <p className="text-2xl font-bold">
                 {formatMoney(summary.totalTarget, summary.currencyCode)}
               </p>
             </div>
             <div className="rounded-lg border bg-card p-4">
-              <p className="text-sm text-muted-foreground">Active Goals</p>
+              <p className="text-sm text-muted-foreground">{t('page.savings.active_goals')}</p>
               <p className="text-2xl font-bold">{summary.goalsCount}</p>
             </div>
           </div>
@@ -181,7 +185,7 @@ export default function SavingsGoalsIndex({ goals, currencies, accounts }: Props
         {/* Active Goals */}
         {activeGoals.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-4">Active Goals</h3>
+            <h3 className="text-lg font-medium mb-4">{t('page.savings.active_goals')}</h3>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {activeGoals.map((goal) => (
                 <SavingsGoalCard
@@ -201,7 +205,7 @@ export default function SavingsGoalsIndex({ goals, currencies, accounts }: Props
         {pausedGoals.length > 0 && (
           <div className="mb-6">
             <h3 className="text-lg font-medium text-muted-foreground mb-4">
-              Paused Goals
+              {t('page.savings.paused_goals')}
             </h3>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {pausedGoals.map((goal) => (
@@ -227,7 +231,7 @@ export default function SavingsGoalsIndex({ goals, currencies, accounts }: Props
                 className="w-full justify-between mb-4"
               >
                 <span className="text-lg font-medium text-muted-foreground">
-                  Completed Goals ({completedGoals.length})
+                  {t('page.savings.completed_goals')} ({completedGoals.length})
                 </span>
                 <ChevronDown
                   className={`h-4 w-4 transition-transform ${
@@ -259,13 +263,13 @@ export default function SavingsGoalsIndex({ goals, currencies, accounts }: Props
           completedGoals.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Target className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No savings goals yet</h3>
+              <h3 className="text-xl font-semibold mb-2">{t('page.savings.no_goals')}</h3>
               <p className="text-muted-foreground mb-4">
-                Start saving towards your financial targets
+                {t('page.savings.get_started')}
               </p>
               <Button onClick={() => setShowForm(true)}>
                 <Plus className="mr-2 h-4 w-4" />
-                Create Goal
+                {t('page.savings.create_goal')}
               </Button>
             </div>
           )}
@@ -293,20 +297,18 @@ export default function SavingsGoalsIndex({ goals, currencies, accounts }: Props
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Savings Goal</AlertDialogTitle>
+              <AlertDialogTitle>{t('page.savings.delete_title')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete "{selectedGoal?.name}"? This
-                action cannot be undone. All contribution history will also be
-                deleted.
+                {t('page.savings.delete_confirm', { name: selectedGoal?.name })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('action.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDelete}
                 className="bg-red-600 hover:bg-red-700"
               >
-                Delete
+                {t('action.delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

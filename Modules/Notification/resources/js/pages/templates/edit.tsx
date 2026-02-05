@@ -33,6 +33,7 @@ import { router } from '@inertiajs/react'
 import { useToast } from '@/hooks/use-toast'
 import { NotificationCategory, NotificationChannel, NotificationTemplate } from '@/types/notification'
 import { PageProps } from '@/types'
+import { useTranslation } from 'react-i18next'
 
 interface TemplateFormValues {
   name: string
@@ -51,6 +52,7 @@ interface EditTemplatePageProps extends PageProps {
 }
 
 export default function EditTemplate({ template, categories, channels }: EditTemplatePageProps) {
+  const { t } = useTranslation()
   const { toast } = useToast()
 
   const form = useForm<TemplateFormValues>({
@@ -75,12 +77,12 @@ export default function EditTemplate({ template, categories, channels }: EditTem
       variables,
     }, {
       onSuccess: () => {
-        toast({ title: 'Template updated successfully!' })
+        toast({ title: t('common.messages.update_success') })
       },
       onError: (errors) => {
         toast({
           variant: 'destructive',
-          title: 'Error updating template',
+          title: t('common.messages.error'),
           description: Object.values(errors).flat().join(', '),
         })
       },
@@ -88,14 +90,14 @@ export default function EditTemplate({ template, categories, channels }: EditTem
   }
 
   return (
-    <AuthenticatedLayout title='Edit Template'>
+    <AuthenticatedLayout title={t('page.notifications.templates.edit.title')}>
       <Main>
         <div className='mx-auto max-w-2xl'>
           <Card>
             <CardHeader>
-              <CardTitle>Edit Notification Template</CardTitle>
+              <CardTitle>{t('page.notifications.templates.edit.title')}</CardTitle>
               <CardDescription>
-                Update the notification template settings.
+                {t('page.notifications.templates.edit.description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -106,11 +108,11 @@ export default function EditTemplate({ template, categories, channels }: EditTem
                     name='name'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Name</FormLabel>
+                        <FormLabel>{t('common.fields.name')}</FormLabel>
                         <FormControl>
-                          <Input placeholder='Welcome Email' {...field} />
+                          <Input placeholder={t('page.notifications.templates.create.name_placeholder')} {...field} />
                         </FormControl>
-                        <FormDescription>Internal name for this template.</FormDescription>
+                        <FormDescription>{t('page.notifications.templates.create.name_description')}</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -121,12 +123,12 @@ export default function EditTemplate({ template, categories, channels }: EditTem
                     name='subject'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Subject</FormLabel>
+                        <FormLabel>{t('page.notifications.templates.subject')}</FormLabel>
                         <FormControl>
                           <Input placeholder='Welcome to {{ app_name }}!' {...field} />
                         </FormControl>
                         <FormDescription>
-                          Use {"{{ variable }}"} syntax for dynamic content.
+                          {t('page.notifications.templates.create.subject_description')}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -138,7 +140,7 @@ export default function EditTemplate({ template, categories, channels }: EditTem
                     name='body'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Body</FormLabel>
+                        <FormLabel>{t('page.notifications.templates.create.body')}</FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder='Hello {{ user_name }}, welcome to our platform!'
@@ -147,7 +149,7 @@ export default function EditTemplate({ template, categories, channels }: EditTem
                           />
                         </FormControl>
                         <FormDescription>
-                          The notification content. Use {"{{ variable }}"} for placeholders.
+                          {t('page.notifications.templates.create.body_description')}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -159,11 +161,11 @@ export default function EditTemplate({ template, categories, channels }: EditTem
                     name='category'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Category</FormLabel>
+                        <FormLabel>{t('common.fields.category')}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder='Select a category' />
+                              <SelectValue placeholder={t('page.notifications.templates.create.select_category')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -184,9 +186,9 @@ export default function EditTemplate({ template, categories, channels }: EditTem
                     name='channels'
                     render={() => (
                       <FormItem>
-                        <FormLabel>Channels</FormLabel>
+                        <FormLabel>{t('page.notifications.templates.channels')}</FormLabel>
                         <FormDescription>
-                          Select which channels this notification will be sent through.
+                          {t('page.notifications.templates.create.channels_description')}
                         </FormDescription>
                         <div className='grid grid-cols-2 gap-4 mt-2'>
                           {channels.map((channel) => (
@@ -231,12 +233,12 @@ export default function EditTemplate({ template, categories, channels }: EditTem
                     name='variables'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Variables</FormLabel>
+                        <FormLabel>{t('page.notifications.templates.create.variables')}</FormLabel>
                         <FormControl>
                           <Input placeholder='user_name, app_name, action_url' {...field} />
                         </FormControl>
                         <FormDescription>
-                          Comma-separated list of variable names used in this template.
+                          {t('page.notifications.templates.create.variables_description')}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -249,9 +251,9 @@ export default function EditTemplate({ template, categories, channels }: EditTem
                     render={({ field }) => (
                       <FormItem className='flex items-center justify-between rounded-lg border p-4'>
                         <div className='space-y-0.5'>
-                          <FormLabel className='text-base'>Active</FormLabel>
+                          <FormLabel className='text-base'>{t('common.fields.active')}</FormLabel>
                           <FormDescription>
-                            Template will be available for sending notifications.
+                            {t('page.notifications.templates.create.active_description')}
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -262,13 +264,13 @@ export default function EditTemplate({ template, categories, channels }: EditTem
                   />
 
                   <div className='flex gap-4'>
-                    <Button type='submit'>Update Template</Button>
+                    <Button type='submit'>{t('page.notifications.templates.edit.update_button')}</Button>
                     <Button
                       type='button'
                       variant='outline'
                       onClick={() => router.get(route('dashboard.notifications.templates.index'))}
                     >
-                      Cancel
+                      {t('common.actions.cancel')}
                     </Button>
                   </div>
                 </form>

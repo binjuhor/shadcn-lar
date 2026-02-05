@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, XAxis, YAxis, Cell } from 'recharts'
 import {
   Card,
@@ -36,6 +37,8 @@ function formatFullCurrency(value: number, code: string): string {
 }
 
 export function AccountDistribution({ data, currencyCode }: AccountDistributionProps) {
+  const { t } = useTranslation()
+
   const chartConfig = data.reduce((config, item) => {
     config[item.type] = {
       label: item.label,
@@ -56,11 +59,11 @@ export function AccountDistribution({ data, currencyCode }: AccountDistributionP
     return (
       <Card className="h-full">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Account Distribution</CardTitle>
-          <CardDescription>No active accounts found</CardDescription>
+          <CardTitle className="text-base">{t('page.reports.account_distribution')}</CardTitle>
+          <CardDescription>{t('page.reports.no_active_accounts')}</CardDescription>
         </CardHeader>
         <CardContent className="flex h-[200px] items-center justify-center">
-          <p className="text-muted-foreground">No data available</p>
+          <p className="text-muted-foreground">{t('page.reports.no_data')}</p>
         </CardContent>
       </Card>
     )
@@ -69,9 +72,9 @@ export function AccountDistribution({ data, currencyCode }: AccountDistributionP
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Account Distribution</CardTitle>
+        <CardTitle className="text-base">{t('page.reports.account_distribution')}</CardTitle>
         <CardDescription>
-          Balance by account type
+          {t('page.reports.balance_by_account_type')}
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-4">
@@ -109,7 +112,7 @@ export function AccountDistribution({ data, currencyCode }: AccountDistributionP
                           {formatCurrency(Math.abs(value as number), currencyCode)}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {item.count} account{item.count !== 1 ? 's' : ''}
+                          {t('page.reports.accounts_count', { count: item.count })}
                         </span>
                       </div>
                     )
@@ -128,13 +131,13 @@ export function AccountDistribution({ data, currencyCode }: AccountDistributionP
 
         <div className="flex justify-between border-t pt-3">
           <div>
-            <p className="text-xs text-muted-foreground">Assets</p>
+            <p className="text-xs text-muted-foreground">{t('page.reports.assets')}</p>
             <p className="text-sm font-semibold text-green-600">
               {formatFullCurrency(totalAssets, currencyCode)}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">Liabilities</p>
+            <p className="text-xs text-muted-foreground">{t('page.reports.liabilities')}</p>
             <p className="text-sm font-semibold text-red-600">
               {formatFullCurrency(totalLiabilities, currencyCode)}
             </p>

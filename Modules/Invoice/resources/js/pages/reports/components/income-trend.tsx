@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import {
   Card,
@@ -29,17 +30,6 @@ interface IncomeTrendProps {
   currency: string
 }
 
-const chartConfig = {
-  paid: {
-    label: 'Paid',
-    color: 'hsl(142, 76%, 36%)',
-  },
-  pending: {
-    label: 'Pending',
-    color: 'hsl(43, 96%, 56%)',
-  },
-} satisfies ChartConfig
-
 function formatCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -67,6 +57,19 @@ function formatPeriod(period: string): string {
 }
 
 export function IncomeTrend({ data, currency }: IncomeTrendProps) {
+  const { t } = useTranslation()
+
+  const chartConfig = {
+    paid: {
+      label: t('page.invoices.paid'),
+      color: 'hsl(142, 76%, 36%)',
+    },
+    pending: {
+      label: t('page.invoices.pending'),
+      color: 'hsl(43, 96%, 56%)',
+    },
+  } satisfies ChartConfig
+
   const formattedData = data.map((item) => ({
     ...item,
     periodLabel: formatPeriod(item.period),
@@ -83,26 +86,26 @@ export function IncomeTrend({ data, currency }: IncomeTrendProps) {
     <Card>
       <CardHeader className="flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-4">
-          <CardTitle>Invoice Income Trend</CardTitle>
+          <CardTitle>{t('page.invoice_reports.income_trend')}</CardTitle>
           <CardDescription>
-            Track your invoice income over time
+            {t('page.invoice_reports.income_trend_description')}
           </CardDescription>
         </div>
         <div className="flex">
           <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
-            <span className="text-xs text-muted-foreground">Total</span>
+            <span className="text-xs text-muted-foreground">{t('common.total')}</span>
             <span className="text-sm font-bold leading-none">
               {formatFullCurrency(totals.total, currency)}
             </span>
           </div>
           <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
-            <span className="text-xs text-muted-foreground">Paid</span>
+            <span className="text-xs text-muted-foreground">{t('page.invoices.paid')}</span>
             <span className="text-sm font-bold leading-none text-green-600">
               {formatFullCurrency(totals.paid, currency)}
             </span>
           </div>
           <div className="flex flex-1 flex-col justify-center gap-1 border-t px-4 py-3 text-left even:border-l sm:border-l sm:border-t-0 sm:px-6 sm:py-4">
-            <span className="text-xs text-muted-foreground">Pending</span>
+            <span className="text-xs text-muted-foreground">{t('page.invoices.pending')}</span>
             <span className="text-sm font-bold leading-none text-yellow-600">
               {formatFullCurrency(totals.pending, currency)}
             </span>
@@ -137,7 +140,7 @@ export function IncomeTrend({ data, currency }: IncomeTrendProps) {
                   formatter={(value, name) => (
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">
-                        {name === 'paid' ? 'Paid' : 'Pending'}:
+                        {name === 'paid' ? t('page.invoices.paid') : t('page.invoices.pending')}:
                       </span>
                       <span className="font-mono font-medium">
                         {formatCurrency(value as number, currency)}

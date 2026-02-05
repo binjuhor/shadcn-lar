@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { router, Link } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -104,6 +105,7 @@ export default function ExchangeRatesIndex({
   filters,
   providers,
 }: Props) {
+  const { t } = useTranslation()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedRate, setSelectedRate] = useState<ExchangeRate | null>(null)
   const [isFetching, setIsFetching] = useState(false)
@@ -156,13 +158,13 @@ export default function ExchangeRatesIndex({
   }
 
   return (
-    <AuthenticatedLayout title="Exchange Rates">
+    <AuthenticatedLayout title={t('page.exchange_rates.title')}>
       <Main>
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Exchange Rates</h1>
+        <div className="mb-4 md:flex items-center justify-between">
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold tracking-tight">{t('page.exchange_rates.title')}</h1>
             <p className="text-muted-foreground">
-              Manage currency exchange rates
+              {t('page.exchange_rates.description')}
             </p>
           </div>
           <div className="flex gap-2">
@@ -172,31 +174,31 @@ export default function ExchangeRatesIndex({
                   <RefreshCw
                     className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`}
                   />
-                  Fetch Rates
+                  {t('page.exchange_rates.fetch_rates')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleFetchRates('vietcombank')}>
-                  Vietcombank
+                  {t('page.exchange_rates.provider.vietcombank')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleFetchRates('payoneer')}>
-                  Payoneer (estimated)
+                  {t('page.exchange_rates.provider.payoneer')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleFetchRates('exchangerate_api')}>
-                  ExchangeRate API
+                  {t('page.exchange_rates.provider.exchangerate_api')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleFetchRates('open_exchange_rates')}>
-                  Open Exchange Rates
+                  {t('page.exchange_rates.provider.open_exchange_rates')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleFetchRates('all')}>
-                  All Providers
+                  {t('page.exchange_rates.provider.all')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button asChild>
               <Link href={route('dashboard.finance.exchange-rates.create')}>
                 <Plus className="mr-2 h-4 w-4" />
-                Add Rate
+                {t('page.exchange_rates.add_rate')}
               </Link>
             </Button>
           </div>
@@ -208,14 +210,14 @@ export default function ExchangeRatesIndex({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
-                Latest Rates
+                {t('page.exchange_rates.latest_rates')}
               </CardTitle>
               <CardDescription>
-                Current exchange rates from all sources
+                {t('page.exchange_rates.latest_rates_description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {currentRates.map((rate) => (
                   <div
                     key={rate.id}
@@ -245,14 +247,14 @@ export default function ExchangeRatesIndex({
             <div className="flex flex-wrap gap-4 items-end">
               <div className="flex-1 min-w-[150px]">
                 <label className="text-sm font-medium mb-2 block">
-                  Base Currency
+                  {t('page.exchange_rates.filter.base_currency')}
                 </label>
                 <Select value={filterBase} onValueChange={setFilterBase}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All" />
+                    <SelectValue placeholder={t('common.all')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All</SelectItem>
+                    <SelectItem value="__all__">{t('common.all')}</SelectItem>
                     {currencies.map((c) => (
                       <SelectItem key={c.code} value={c.code}>
                         {c.code} - {c.name}
@@ -263,14 +265,14 @@ export default function ExchangeRatesIndex({
               </div>
               <div className="flex-1 min-w-[150px]">
                 <label className="text-sm font-medium mb-2 block">
-                  Target Currency
+                  {t('page.exchange_rates.filter.target_currency')}
                 </label>
                 <Select value={filterTarget} onValueChange={setFilterTarget}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All" />
+                    <SelectValue placeholder={t('common.all')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All</SelectItem>
+                    <SelectItem value="__all__">{t('common.all')}</SelectItem>
                     {currencies.map((c) => (
                       <SelectItem key={c.code} value={c.code}>
                         {c.code} - {c.name}
@@ -280,13 +282,13 @@ export default function ExchangeRatesIndex({
                 </Select>
               </div>
               <div className="flex-1 min-w-[150px]">
-                <label className="text-sm font-medium mb-2 block">Source</label>
+                <label className="text-sm font-medium mb-2 block">{t('page.exchange_rates.filter.source')}</label>
                 <Select value={filterSource} onValueChange={setFilterSource}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All" />
+                    <SelectValue placeholder={t('common.all')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All</SelectItem>
+                    <SelectItem value="__all__">{t('common.all')}</SelectItem>
                     {providers.map((p) => (
                       <SelectItem key={p} value={p}>
                         {p}
@@ -295,7 +297,7 @@ export default function ExchangeRatesIndex({
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleFilter}>Apply Filters</Button>
+              <Button onClick={handleFilter}>{t('action.apply_filters')}</Button>
             </div>
           </CardContent>
         </Card>
@@ -303,22 +305,22 @@ export default function ExchangeRatesIndex({
         {/* Rates Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Exchange Rate History</CardTitle>
+            <CardTitle>{t('page.exchange_rates.history_title')}</CardTitle>
             <CardDescription>
-              Showing {rates.data.length} of {rates.total} records
+              {t('page.exchange_rates.showing_records', { from: rates.data.length, total: rates.total })}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Base</TableHead>
-                  <TableHead>Target</TableHead>
-                  <TableHead className="text-right">Rate</TableHead>
-                  <TableHead className="text-right">Bid</TableHead>
-                  <TableHead className="text-right">Ask</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>{t('table.base')}</TableHead>
+                  <TableHead>{t('table.target')}</TableHead>
+                  <TableHead className="text-right">{t('table.rate')}</TableHead>
+                  <TableHead className="text-right">{t('table.bid')}</TableHead>
+                  <TableHead className="text-right">{t('table.ask')}</TableHead>
+                  <TableHead>{t('table.source')}</TableHead>
+                  <TableHead>{t('table.date')}</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -328,7 +330,7 @@ export default function ExchangeRatesIndex({
                     <TableCell colSpan={8} className="text-center py-8">
                       <ArrowRightLeft className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground">
-                        No exchange rates found
+                        {t('page.exchange_rates.no_rates_found')}
                       </p>
                     </TableCell>
                   </TableRow>
@@ -370,7 +372,7 @@ export default function ExchangeRatesIndex({
                                 )}
                               >
                                 <Pencil className="mr-2 h-4 w-4" />
-                                Edit
+                                {t('action.edit')}
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -378,7 +380,7 @@ export default function ExchangeRatesIndex({
                               className="text-red-600"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
+                              {t('action.delete')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -393,7 +395,7 @@ export default function ExchangeRatesIndex({
             {rates.last_page > 1 && (
               <div className="flex items-center justify-between mt-4 pt-4 border-t">
                 <p className="text-sm text-muted-foreground">
-                  Showing {rates.from} to {rates.to} of {rates.total} rates
+                  {t('pagination.showing', { from: rates.from, to: rates.to, total: rates.total })}
                 </p>
                 <div className="flex items-center gap-1">
                   {/* First & Previous */}
@@ -487,19 +489,18 @@ export default function ExchangeRatesIndex({
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Exchange Rate</AlertDialogTitle>
+              <AlertDialogTitle>{t('page.exchange_rates.delete_title')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete this exchange rate record? This
-                action cannot be undone.
+                {t('page.exchange_rates.delete_description')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('action.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDelete}
                 className="bg-red-600 hover:bg-red-700"
               >
-                Delete
+                {t('action.delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

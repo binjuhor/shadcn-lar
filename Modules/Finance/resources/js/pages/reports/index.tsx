@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Link } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import {
@@ -53,13 +54,14 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
 }
 
 function SummaryCards({ summary, currencyCode }: { summary: ReportSummary; currencyCode: string }) {
+  const { t } = useTranslation()
   const isPositiveChange = summary.previousPeriodChange >= 0
 
   return (
     <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
       <Card className="p-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Income</span>
+          <span className="text-xs text-muted-foreground">{t('filter.income')}</span>
           <ArrowDownLeft className="h-3 w-3 text-green-600" />
         </div>
         <div className="text-lg font-bold text-green-600 mt-1">
@@ -69,7 +71,7 @@ function SummaryCards({ summary, currencyCode }: { summary: ReportSummary; curre
 
       <Card className="p-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Expense</span>
+          <span className="text-xs text-muted-foreground">{t('filter.expense')}</span>
           <ArrowUpRight className="h-3 w-3 text-red-600" />
         </div>
         <div className="text-lg font-bold text-red-600 mt-1">
@@ -79,7 +81,7 @@ function SummaryCards({ summary, currencyCode }: { summary: ReportSummary; curre
 
       <Card className="p-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Net Change</span>
+          <span className="text-xs text-muted-foreground">{t('page.reports.net_change')}</span>
           {summary.netChange >= 0 ? (
             <TrendingUp className="h-3 w-3 text-green-600" />
           ) : (
@@ -93,7 +95,7 @@ function SummaryCards({ summary, currencyCode }: { summary: ReportSummary; curre
 
       <Card className="p-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">vs Previous</span>
+          <span className="text-xs text-muted-foreground">{t('page.reports.vs_previous')}</span>
           {isPositiveChange ? (
             <TrendingUp className="h-3 w-3 text-green-600" />
           ) : (
@@ -119,6 +121,7 @@ export default function FinanceReports({
   categories,
   currencyCode,
 }: Props) {
+  const { t } = useTranslation()
   const [selectedIncomeCategoryId, setSelectedIncomeCategoryId] = React.useState<number | null>(null)
   const [selectedExpenseCategoryId, setSelectedExpenseCategoryId] = React.useState<number | null>(null)
   const [incomeTrendData, setIncomeTrendData] = React.useState<CategoryTrendAnalysis | null>(null)
@@ -176,7 +179,7 @@ export default function FinanceReports({
   }, [filters, selectedIncomeCategoryId, selectedExpenseCategoryId, fetchCategoryTrend])
 
   return (
-    <AuthenticatedLayout title="Financial Reports">
+    <AuthenticatedLayout title={t('page.reports.title')}>
       <Main>
         <div className="mb-4">
           <Link
@@ -184,15 +187,15 @@ export default function FinanceReports({
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
+            {t('page.reports.back_to_dashboard')}
           </Link>
         </div>
 
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Financial Reports</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t('page.reports.title')}</h1>
             <p className="text-muted-foreground">
-              Analyze your income, expenses, and account distribution
+              {t('page.reports.description')}
             </p>
           </div>
           <DateRangePicker filters={filters} />

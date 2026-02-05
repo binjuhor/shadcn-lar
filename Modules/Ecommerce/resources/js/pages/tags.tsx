@@ -54,6 +54,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
+import { useTranslation } from "react-i18next"
 
 interface TagFilters {
   search?: string
@@ -74,6 +75,7 @@ export default function Tags({
   tags = { data: [], current_page: 1, last_page: 1, per_page: 15, total: 0 },
   filters: initialFilters = {},
 }: TagsPageProps) {
+  const { t } = useTranslation()
   const [filters, setFilters] = useState<TagFilters>(initialFilters)
   const [searchTerm, setSearchTerm] = useState(initialFilters?.search || "")
   const { toast } = useToast()
@@ -87,19 +89,19 @@ export default function Tags({
   }
 
   const handleDelete = (tag: ProductTag) => {
-    if (confirm('Are you sure you want to delete this tag?')) {
+    if (confirm(t('page.ecommerce.tags.delete_confirm'))) {
       router.delete(route('dashboard.ecommerce.product-tags.destroy', tag.slug), {
         onSuccess: () => {
           toast({
-            title: "Tag deleted!",
-            description: `"${tag.name}" has been deleted successfully.`,
+            title: t('page.ecommerce.tags.toast.delete_success'),
+            description: t('page.ecommerce.tags.toast.delete_success_description', { name: tag.name }),
           })
         },
         onError: () => {
           toast({
             variant: "destructive",
-            title: "Error deleting tag",
-            description: "Something went wrong. Please try again.",
+            title: t('common.messages.error'),
+            description: t('common.messages.error_try_again'),
           })
         }
       })
@@ -157,15 +159,15 @@ export default function Tags({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Slug</TableHead>
-          <TableHead>Description</TableHead>
-          <TableHead>Products</TableHead>
+          <TableHead>{t('common.fields.name')}</TableHead>
+          <TableHead>{t('common.fields.slug')}</TableHead>
+          <TableHead>{t('common.fields.description')}</TableHead>
+          <TableHead>{t('page.ecommerce.tags.table.products')}</TableHead>
           <TableHead className="hidden md:table-cell">
-            Created
+            {t('common.fields.created')}
           </TableHead>
           <TableHead>
-            <span className="sr-only">Actions</span>
+            <span className="sr-only">{t('common.actions.actions')}</span>
           </TableHead>
         </TableRow>
       </TableHeader>
@@ -173,7 +175,7 @@ export default function Tags({
         {!tags.data || tags.data.length === 0 ? (
           <TableRow>
             <TableCell colSpan={6} className="h-24 text-center">
-              No tags found.
+              {t('page.ecommerce.tags.empty')}
             </TableCell>
           </TableRow>
         ) : (
@@ -195,7 +197,7 @@ export default function Tags({
             </TableCell>
             <TableCell>
               <span className="text-sm text-muted-foreground line-clamp-2">
-                {tag.description || 'N/A'}
+                {tag.description || t('common.fields.na')}
               </span>
             </TableCell>
             <TableCell>
@@ -213,17 +215,17 @@ export default function Tags({
                     variant="ghost"
                   >
                     <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Toggle menu</span>
+                    <span className="sr-only">{t('common.actions.toggle_menu')}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t('common.actions.actions')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => router.get(route('dashboard.ecommerce.product-tags.edit', tag.slug))}
                   >
                     <Edit className="mr-2 h-4 w-4" />
-                    Edit
+                    {t('common.actions.edit')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -231,7 +233,7 @@ export default function Tags({
                     onClick={() => handleDelete(tag)}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
+                    {t('common.actions.delete')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -245,18 +247,18 @@ export default function Tags({
 
   return (
     <>
-      <AuthenticatedLayout title="Product Tags">
+      <AuthenticatedLayout title={t('page.ecommerce.tags.title')}>
         <Main>
           <div className="grid flex-1 items-start gap-4 md:gap-8">
             <Tabs defaultValue="all">
               <div className="flex items-center">
                 <TabsList>
-                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="all">{t('common.filters.all')}</TabsTrigger>
                 </TabsList>
                 <div className="ml-auto flex items-center gap-2">
                   <div className="relative">
                     <Input
-                      placeholder="Search tags..."
+                      placeholder={t('page.ecommerce.tags.search_placeholder')}
                       value={searchTerm}
                       onChange={(e) => handleSearch(e.target.value)}
                       className="w-64"
@@ -265,7 +267,7 @@ export default function Tags({
                   <Button size="sm" variant="outline" className="h-7 gap-1">
                     <File className="h-3.5 w-3.5" />
                     <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                      Export
+                      {t('common.actions.export')}
                     </span>
                   </Button>
                   <Button
@@ -275,7 +277,7 @@ export default function Tags({
                   >
                     <PlusCircle className="h-3.5 w-3.5" />
                     <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                      Add Tag
+                      {t('page.ecommerce.tags.add_tag')}
                     </span>
                   </Button>
                 </div>
@@ -284,9 +286,9 @@ export default function Tags({
               <TabsContent value="all">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Product Tags</CardTitle>
+                    <CardTitle>{t('page.ecommerce.tags.title')}</CardTitle>
                     <CardDescription>
-                      Manage your product tags and organize your catalog.
+                      {t('page.ecommerce.tags.description')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -296,11 +298,11 @@ export default function Tags({
                     <div className="text-xs text-muted-foreground">
                       {tags?.current_page && tags?.per_page && tags?.total ? (
                         <>
-                          Showing <strong>{((tags.current_page - 1) * tags.per_page) + 1}-{Math.min(tags.current_page * tags.per_page, tags.total)}</strong> of <strong>{tags.total}</strong>{" "}
-                          tags
+                          {t('common.pagination.showing')} <strong>{((tags.current_page - 1) * tags.per_page) + 1}-{Math.min(tags.current_page * tags.per_page, tags.total)}</strong> {t('common.pagination.of')} <strong>{tags.total}</strong>{" "}
+                          {t('page.ecommerce.tags.tags')}
                         </>
                       ) : (
-                        <>Showing <strong>0</strong> tags</>
+                        <>{t('common.pagination.showing')} <strong>0</strong> {t('page.ecommerce.tags.tags')}</>
                       )}
                     </div>
 

@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 import {
   Card,
@@ -44,6 +45,7 @@ function formatFullCurrency(value: number, currency: string): string {
 }
 
 export function StatusBreakdown({ data, currency }: StatusBreakdownProps) {
+  const { t } = useTranslation()
   const chartConfig = React.useMemo(() => {
     return data.reduce((acc, item) => {
       acc[item.status] = {
@@ -59,9 +61,9 @@ export function StatusBreakdown({ data, currency }: StatusBreakdownProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Invoice Status</CardTitle>
+        <CardTitle>{t('page.invoices.invoice_status')}</CardTitle>
         <CardDescription>
-          Breakdown by invoice status
+          {t('page.invoices.breakdown_by_status')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -121,7 +123,7 @@ export function StatusBreakdown({ data, currency }: StatusBreakdownProps) {
 
         <div className="mt-4 border-t pt-4">
           <div className="flex items-center justify-between text-sm font-medium">
-            <span>Total</span>
+            <span>{t('common.total')}</span>
             <span>{formatFullCurrency(totalAmount, currency)}</span>
           </div>
         </div>

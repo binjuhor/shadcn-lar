@@ -8,6 +8,7 @@ import {
   Edit,
   Trash2,
 } from "lucide-react"
+import { useTranslation } from 'react-i18next'
 
 import {Badge} from "@/components/ui/badge"
 import {Button} from "@/components/ui/button"
@@ -72,6 +73,7 @@ interface BlogPostsPageProps extends PageProps {
 }
 
 export default function BlogPosts({ posts, filters: initialFilters, categories, tags }: BlogPostsPageProps) {
+  const { t } = useTranslation()
   const [filters, setFilters] = useState<BlogFilters>(initialFilters)
   const [searchTerm, setSearchTerm] = useState(initialFilters.search || "")
   const { toast } = useToast()
@@ -99,19 +101,19 @@ export default function BlogPosts({ posts, filters: initialFilters, categories, 
   }
 
   const handleDelete = (post: BlogPost) => {
-    if (confirm('Are you sure you want to delete this post?')) {
+    if (confirm(t('page.blog.posts.toast.delete_confirm'))) {
       router.delete(route('dashboard.posts.destroy', post.slug), {
         onSuccess: () => {
           toast({
-            title: "Post deleted!",
-            description: `"${post.title}" has been deleted successfully.`,
+            title: t('page.blog.posts.toast.deleted_title'),
+            description: t('page.blog.posts.toast.deleted_description', { title: post.title }),
           })
         },
         onError: () => {
           toast({
             variant: "destructive",
-            title: "Error deleting post",
-            description: "Something went wrong. Please try again.",
+            title: t('page.blog.posts.toast.delete_error_title'),
+            description: t('page.blog.posts.toast.delete_error_description'),
           })
         }
       })
@@ -164,11 +166,11 @@ export default function BlogPosts({ posts, filters: initialFilters, categories, 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "published":
-        return <Badge variant="outline" className="text-green-600 border-green-600">Published</Badge>
+        return <Badge variant="outline" className="text-green-600 border-green-600">{t('page.blog.posts.status.published')}</Badge>
       case "draft":
-        return <Badge variant="secondary">Draft</Badge>
+        return <Badge variant="secondary">{t('page.blog.posts.status.draft')}</Badge>
       case "archived":
-        return <Badge variant="outline">Archived</Badge>
+        return <Badge variant="outline">{t('page.blog.posts.status.archived')}</Badge>
       default:
         return <Badge>{status}</Badge>
     }

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { formatDateDisplay } from '@/lib/date-utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -28,18 +29,11 @@ interface BudgetCardProps {
 }
 
 function formatMoney(amount: number, currencyCode = 'VND'): string {
-  return new Intl.NumberFormat('vi-VN', {
+  const locale = currencyCode === 'VND' ? 'vi-VN' : 'en-US'
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currencyCode,
   }).format(amount)
-}
-
-const periodLabels: Record<string, string> = {
-  weekly: 'Weekly',
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  yearly: 'Yearly',
-  custom: 'Custom',
 }
 
 export function BudgetCard({
@@ -49,6 +43,7 @@ export function BudgetCard({
   onRefresh,
   compact = false,
 }: BudgetCardProps) {
+  const { t } = useTranslation()
   const spentPercent = budget.amount > 0
     ? Math.min((budget.spent / budget.amount) * 100, 100)
     : 0
@@ -96,11 +91,11 @@ export function BudgetCard({
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onRefresh(budget)}>
               <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh Spent
+              {t('page.budgets.refresh_spent')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onEdit(budget)}>
               <Pencil className="mr-2 h-4 w-4" />
-              Edit
+              {t('action.edit')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -108,7 +103,7 @@ export function BudgetCard({
               className="text-red-600"
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Delete
+              {t('action.delete')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -117,10 +112,10 @@ export function BudgetCard({
         <div>
           <div className="flex justify-between text-sm mb-2">
             <span className={isOverBudget ? 'text-red-600 font-medium' : ''}>
-              {formatMoney(budget.spent, budget.currency_code)} spent
+              {t('page.budgets.spent', { amount: formatMoney(budget.spent, budget.currency_code) })}
             </span>
             <span className="text-muted-foreground">
-              of {formatMoney(budget.amount, budget.currency_code)}
+              {t('page.budgets.of_budget', { amount: formatMoney(budget.amount, budget.currency_code) })}
             </span>
           </div>
           <Progress
@@ -130,7 +125,7 @@ export function BudgetCard({
         </div>
 
         <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Remaining</span>
+          <span className="text-muted-foreground">{t('page.budgets.remaining')}</span>
           <span className={remaining < 0 ? 'text-red-600 font-medium' : 'text-green-600'}>
             {formatMoney(remaining, budget.currency_code)}
           </span>
@@ -138,13 +133,13 @@ export function BudgetCard({
 
         {budget.category && (
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Category</span>
+            <span className="text-muted-foreground">{t('page.budgets.category')}</span>
             <Badge variant="secondary">{budget.category.name}</Badge>
           </div>
         )}
       </CardContent>
       <CardFooter className="flex justify-between text-xs text-muted-foreground pt-0">
-        <span>{periodLabels[budget.period_type]}</span>
+        <span>{t(`page.budgets.period.${budget.period_type}`)}</span>
         <span>
           {formatDateDisplay(budget.start_date)} - {formatDateDisplay(budget.end_date)}
         </span>
