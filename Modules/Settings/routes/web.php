@@ -8,6 +8,17 @@ use Modules\Settings\Http\Controllers\{
 };
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    // Language switch route
+    Route::patch('/language', function (\Illuminate\Http\Request $request) {
+        $validated = $request->validate([
+            'language' => ['required', 'string', 'in:en,vi'],
+        ]);
+
+        $request->user()->update(['language' => $validated['language']]);
+
+        return back();
+    })->middleware('throttle:10,1')->name('language.update');
+
     // Settings routes
     Route::prefix('dashboard/settings')->name('dashboard.settings.')->group(function () {
         Route::get('/', [SettingsController::class, 'profile'])->name('profile');

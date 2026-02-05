@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { SettingLayout } from '@/layouts'
 import SettingsProvider from '../context/settings-context'
 import ContentSection from '../components/content-section'
@@ -9,12 +10,13 @@ interface Props {
 }
 
 export default function SettingsAppearance({ settings }: Props) {
+  const { t } = useTranslation()
   return (
     <SettingsProvider defaultTab='appearance'>
-      <SettingLayout title='Appearance settings'>
+      <SettingLayout title={t('settings.appearance.title')}>
         <ContentSection
-          title='Appearance'
-          desc='Customize the appearance of the app. Automatically switch between day and night themes.'
+          title={t('settings.appearance.title')}
+          desc={t('settings.appearance.description')}
         >
           <AppearanceForm settings={settings} />
         </ContentSection>

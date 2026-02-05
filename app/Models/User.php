@@ -32,6 +32,7 @@ class User extends Authenticatable
         'urls',
         'language',
         'dob',
+        'avatar_path',
         'appearance_settings',
         'notification_settings',
         'display_settings',

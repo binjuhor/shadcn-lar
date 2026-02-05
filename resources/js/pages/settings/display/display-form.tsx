@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { router } from '@inertiajs/react'
 import { toast } from '@/hooks/use-toast'
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function DisplayForm({ settings }: Props) {
+  const { t } = useTranslation()
   const form = useForm<DisplayFormValues>({
     resolver: zodResolver(displayFormSchema),
     defaultValues: {
@@ -31,11 +33,11 @@ export function DisplayForm({ settings }: Props) {
     router.patch('/dashboard/settings/display', data, {
       preserveScroll: true,
       onSuccess: () => {
-        toast({ title: 'Display settings updated successfully.' })
+        toast({ title: t('settings.display.update_success') })
       },
       onError: (errors) => {
         toast({
-          title: 'Error updating display settings',
+          title: t('settings.display.update_error'),
           description: Object.values(errors).flat().join(', '),
           variant: 'destructive',
         })
@@ -52,9 +54,9 @@ export function DisplayForm({ settings }: Props) {
           render={() => (
             <FormItem>
               <div className='mb-4'>
-                <FormLabel className='text-base'>Sidebar</FormLabel>
+                <FormLabel className='text-base'>{t('settings.display.sidebar')}</FormLabel>
                 <FormDescription>
-                  Select the items you want to display in the sidebar.
+                  {t('settings.display.sidebar_description')}
                 </FormDescription>
               </div>
               {displayItems.map((item) => (
@@ -94,7 +96,7 @@ export function DisplayForm({ settings }: Props) {
             </FormItem>
           )}
         />
-        <Button type='submit'>Update display</Button>
+        <Button type='submit'>{t('settings.display.update')}</Button>
       </form>
     </Form>
   )

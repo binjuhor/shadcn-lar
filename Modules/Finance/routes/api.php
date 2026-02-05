@@ -5,7 +5,10 @@ use Modules\Finance\Http\Controllers\{
     Api\AccountApiController,
     Api\BudgetApiController,
     Api\CategoryApiController,
+    Api\DashboardApiController,
     Api\ExchangeRateApiController,
+    Api\FinancialPlanApiController,
+    Api\RecurringTransactionApiController,
     Api\ReportApiController,
     Api\SavingsGoalApiController,
     Api\SmartInputApiController,
@@ -14,6 +17,10 @@ use Modules\Finance\Http\Controllers\{
 };
 
 Route::middleware(['auth:sanctum'])->prefix('v1/finance')->group(function () {
+    // Dashboard API (for mobile app home screen)
+    Route::get('dashboard', [DashboardApiController::class, 'index'])
+        ->name('api.finance.dashboard');
+
     // Account API
     Route::apiResource('accounts', AccountApiController::class);
     Route::get('accounts-summary', [AccountApiController::class, 'summary'])
@@ -30,6 +37,12 @@ Route::middleware(['auth:sanctum'])->prefix('v1/finance')->group(function () {
         ->name('api.finance.transactions.unreconcile');
     Route::get('transactions-summary', [TransactionApiController::class, 'summary'])
         ->name('api.finance.transactions.summary');
+    Route::post('transactions/bulk-update', [TransactionApiController::class, 'bulkUpdate'])
+        ->name('api.finance.transactions.bulk-update');
+    Route::post('transactions/bulk-destroy', [TransactionApiController::class, 'bulkDestroy'])
+        ->name('api.finance.transactions.bulk-destroy');
+    Route::post('transactions/conversion-preview', [TransactionApiController::class, 'conversionPreview'])
+        ->name('api.finance.transactions.conversion-preview');
 
     // Budget API
     Route::apiResource('budgets', BudgetApiController::class);
@@ -52,6 +65,24 @@ Route::middleware(['auth:sanctum'])->prefix('v1/finance')->group(function () {
     Route::get('savings-goals-summary', [SavingsGoalApiController::class, 'summary'])
         ->name('api.finance.savings-goals.summary');
 
+    // Recurring Transaction API
+    Route::apiResource('recurring-transactions', RecurringTransactionApiController::class);
+    Route::post('recurring-transactions/{recurringTransaction}/toggle', [RecurringTransactionApiController::class, 'toggle'])
+        ->name('api.finance.recurring-transactions.toggle');
+    Route::get('recurring-transactions/{recurringTransaction}/preview', [RecurringTransactionApiController::class, 'preview'])
+        ->name('api.finance.recurring-transactions.preview');
+    Route::get('recurring-transactions-upcoming', [RecurringTransactionApiController::class, 'upcoming'])
+        ->name('api.finance.recurring-transactions.upcoming');
+    Route::get('recurring-transactions-projection', [RecurringTransactionApiController::class, 'projection'])
+        ->name('api.finance.recurring-transactions.projection');
+    Route::post('recurring-transactions/process', [RecurringTransactionApiController::class, 'process'])
+        ->name('api.finance.recurring-transactions.process');
+
+    // Financial Plan API
+    Route::apiResource('plans', FinancialPlanApiController::class);
+    Route::get('plans/{plan}/compare', [FinancialPlanApiController::class, 'compare'])
+        ->name('api.finance.plans.compare');
+
     // Smart Input API endpoints
     Route::prefix('smart-input')->name('api.finance.smart-input.')->group(function () {
         Route::post('parse-voice', [SmartInputApiController::class, 'parseVoice'])
@@ -60,6 +91,10 @@ Route::middleware(['auth:sanctum'])->prefix('v1/finance')->group(function () {
             ->name('parse-receipt');
         Route::post('parse-text', [SmartInputApiController::class, 'parseText'])
             ->name('parse-text');
+        Route::post('sync-offline', [SmartInputApiController::class, 'syncOffline'])
+            ->name('sync-offline');
+        Route::post('quick-entry', [SmartInputApiController::class, 'quickEntry'])
+            ->name('quick-entry');
     });
 
     // Exchange Rate API

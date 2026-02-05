@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { SettingLayout } from '@/layouts'
 import SettingsProvider from '../context/settings-context'
 import ContentSection from '../components/content-section'
@@ -16,12 +17,13 @@ interface Props {
 }
 
 export default function SettingsInvoice({ settings, currencies }: Props) {
+  const { t } = useTranslation()
   return (
     <SettingsProvider defaultTab='invoice'>
-      <SettingLayout title='Invoice settings'>
+      <SettingLayout title={t('settings.invoice.title')}>
         <ContentSection
-          title='Invoice Settings'
-          desc='Configure your invoice defaults including currency, tax rate, payment terms, and company information.'
+          title={t('settings.invoice.title')}
+          desc={t('settings.invoice.description')}
         >
           <InvoiceForm settings={settings} currencies={currencies} />
         </ContentSection>

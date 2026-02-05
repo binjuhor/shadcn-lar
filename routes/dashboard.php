@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\UploadController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Modules\Notification\Http\Controllers\AdminNotificationController;
@@ -7,6 +8,9 @@ use Modules\Notification\Http\Controllers\NotificationController;
 use Modules\Notification\Http\Controllers\NotificationTemplateController;
 
 Route::get('/', fn () => Inertia::render('dashboard/index'))->name('dashboard');
+
+Route::post('/generate-presigned-url', [UploadController::class, 'generatePresignedUrl'])
+    ->name('dashboard.generatePresignedUrl');
 
 Route::get('/apps', fn () => Inertia::render('apps/index'))->name('dashboard.apps');
 Route::get('/chats', fn () => Inertia::render('chats/index'))->name('dashboard.chats');

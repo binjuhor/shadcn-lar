@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { SettingLayout } from '@/layouts'
 import SettingsProvider from '../context/settings-context'
 import ContentSection from '../components/content-section'
@@ -9,12 +10,13 @@ interface Props {
 }
 
 export default function SettingsProfile({ settings }: Props) {
+  const { t } = useTranslation()
   return (
     <SettingsProvider defaultTab='profile'>
-      <SettingLayout title='User profile'>
+      <SettingLayout title={t('settings.profile.title')}>
         <ContentSection
-          title='Profile'
-          desc='This is how others will see you on the site.'
+          title={t('settings.profile.title')}
+          desc={t('settings.profile.description')}
         >
           <ProfileForm settings={settings} />
         </ContentSection>

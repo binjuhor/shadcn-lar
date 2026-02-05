@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, router } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -15,9 +16,14 @@ export default function SidebarNav({
   items,
   ...props
 }: SidebarNavProps) {
+  const { t } = useTranslation()
   const [currentUrl, setCurrentUrl] = useState<string>(() => {
     return window.location.pathname
   })
+
+  const getTitle = (item: SettingsNavItem) => {
+    return item.titleKey ? t(item.titleKey, { defaultValue: item.title }) : item.title
+  }
 
   const handleSelect = (e: string) => {
     setCurrentUrl(e)
@@ -39,7 +45,7 @@ export default function SidebarNav({
               <SelectItem key={item.href} value={item.href}>
                 <div className='flex gap-x-4 px-2 py-1'>
                   <span className='scale-125'>{item.icon}</span>
-                  <span className='text-md'>{item.title}</span>
+                  <span className='text-md'>{getTitle(item)}</span>
                 </div>
               </SelectItem>
             ))}
@@ -71,7 +77,7 @@ export default function SidebarNav({
               )}
             >
               <span className='mr-2'>{item.icon}</span>
-              {item.title}
+              {getTitle(item)}
             </Link>
           ))}
         </nav>

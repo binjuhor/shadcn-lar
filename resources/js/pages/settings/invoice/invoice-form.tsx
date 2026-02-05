@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { ChevronDownIcon } from '@radix-ui/react-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { router } from '@inertiajs/react'
@@ -34,6 +35,7 @@ interface Props {
 }
 
 export function InvoiceForm({ settings, currencies }: Props) {
+  const { t } = useTranslation()
   const form = useForm<InvoiceSettingsFormValues>({
     resolver: zodResolver(invoiceSettingsFormSchema),
     defaultValues: {
@@ -60,11 +62,11 @@ export function InvoiceForm({ settings, currencies }: Props) {
     router.patch('/dashboard/settings/invoice', cleanedData, {
       preserveScroll: true,
       onSuccess: () => {
-        toast({ title: 'Invoice settings updated successfully.' })
+        toast({ title: t('settings.invoice.update_success') })
       },
       onError: (errors) => {
         toast({
-          title: 'Error updating invoice settings',
+          title: t('settings.invoice.update_error'),
           description: Object.values(errors).flat().join(', '),
           variant: 'destructive',
         })
@@ -80,7 +82,7 @@ export function InvoiceForm({ settings, currencies }: Props) {
           name='default_currency'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Default Currency</FormLabel>
+              <FormLabel>{t('settings.invoice.default_currency')}</FormLabel>
               <div className='relative w-max'>
                 <FormControl>
                   <select
@@ -100,7 +102,7 @@ export function InvoiceForm({ settings, currencies }: Props) {
                 <ChevronDownIcon className='absolute right-3 top-2.5 h-4 w-4 opacity-50' />
               </div>
               <FormDescription>
-                The default currency for new invoices.
+                {t('settings.invoice.default_currency_description')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -112,7 +114,7 @@ export function InvoiceForm({ settings, currencies }: Props) {
           name='default_tax_rate'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Default Tax Rate (%)</FormLabel>
+              <FormLabel>{t('settings.invoice.default_tax_rate')}</FormLabel>
               <FormControl>
                 <Input
                   type='number'
@@ -125,7 +127,7 @@ export function InvoiceForm({ settings, currencies }: Props) {
                 />
               </FormControl>
               <FormDescription>
-                The default tax rate applied to new invoices.
+                {t('settings.invoice.default_tax_rate_description')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -137,7 +139,7 @@ export function InvoiceForm({ settings, currencies }: Props) {
           name='default_payment_terms'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Default Payment Terms</FormLabel>
+              <FormLabel>{t('settings.invoice.default_payment_terms')}</FormLabel>
               <div className='relative w-max'>
                 <FormControl>
                   <select
@@ -158,7 +160,7 @@ export function InvoiceForm({ settings, currencies }: Props) {
                 <ChevronDownIcon className='absolute right-3 top-2.5 h-4 w-4 opacity-50' />
               </div>
               <FormDescription>
-                Number of days until payment is due.
+                {t('settings.invoice.default_payment_terms_description')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -166,9 +168,9 @@ export function InvoiceForm({ settings, currencies }: Props) {
         />
 
         <div className='space-y-4 border-t pt-6'>
-          <h3 className='text-lg font-medium'>Company Information</h3>
+          <h3 className='text-lg font-medium'>{t('settings.invoice.company_info')}</h3>
           <p className='text-sm text-muted-foreground'>
-            Default sender information for new invoices. You can override these when creating individual invoices.
+            {t('settings.invoice.company_info_description')}
           </p>
 
           <FormField
@@ -176,11 +178,11 @@ export function InvoiceForm({ settings, currencies }: Props) {
             name='company_name'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Company Name</FormLabel>
+                <FormLabel>{t('settings.invoice.company_name')}</FormLabel>
                 <FormControl>
                   <Input
                     className='max-w-md'
-                    placeholder='Your Company Name'
+                    placeholder={t('settings.invoice.company_name_placeholder')}
                     {...field}
                     value={field.value ?? ''}
                   />
@@ -195,11 +197,11 @@ export function InvoiceForm({ settings, currencies }: Props) {
             name='company_address'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Company Address</FormLabel>
+                <FormLabel>{t('settings.invoice.company_address')}</FormLabel>
                 <FormControl>
                   <Textarea
                     className='max-w-md'
-                    placeholder='123 Business St, City, Country'
+                    placeholder={t('settings.invoice.company_address_placeholder')}
                     rows={3}
                     {...field}
                     value={field.value ?? ''}
@@ -216,11 +218,11 @@ export function InvoiceForm({ settings, currencies }: Props) {
               name='company_email'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t('settings.invoice.company_email')}</FormLabel>
                   <FormControl>
                     <Input
                       type='email'
-                      placeholder='contact@company.com'
+                      placeholder={t('settings.invoice.company_email_placeholder')}
                       {...field}
                       value={field.value ?? ''}
                     />
@@ -235,10 +237,10 @@ export function InvoiceForm({ settings, currencies }: Props) {
               name='company_phone'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone</FormLabel>
+                  <FormLabel>{t('settings.invoice.company_phone')}</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder='+84 123 456 789'
+                      placeholder={t('settings.invoice.company_phone_placeholder')}
                       {...field}
                       value={field.value ?? ''}
                     />
@@ -250,7 +252,7 @@ export function InvoiceForm({ settings, currencies }: Props) {
           </div>
         </div>
 
-        <Button type='submit'>Update preferences</Button>
+        <Button type='submit'>{t('settings.invoice.update')}</Button>
       </form>
     </Form>
   )

@@ -8,10 +8,12 @@ use Modules\Finance\Http\Controllers\{
     ExchangeRateController,
     FinanceDashboardController,
     FinanceReportController,
+    FinancialAdvisorController,
     FinancialPlanController,
     RecurringTransactionController,
     SavingsGoalController,
     SmartInputController,
+    SmartInputHistoryController,
     TransactionController
 };
 
@@ -32,6 +34,8 @@ Route::middleware(['auth', 'verified'])
             ->name('transactions.bulk-update');
         Route::post('transactions/bulk-destroy', [TransactionController::class, 'bulkDestroy'])
             ->name('transactions.bulk-destroy');
+        Route::post('transactions/link-as-transfer', [TransactionController::class, 'linkAsTransfer'])
+            ->name('transactions.link-as-transfer');
         Route::post('transactions/{transaction}/reconcile', [TransactionController::class, 'reconcile'])
             ->name('transactions.reconcile');
         Route::post('transactions/{transaction}/unreconcile', [TransactionController::class, 'unreconcile'])
@@ -40,6 +44,12 @@ Route::middleware(['auth', 'verified'])
             ->name('transactions.conversion-preview');
         Route::get('transactions/export', [TransactionController::class, 'export'])
             ->name('transactions.export');
+        Route::get('transactions/import', [TransactionController::class, 'import'])
+            ->name('transactions.import');
+        Route::post('transactions/import/preview', [TransactionController::class, 'importPreview'])
+            ->name('transactions.import.preview');
+        Route::post('transactions/import', [TransactionController::class, 'importStore'])
+            ->name('transactions.import.store');
 
         Route::resource('budgets', BudgetController::class)->except(['show']);
         Route::post('budgets/{budget}/refresh', [BudgetController::class, 'refresh'])
@@ -87,6 +97,15 @@ Route::middleware(['auth', 'verified'])
         Route::get('plans/{plan}/compare', [FinancialPlanController::class, 'compare'])
             ->name('plans.compare');
 
+        // AI Advisor routes
+        Route::get('advisor', [FinancialAdvisorController::class, 'index'])
+            ->name('advisor');
+        Route::post('advisor/send', [FinancialAdvisorController::class, 'sendMessage'])
+            ->middleware('throttle:20,1')
+            ->name('advisor.send');
+        Route::delete('advisor/conversations/{conversationId}', [FinancialAdvisorController::class, 'destroyConversation'])
+            ->name('advisor.conversations.destroy');
+
         // Smart Input routes
         Route::get('smart-input', [SmartInputController::class, 'index'])
             ->name('smart-input');
@@ -96,6 +115,14 @@ Route::middleware(['auth', 'verified'])
             ->name('smart-input.parse-receipt');
         Route::post('smart-input/parse-text', [SmartInputController::class, 'parseText'])
             ->name('smart-input.parse-text');
+        Route::post('smart-input/parse-text-image', [SmartInputController::class, 'parseTextWithImage'])
+            ->name('smart-input.parse-text-image');
         Route::post('smart-input', [SmartInputController::class, 'store'])
             ->name('smart-input.store');
+
+        // Smart Input History
+        Route::get('smart-input-history', [SmartInputHistoryController::class, 'index'])
+            ->name('smart-input-history.index');
+        Route::delete('smart-input-history/{history}', [SmartInputHistoryController::class, 'destroy'])
+            ->name('smart-input-history.destroy');
     });

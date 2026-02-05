@@ -18,6 +18,7 @@ class UpdateFinanceSettingsRequest extends FormRequest
             'default_exchange_rate_source' => ['nullable', 'string'],
             'fiscal_year_start' => ['required', 'integer', 'min:1', 'max:12'],
             'number_format' => ['required', 'string', 'in:thousand_comma,thousand_dot,space_dot,space_comma'],
+            'default_smart_input_account_id' => ['nullable', 'integer', 'exists:finance_accounts,id'],
         ];
     }
 

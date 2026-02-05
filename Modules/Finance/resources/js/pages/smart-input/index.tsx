@@ -1,306 +1,435 @@
-import { useState } from 'react'
+import { useState, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { Mic, Image, Sparkles, AlertCircle, MessageSquare, Loader2 } from 'lucide-react'
-import { VoiceRecorder } from './components/voice-recorder'
-import { ImageDropzone } from './components/image-dropzone'
-import { TransactionPreview } from './components/transaction-preview'
-import type { Account, Category, ParsedTransaction } from '@modules/Finance/types/finance'
+import { Sparkles, AlertCircle, History, Settings } from 'lucide-react'
+import { ChatMessageList } from './components/chat-message-list'
+import { ChatInputBar } from './components/chat-input-bar'
+import type {
+  Account,
+  Category,
+  ChatMessage,
+  ChatInputType,
+  ParsedTransaction,
+} from '@modules/Finance/types/finance'
+
+interface HistoryItem {
+  id: number
+  input_type: ChatInputType
+  raw_text?: string
+  parsed_result?: Record<string, unknown>
+  confidence?: number
+  transaction_saved: boolean
+  created_at: string
+  media_url?: string | null
+}
 
 interface Props {
   accounts: Account[]
   categories: Category[]
+  recentHistory?: HistoryItem[]
+  aiConfigured: boolean
 }
 
-export default function SmartInputIndex({ accounts, categories }: Props) {
+function generateId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+}
+
+function getCsrfToken(): string {
+  return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+}
+
+function buildHistoryMessages(history: HistoryItem[], t: (key: string) => string): ChatMessage[] {
+  const msgs: ChatMessage[] = []
+
+  for (const h of history) {
+    const ts = new Date(h.created_at)
+    const parsed = h.parsed_result
+
+    // User message
+    const userContent = h.input_type === 'voice'
+      ? t('page.smart_input.chat_voice_sent')
+      : h.input_type === 'image'
+        ? t('page.smart_input.chat_image_sent')
+        : h.raw_text || ''
+
+    const attachment = h.media_url
+      ? { type: (h.input_type === 'voice' ? 'audio' : 'image') as 'image' | 'audio', url: h.media_url }
+      : undefined
+
+    msgs.push({
+      id: `hist-user-${h.id}`,
+      role: 'user',
+      content: userContent,
+      inputType: h.input_type,
+      attachment,
+      timestamp: ts,
+    })
+
+    // Assistant message with parsed transaction
+    if (parsed) {
+      msgs.push({
+        id: `hist-assist-${h.id}`,
+        role: 'assistant',
+        content: t('page.smart_input.chat_parsed'),
+        inputType: h.input_type,
+        historyId: h.id,
+        transactionSaved: h.transaction_saved,
+        parsedTransaction: {
+          type: (parsed.type as 'income' | 'expense' | 'transfer') || 'expense',
+          amount: (parsed.amount as number) || 0,
+          description: (parsed.description as string) || '',
+          transaction_date: (parsed.transaction_date as string) || '',
+          confidence: (parsed.confidence as number) || 0,
+          raw_text: (parsed.raw_text as string) || undefined,
+        },
+        timestamp: ts,
+      })
+    }
+  }
+
+  return msgs
+}
+
+export default function SmartInputIndex({ accounts, categories, recentHistory, aiConfigured }: Props) {
+  const { t } = useTranslation()
+
+  const initialMessages = useMemo<ChatMessage[]>(() => {
+    const welcome: ChatMessage = {
+      id: 'welcome',
+      role: 'system',
+      content: t('page.smart_input.chat_welcome'),
+      inputType: 'text',
+      timestamp: new Date(),
+    }
+
+    if (!recentHistory?.length) {
+      return [welcome]
+    }
+
+    return [welcome, ...buildHistoryMessages(recentHistory, t)]
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [parsedTransaction, setParsedTransaction] = useState<ParsedTransaction | null>(null)
-  const [textInput, setTextInput] = useState('')
 
-  const handleTextSubmit = async () => {
-    if (!textInput.trim()) return
+  const addMessage = useCallback((msg: ChatMessage) => {
+    setMessages((prev) => [...prev, msg])
+  }, [])
 
-    setIsProcessing(true)
-    setError(null)
+  const updateMessage = useCallback((id: string, updates: Partial<ChatMessage>) => {
+    setMessages((prev) =>
+      prev.map((msg) => (msg.id === id ? { ...msg, ...updates } : msg))
+    )
+  }, [])
 
-    try {
-      const response = await fetch(route('dashboard.finance.smart-input.parse-text'), {
-        method: 'POST',
-        body: JSON.stringify({ text: textInput, language: 'vi' }),
-        headers: {
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        setError(errorData.error || `Server error: ${response.status}`)
-        return
-      }
-
-      const data = await response.json()
-
-      if (data.success) {
-        setParsedTransaction(data.data)
-        setTextInput('')
+  const handleParseResult = useCallback(
+    (assistantId: string, data: { success: boolean; data?: ParsedTransaction; error?: string; history_id?: number }) => {
+      if (data.success && data.data) {
+        updateMessage(assistantId, {
+          isProcessing: false,
+          parsedTransaction: data.data,
+          content: t('page.smart_input.chat_parsed'),
+          historyId: data.history_id,
+        })
       } else {
-        setError(data.error || 'Failed to parse text input')
+        updateMessage(assistantId, {
+          isProcessing: false,
+          error: data.error || t('page.smart_input.chat_error'),
+        })
       }
-    } catch (err) {
-      setError('Network error. Please try again.')
-      console.error('Text parse error:', err)
-    } finally {
-      setIsProcessing(false)
-    }
-  }
+    },
+    [t, updateMessage]
+  )
 
-  const handleVoiceRecording = async (audioBlob: Blob) => {
-    setIsProcessing(true)
-    setError(null)
+  const handleSendText = useCallback(
+    async (text: string) => {
+      const userMsg: ChatMessage = {
+        id: generateId(),
+        role: 'user',
+        content: text,
+        inputType: 'text',
+        timestamp: new Date(),
+      }
+      addMessage(userMsg)
 
-    try {
-      const formData = new FormData()
-      formData.append('audio', audioBlob, 'recording.webm')
-      formData.append('language', 'vi')
-
-      const response = await fetch(route('dashboard.finance.smart-input.parse-voice'), {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-          'Accept': 'application/json',
-        },
+      const assistantId = generateId()
+      addMessage({
+        id: assistantId,
+        role: 'assistant',
+        content: '',
+        inputType: 'text',
+        isProcessing: true,
+        timestamp: new Date(),
       })
+      setIsProcessing(true)
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        console.error('Voice API error:', response.status, errorData)
+      try {
+        const response = await fetch(route('dashboard.finance.smart-input.parse-text'), {
+          method: 'POST',
+          body: JSON.stringify({ text, language: 'vi' }),
+          headers: {
+            'X-CSRF-TOKEN': getCsrfToken(),
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        })
 
-        // Provide helpful error message with fallback suggestion
-        const errorMsg = errorData.error || `Server error: ${response.status}`
-        const isQuotaError = errorMsg.toLowerCase().includes('quota')
-        setError(isQuotaError
-          ? `${errorMsg} You can use the Text tab to enter transactions manually.`
-          : errorMsg
-        )
-        return
+        const data = await response.json().catch(() => ({ success: false, error: `Server error: ${response.status}` }))
+        handleParseResult(assistantId, data)
+      } catch {
+        updateMessage(assistantId, {
+          isProcessing: false,
+          error: t('page.smart_input.chat_error'),
+        })
+      } finally {
+        setIsProcessing(false)
       }
+    },
+    [addMessage, handleParseResult, t, updateMessage]
+  )
 
-      const data = await response.json()
-
-      if (data.success) {
-        setParsedTransaction(data.data)
-      } else {
-        const isQuotaError = (data.error || '').toLowerCase().includes('quota')
-        setError(isQuotaError
-          ? `${data.error} You can use the Text tab to enter transactions manually.`
-          : data.error || 'Failed to parse voice input'
-        )
+  const handleSendVoice = useCallback(
+    async (blob: Blob) => {
+      const userMsg: ChatMessage = {
+        id: generateId(),
+        role: 'user',
+        content: t('page.smart_input.chat_voice_sent'),
+        inputType: 'voice',
+        timestamp: new Date(),
       }
-    } catch (err) {
-      setError('Network error. Please try again.')
-      console.error('Voice parse error:', err)
-    } finally {
-      setIsProcessing(false)
-    }
-  }
+      addMessage(userMsg)
 
-  const handleImageSelect = async (file: File) => {
-    setIsProcessing(true)
-    setError(null)
-
-    try {
-      const formData = new FormData()
-      formData.append('image', file)
-      formData.append('language', 'vi')
-
-      const response = await fetch(route('dashboard.finance.smart-input.parse-receipt'), {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-          'Accept': 'application/json',
-        },
+      const assistantId = generateId()
+      addMessage({
+        id: assistantId,
+        role: 'assistant',
+        content: '',
+        inputType: 'voice',
+        isProcessing: true,
+        timestamp: new Date(),
       })
+      setIsProcessing(true)
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Receipt API error:', response.status, errorText)
-        setError(`Server error: ${response.status}`)
-        return
+      try {
+        const extension = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm'
+        const formData = new FormData()
+        formData.append('audio', blob, `recording.${extension}`)
+        formData.append('language', 'vi')
+
+        const response = await fetch(route('dashboard.finance.smart-input.parse-voice'), {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRF-TOKEN': getCsrfToken(),
+            Accept: 'application/json',
+          },
+        })
+
+        const data = await response.json().catch(() => ({ success: false, error: `Server error: ${response.status}` }))
+        handleParseResult(assistantId, data)
+      } catch {
+        updateMessage(assistantId, {
+          isProcessing: false,
+          error: t('page.smart_input.chat_error'),
+        })
+      } finally {
+        setIsProcessing(false)
       }
+    },
+    [addMessage, handleParseResult, t, updateMessage]
+  )
 
-      const data = await response.json()
-
-      if (data.success) {
-        setParsedTransaction(data.data)
-      } else {
-        setError(data.error || 'Failed to parse receipt')
+  const handleSendImage = useCallback(
+    async (file: File) => {
+      const previewUrl = URL.createObjectURL(file)
+      const userMsg: ChatMessage = {
+        id: generateId(),
+        role: 'user',
+        content: t('page.smart_input.chat_image_sent'),
+        inputType: 'image',
+        attachment: { type: 'image', url: previewUrl, file },
+        timestamp: new Date(),
       }
-    } catch (err) {
-      setError('Network error. Please try again.')
-      console.error('Receipt parse error:', err)
-    } finally {
-      setIsProcessing(false)
-    }
-  }
+      addMessage(userMsg)
 
-  const handleReset = () => {
-    setParsedTransaction(null)
-    setError(null)
-  }
+      const assistantId = generateId()
+      addMessage({
+        id: assistantId,
+        role: 'assistant',
+        content: '',
+        inputType: 'image',
+        isProcessing: true,
+        timestamp: new Date(),
+      })
+      setIsProcessing(true)
+
+      try {
+        const formData = new FormData()
+        formData.append('image', file)
+        formData.append('language', 'vi')
+
+        const response = await fetch(route('dashboard.finance.smart-input.parse-receipt'), {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRF-TOKEN': getCsrfToken(),
+            Accept: 'application/json',
+          },
+        })
+
+        const data = await response.json().catch(() => ({ success: false, error: `Server error: ${response.status}` }))
+        handleParseResult(assistantId, data)
+      } catch {
+        updateMessage(assistantId, {
+          isProcessing: false,
+          error: t('page.smart_input.chat_error'),
+        })
+      } finally {
+        setIsProcessing(false)
+      }
+    },
+    [addMessage, handleParseResult, t, updateMessage]
+  )
+
+  const handleSendTextImage = useCallback(
+    async (text: string, file: File) => {
+      const previewUrl = URL.createObjectURL(file)
+      const userMsg: ChatMessage = {
+        id: generateId(),
+        role: 'user',
+        content: text,
+        inputType: 'text_image',
+        attachment: { type: 'image', url: previewUrl, file },
+        timestamp: new Date(),
+      }
+      addMessage(userMsg)
+
+      const assistantId = generateId()
+      addMessage({
+        id: assistantId,
+        role: 'assistant',
+        content: '',
+        inputType: 'text_image',
+        isProcessing: true,
+        timestamp: new Date(),
+      })
+      setIsProcessing(true)
+
+      try {
+        const formData = new FormData()
+        formData.append('text', text)
+        formData.append('image', file)
+        formData.append('language', 'vi')
+
+        const response = await fetch(route('dashboard.finance.smart-input.parse-text-image'), {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRF-TOKEN': getCsrfToken(),
+            Accept: 'application/json',
+          },
+        })
+
+        const data = await response.json().catch(() => ({ success: false, error: `Server error: ${response.status}` }))
+        handleParseResult(assistantId, data)
+      } catch {
+        updateMessage(assistantId, {
+          isProcessing: false,
+          error: t('page.smart_input.chat_error'),
+        })
+      } finally {
+        setIsProcessing(false)
+      }
+    },
+    [addMessage, handleParseResult, t, updateMessage]
+  )
+
+  const handleSaveTransaction = useCallback(
+    async (messageId: string, data: Record<string, unknown>) => {
+      try {
+        // Find the message to get its historyId
+        const msg = messages.find((m) => m.id === messageId)
+        const payload = { ...data, history_id: msg?.historyId }
+
+        const response = await fetch(route('dashboard.finance.smart-input.store'), {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: {
+            'X-CSRF-TOKEN': getCsrfToken(),
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        })
+
+        const result = await response.json().catch(() => ({ success: false }))
+
+        if (result.success) {
+          updateMessage(messageId, { transactionSaved: true })
+        }
+      } catch {
+        console.error('Failed to save transaction')
+      }
+    },
+    [messages, updateMessage]
+  )
 
   return (
-    <AuthenticatedLayout title="Smart Transaction Input">
-      <Main>
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">Smart Input</h1>
+    <AuthenticatedLayout title={t('page.smart_input.title')}>
+      <Main fixed>
+        <div className="flex flex-col h-[calc(100vh-4rem-3rem)] sm:h-[calc(100vh-4rem-3rem)]">
+          {/* Compact header */}
+          <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <h1 className="text-base sm:text-lg font-semibold">{t('page.smart_input.heading')}</h1>
+            </div>
+            <Button variant="ghost" size="sm" asChild>
+              <a href={route('dashboard.finance.smart-input-history.index')}>
+                <History className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">{t('page.smart_input.history')}</span>
+              </a>
+            </Button>
           </div>
-          <p className="text-muted-foreground">
-            Add transactions by text, voice, or receipt photo using AI
-          </p>
+
+          {!aiConfigured ? (
+            <div className="flex-1 flex items-center justify-center p-4">
+              <Alert>
+                <Settings className="h-4 w-4" />
+                <AlertDescription>
+                  {t('page.smart_input.ai_not_configured')}
+                </AlertDescription>
+              </Alert>
+            </div>
+          ) : accounts.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center p-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {t('page.smart_input.create_account_first')}
+                </AlertDescription>
+              </Alert>
+            </div>
+          ) : (
+            <>
+              <ChatMessageList
+                messages={messages}
+                accounts={accounts}
+                categories={categories}
+                onSaveTransaction={handleSaveTransaction}
+              />
+              <ChatInputBar
+                onSendText={handleSendText}
+                onSendVoice={handleSendVoice}
+                onSendImage={handleSendImage}
+                onSendTextImage={handleSendTextImage}
+                isProcessing={isProcessing}
+              />
+            </>
+          )}
         </div>
-
-        {accounts.length === 0 ? (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Please create at least one account before adding transactions.
-            </AlertDescription>
-          </Alert>
-        ) : parsedTransaction ? (
-          <TransactionPreview
-            parsed={parsedTransaction}
-            accounts={accounts}
-            categories={categories}
-            onReset={handleReset}
-          />
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Input Method</CardTitle>
-              <CardDescription>
-                Choose voice or image to extract transaction details
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {error && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <Tabs defaultValue="text" className="w-full">
-                <TabsList className="w-full grid grid-cols-3 mb-6">
-                  <TabsTrigger value="text" className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4" />
-                    Text
-                  </TabsTrigger>
-                  <TabsTrigger value="voice" className="flex items-center gap-2">
-                    <Mic className="h-4 w-4" />
-                    Voice
-                  </TabsTrigger>
-                  <TabsTrigger value="image" className="flex items-center gap-2">
-                    <Image className="h-4 w-4" />
-                    Receipt
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="text" className="mt-0">
-                  <div className="space-y-4">
-                    <Textarea
-                      placeholder="Nhập giao dịch... VD: Đi chợ 50k, Cafe 30 nghìn, Lương tháng 15 triệu"
-                      value={textInput}
-                      onChange={(e) => setTextInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault()
-                          handleTextSubmit()
-                        }
-                      }}
-                      rows={3}
-                      disabled={isProcessing}
-                    />
-                    <Button
-                      onClick={handleTextSubmit}
-                      disabled={isProcessing || !textInput.trim()}
-                      className="w-full"
-                    >
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        'Parse Transaction'
-                      )}
-                    </Button>
-                  </div>
-                  <div className="mt-6 p-4 rounded-lg bg-muted">
-                    <p className="text-sm font-medium mb-2">Examples:</p>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                      <li>"Đi chợ 50k" → Expense 50,000đ</li>
-                      <li>"Cafe 30 nghìn hôm qua" → Expense 30,000đ yesterday</li>
-                      <li>"Đổ xăng 200k" → Expense 200,000đ</li>
-                      <li>"Lương tháng 15 triệu" → Income 15,000,000đ</li>
-                    </ul>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="voice" className="mt-0">
-                  <div className="py-8">
-                    <VoiceRecorder
-                      onRecordingComplete={handleVoiceRecording}
-                      isProcessing={isProcessing}
-                    />
-                  </div>
-                  <div className="mt-6 p-4 rounded-lg bg-muted">
-                    <p className="text-sm font-medium mb-2">Examples:</p>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                      <li>"Ăn sáng 35 nghìn"</li>
-                      <li>"Cafe 50k hôm nay"</li>
-                      <li>"Đổ xăng 200k hôm qua"</li>
-                      <li>"Lương tháng 15 triệu"</li>
-                    </ul>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="image" className="mt-0">
-                  <ImageDropzone
-                    onImageSelect={handleImageSelect}
-                    isProcessing={isProcessing}
-                  />
-                  <div className="mt-6 p-4 rounded-lg bg-muted">
-                    <p className="text-sm font-medium mb-2">Tips:</p>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                      <li>Take clear photos of receipts</li>
-                      <li>Ensure total amount is visible</li>
-                      <li>Include store name if possible</li>
-                      <li>Supports Vietnamese & English receipts</li>
-                    </ul>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        )}
       </Main>
     </AuthenticatedLayout>
   )

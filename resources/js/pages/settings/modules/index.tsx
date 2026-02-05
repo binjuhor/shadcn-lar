@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { SettingLayout } from '@/layouts'
 import SettingsProvider from '../context/settings-context'
 import ContentSection from '../components/content-section'
@@ -9,12 +10,13 @@ interface Props {
 }
 
 export default function SettingsModules({ modules }: Props) {
+  const { t } = useTranslation()
   return (
     <SettingsProvider defaultTab='modules'>
-      <SettingLayout title='Modules Settings'>
+      <SettingLayout title={t('settings.modules.title')}>
         <ContentSection
-          title='Modules'
-          desc='Enable or disable system modules. Some modules are required and cannot be disabled.'
+          title={t('settings.modules.title')}
+          desc={t('settings.modules.description')}
         >
           <ModulesForm modules={modules} />
         </ContentSection>

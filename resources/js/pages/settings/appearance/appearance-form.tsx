@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { ChevronDownIcon } from '@radix-ui/react-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { router } from '@inertiajs/react'
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function AppearanceForm({ settings }: Props) {
+  const { t } = useTranslation()
   const form = useForm<AppearanceFormValues>({
     resolver: zodResolver(appearanceFormSchema),
     defaultValues: {
@@ -34,11 +36,11 @@ export function AppearanceForm({ settings }: Props) {
     router.patch('/dashboard/settings/appearance', data, {
       preserveScroll: true,
       onSuccess: () => {
-        toast({ title: 'Appearance updated successfully.' })
+        toast({ title: t('settings.appearance.update_success') })
       },
       onError: (errors) => {
         toast({
-          title: 'Error updating appearance',
+          title: t('settings.appearance.update_error'),
           description: Object.values(errors).flat().join(', '),
           variant: 'destructive',
         })
@@ -54,7 +56,7 @@ export function AppearanceForm({ settings }: Props) {
           name='font'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Font</FormLabel>
+              <FormLabel>{t('settings.appearance.font')}</FormLabel>
               <div className='relative w-max'>
                 <FormControl>
                   <select
@@ -66,13 +68,13 @@ export function AppearanceForm({ settings }: Props) {
                   >
                     <option value='inter'>Inter</option>
                     <option value='manrope'>Manrope</option>
-                    <option value='system'>System</option>
+                    <option value='system'>{t('settings.appearance.font_system')}</option>
                   </select>
                 </FormControl>
                 <ChevronDownIcon className='absolute right-3 top-2.5 h-4 w-4 opacity-50' />
               </div>
               <FormDescription>
-                Set the font you want to use in the dashboard.
+                {t('settings.appearance.font_description')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -83,9 +85,9 @@ export function AppearanceForm({ settings }: Props) {
           name='theme'
           render={({ field }) => (
             <FormItem className='space-y-1'>
-              <FormLabel>Theme</FormLabel>
+              <FormLabel>{t('settings.appearance.theme')}</FormLabel>
               <FormDescription>
-                Select the theme for the dashboard.
+                {t('settings.appearance.theme_description')}
               </FormDescription>
               <FormMessage />
               <RadioGroup
@@ -115,7 +117,7 @@ export function AppearanceForm({ settings }: Props) {
                       </div>
                     </div>
                     <span className='block w-full p-2 text-center font-normal'>
-                      Light
+                      {t('settings.appearance.theme_light')}
                     </span>
                   </FormLabel>
                 </FormItem>
@@ -141,7 +143,7 @@ export function AppearanceForm({ settings }: Props) {
                       </div>
                     </div>
                     <span className='block w-full p-2 text-center font-normal'>
-                      Dark
+                      {t('settings.appearance.theme_dark')}
                     </span>
                   </FormLabel>
                 </FormItem>
@@ -150,7 +152,7 @@ export function AppearanceForm({ settings }: Props) {
           )}
         />
 
-        <Button type='submit'>Update preferences</Button>
+        <Button type='submit'>{t('settings.appearance.update')}</Button>
       </form>
     </Form>
   )

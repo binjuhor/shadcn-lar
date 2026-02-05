@@ -1,6 +1,7 @@
 import { useFieldArray, useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, router } from '@inertiajs/react'
+import { router } from '@inertiajs/react'
 import { cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -14,13 +15,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { profileFormSchema, type ProfileFormValues } from '../data/schema'
 
@@ -29,6 +23,7 @@ interface Props {
 }
 
 export default function ProfileForm({ settings }: Props) {
+  const { t } = useTranslation()
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
@@ -49,11 +44,11 @@ export default function ProfileForm({ settings }: Props) {
     router.patch('/dashboard/settings/profile', data, {
       preserveScroll: true,
       onSuccess: () => {
-        toast({ title: 'Profile updated successfully.' })
+        toast({ title: t('settings.profile.update_success') })
       },
       onError: (errors) => {
         toast({
-          title: 'Error updating profile',
+          title: t('settings.profile.update_error'),
           description: Object.values(errors).flat().join(', '),
           variant: 'destructive',
         })
@@ -69,13 +64,12 @@ export default function ProfileForm({ settings }: Props) {
           name='username'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Username</FormLabel>
+              <FormLabel>{t('settings.profile.username')}</FormLabel>
               <FormControl>
-                <Input placeholder='shadcn' {...field} />
+                <Input placeholder={t('settings.profile.username_placeholder')} {...field} />
               </FormControl>
               <FormDescription>
-                This is your public display name. It can be your real name or a
-                pseudonym. You can only change this once every 30 days.
+                {t('settings.profile.username_description')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -86,22 +80,12 @@ export default function ProfileForm({ settings }: Props) {
           name='email'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder='Select a verified email to display' />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value='m@example.com'>m@example.com</SelectItem>
-                  <SelectItem value='m@google.com'>m@google.com</SelectItem>
-                  <SelectItem value='m@support.com'>m@support.com</SelectItem>
-                </SelectContent>
-              </Select>
+              <FormLabel>{t('settings.profile.email')}</FormLabel>
+              <FormControl>
+                <Input type='email' placeholder={t('settings.profile.email_placeholder')} {...field} />
+              </FormControl>
               <FormDescription>
-                You can manage verified email addresses in your{' '}
-                <Link href='/'>email settings</Link>.
+                {t('settings.profile.email_description')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -112,17 +96,16 @@ export default function ProfileForm({ settings }: Props) {
           name='bio'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Bio</FormLabel>
+              <FormLabel>{t('settings.profile.bio')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder='Tell us a little bit about yourself'
+                  placeholder={t('settings.profile.bio_placeholder')}
                   className='resize-none'
                   {...field}
                 />
               </FormControl>
               <FormDescription>
-                You can <span>@mention</span> other users and organizations to
-                link to them.
+                {t('settings.profile.bio_description')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -137,10 +120,10 @@ export default function ProfileForm({ settings }: Props) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className={cn(index !== 0 && 'sr-only')}>
-                    URLs
+                    {t('settings.profile.urls')}
                   </FormLabel>
                   <FormDescription className={cn(index !== 0 && 'sr-only')}>
-                    Add links to your website, blog, or social media profiles.
+                    {t('settings.profile.urls_description')}
                   </FormDescription>
                   <FormControl>
                     <Input {...field} />
@@ -157,10 +140,10 @@ export default function ProfileForm({ settings }: Props) {
             className='mt-2'
             onClick={() => append({ value: '' })}
           >
-            Add URL
+            {t('settings.profile.add_url')}
           </Button>
         </div>
-        <Button type='submit'>Update profile</Button>
+        <Button type='submit'>{t('settings.profile.update')}</Button>
       </form>
     </Form>
   )

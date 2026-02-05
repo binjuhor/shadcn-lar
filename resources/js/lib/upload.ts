@@ -2,40 +2,43 @@ import axiosRequest from "axios"
 import { axios } from "@/lib/axios"
 import { assetUrl } from "@/lib/urls"
 
-type BucketId = "uploads/images" | "logo"
+export type BucketId = "uploads/images" | "uploads/avatars" | "uploads/attachments"
+
+export interface PresignedResponse {
+  path: string
+  url: string
+  headers: Record<string, string>
+}
+
+export interface UploaderOptions {
+  unique?: boolean
+  bucketId?: BucketId
+  onUploadProgress?: (event: { loaded: number; total?: number }) => void
+}
 
 function createImageUploader({
   unique = true,
   bucketId = "uploads/images",
   onUploadProgress,
-}: any = {}) {
+}: UploaderOptions = {}) {
   return async (file: File): Promise<string> => {
-    let path: string | undefined
-    let url: string | undefined
-    let headers: any
+    const response = await axios.request<PresignedResponse>({
+      method: "POST",
+      url: "/dashboard/generate-presigned-url",
+      data: {
+        unique,
+        bucketId,
+        filename: file.name,
+        mimeType: file.type,
+        contentLength: file.size,
+      },
+    })
 
-    try {
-      const response = await axios.request({
-        method: "POST",
-        url: "/dashboard/generate-presigned-url",
-        data: {
-          unique,
-          bucketId,
-          filename: file.name,
-          mimeType: file.type,
-          contentLength: file.size,
-        },
-      })
-
-      url = response?.data?.url
-      headers = response?.data?.headers
-    } catch (e: any) {
-      throw e
-    }
+    const { path, url, headers } = response.data
 
     await axiosRequest.request({
       method: "PUT",
-      url: url!,
+      url,
       data: file,
       onUploadProgress,
       headers: {
@@ -45,7 +48,7 @@ function createImageUploader({
       },
     })
 
-    return assetUrl(path!)
+    return assetUrl(path)
   }
 }
 

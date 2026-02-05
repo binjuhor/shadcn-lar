@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { SettingLayout } from '@/layouts'
 import SettingsProvider from '../context/settings-context'
 import ContentSection from '../components/content-section'
@@ -9,12 +10,13 @@ interface Props {
 }
 
 export default function SettingsNotifications({ settings }: Props) {
+  const { t } = useTranslation()
   return (
     <SettingsProvider defaultTab='notifications'>
-      <SettingLayout title='Notifications Settings'>
+      <SettingLayout title={t('settings.notifications.title')}>
         <ContentSection
-          title='Notifications'
-          desc='Configure how you receive notifications.'
+          title={t('settings.notifications.title')}
+          desc={t('settings.notifications.description')}
         >
           <NotificationsForm settings={settings} />
         </ContentSection>

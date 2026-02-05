@@ -49,6 +49,7 @@ export interface Category {
   user_id?: number;
   parent_id?: number;
   name: string;
+  name_key?: string | null;
   type: CategoryType;
   icon?: string;
   color?: string;
@@ -369,6 +370,7 @@ export interface ParsedTransaction {
   transaction_date: string;
   confidence: number;
   raw_text?: string;
+  notes?: string;
 }
 
 export interface SmartInputFormData {
@@ -379,6 +381,52 @@ export interface SmartInputFormData {
   category_id?: number;
   transaction_date: string;
   notes?: string;
+}
+
+// Chat Interface
+export type ChatMessageRole = 'user' | 'assistant' | 'system'
+export type ChatInputType = 'text' | 'voice' | 'image' | 'text_image'
+
+export interface ChatAttachment {
+  type: 'image' | 'audio'
+  url: string
+  file?: File | Blob
+  name?: string
+}
+
+export interface ChatMessage {
+  id: string
+  role: ChatMessageRole
+  content: string
+  inputType: ChatInputType
+  attachment?: ChatAttachment
+  parsedTransaction?: ParsedTransaction
+  transactionSaved?: boolean
+  isProcessing?: boolean
+  error?: string
+  timestamp: Date
+  historyId?: number
+}
+
+export interface SmartInputHistory {
+  id: number
+  user_id: number
+  transaction_id?: number
+  input_type: ChatInputType
+  raw_text?: string
+  parsed_result?: Record<string, unknown>
+  ai_provider?: string
+  language: string
+  confidence?: number
+  transaction_saved: boolean
+  transaction?: {
+    id: number
+    description?: string
+    amount: number
+    transaction_type: string
+  }
+  created_at: string
+  updated_at: string
 }
 
 // Cashflow Analysis Types
@@ -470,4 +518,21 @@ export interface MonthlyProjection {
   monthly_net: number;
   passive_coverage: number;
   currency_code: string;
+}
+
+// AI Advisor
+export interface AdvisorConversationSummary {
+  id: number
+  title: string
+  updated_at: string
+  preview?: string | null
+}
+
+export interface AdvisorMessage {
+  id: number
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string
+  isProcessing?: boolean
+  error?: string
 }

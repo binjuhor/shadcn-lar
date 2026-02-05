@@ -136,16 +136,27 @@ class SettingsController extends Controller
         $user = auth()->user();
         $currencies = Currency::orderBy('code')->get(['code', 'name', 'symbol']);
 
+        // Get user's accounts for default smart input account selection
+        $accounts = [];
+        if (class_exists(\Modules\Finance\Models\Account::class)) {
+            $accounts = \Modules\Finance\Models\Account::where('user_id', $user->id)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'account_type', 'currency_code']);
+        }
+
         $defaultSettings = [
             'default_currency' => 'VND',
             'default_exchange_rate_source' => null,
             'fiscal_year_start' => 1,
             'number_format' => 'thousand_comma',
+            'default_smart_input_account_id' => null,
         ];
 
         return Inertia::render('settings/finance/index', [
             'settings' => array_merge($defaultSettings, $user->finance_settings ?? []),
             'currencies' => $currencies,
+            'accounts' => $accounts,
         ]);
     }
 

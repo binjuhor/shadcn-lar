@@ -26,7 +26,7 @@ export const accountFormSchema = z.object({
     .string()
     .min(2, { message: 'Name must be at least 2 characters.' })
     .max(30, { message: 'Name must not be longer than 30 characters.' }),
-  dob: z.date({ required_error: 'A date of birth is required.' }),
+  dob: z.date().optional(),
   language: z.string({ required_error: 'Please select a language.' }),
 })
 export type AccountFormValues = z.infer<typeof accountFormSchema>
@@ -74,19 +74,24 @@ export const displayItems = [
   { id: 'documents', label: 'Documents' },
 ] as const
 
-// Languages constant
+// Languages constant (supported languages for i18n)
 export const languages = [
   { label: 'English', value: 'en' },
-  { label: 'Vietnamese', value: 'vi' },
-  { label: 'French', value: 'fr' },
-  { label: 'German', value: 'de' },
-  { label: 'Spanish', value: 'es' },
-  { label: 'Portuguese', value: 'pt' },
-  { label: 'Russian', value: 'ru' },
-  { label: 'Japanese', value: 'ja' },
-  { label: 'Korean', value: 'ko' },
-  { label: 'Chinese', value: 'zh' },
+  { label: 'Tiếng Việt', value: 'vi' },
 ] as const
+
+// Password Schema
+export const passwordFormSchema = z
+  .object({
+    current_password: z.string().min(1, 'Current password is required.'),
+    password: z.string().min(8, 'Password must be at least 8 characters.'),
+    password_confirmation: z.string().min(1, 'Please confirm your password.'),
+  })
+  .refine((data) => data.password === data.password_confirmation, {
+    message: 'Passwords do not match.',
+    path: ['password_confirmation'],
+  })
+export type PasswordFormValues = z.infer<typeof passwordFormSchema>
 
 // Finance Settings Schema
 export const financeSettingsFormSchema = z.object({
@@ -94,6 +99,7 @@ export const financeSettingsFormSchema = z.object({
   default_exchange_rate_source: z.string().nullable(),
   fiscal_year_start: z.number().min(1).max(12),
   number_format: z.enum(['thousand_comma', 'thousand_dot', 'space_dot', 'space_comma']),
+  default_smart_input_account_id: z.number().nullable(),
 })
 export type FinanceSettingsFormValues = z.infer<typeof financeSettingsFormSchema>
 

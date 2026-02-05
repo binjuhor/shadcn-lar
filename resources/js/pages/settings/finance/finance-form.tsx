@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { ChevronDownIcon } from '@radix-ui/react-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { router } from '@inertiajs/react'
@@ -29,12 +30,21 @@ interface Currency {
   symbol: string
 }
 
+interface Account {
+  id: number
+  name: string
+  account_type: string
+  currency_code: string
+}
+
 interface Props {
   settings?: Partial<FinanceSettingsFormValues>
   currencies: Currency[]
+  accounts: Account[]
 }
 
-export function FinanceForm({ settings, currencies }: Props) {
+export function FinanceForm({ settings, currencies, accounts }: Props) {
+  const { t } = useTranslation()
   const form = useForm<FinanceSettingsFormValues>({
     resolver: zodResolver(financeSettingsFormSchema),
     defaultValues: {
@@ -42,6 +52,7 @@ export function FinanceForm({ settings, currencies }: Props) {
       default_exchange_rate_source: settings?.default_exchange_rate_source ?? '__default__',
       fiscal_year_start: settings?.fiscal_year_start ?? 1,
       number_format: settings?.number_format ?? 'thousand_comma',
+      default_smart_input_account_id: settings?.default_smart_input_account_id ?? null,
     },
   })
 
@@ -49,11 +60,11 @@ export function FinanceForm({ settings, currencies }: Props) {
     router.patch('/dashboard/settings/finance', data, {
       preserveScroll: true,
       onSuccess: () => {
-        toast({ title: 'Finance settings updated successfully.' })
+        toast({ title: t('settings.finance.update_success') })
       },
       onError: (errors) => {
         toast({
-          title: 'Error updating finance settings',
+          title: t('settings.finance.update_error'),
           description: Object.values(errors).flat().join(', '),
           variant: 'destructive',
         })
@@ -69,7 +80,7 @@ export function FinanceForm({ settings, currencies }: Props) {
           name='default_currency'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Default Currency</FormLabel>
+              <FormLabel>{t('settings.finance.default_currency')}</FormLabel>
               <div className='relative w-max'>
                 <FormControl>
                   <select
@@ -89,7 +100,7 @@ export function FinanceForm({ settings, currencies }: Props) {
                 <ChevronDownIcon className='absolute right-3 top-2.5 h-4 w-4 opacity-50' />
               </div>
               <FormDescription>
-                The default currency for new transactions and accounts.
+                {t('settings.finance.default_currency_description')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -101,7 +112,7 @@ export function FinanceForm({ settings, currencies }: Props) {
           name='default_exchange_rate_source'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Exchange Rate Source</FormLabel>
+              <FormLabel>{t('settings.finance.exchange_rate_source')}</FormLabel>
               <div className='relative w-max'>
                 <FormControl>
                   <select
@@ -122,7 +133,7 @@ export function FinanceForm({ settings, currencies }: Props) {
                 <ChevronDownIcon className='absolute right-3 top-2.5 h-4 w-4 opacity-50' />
               </div>
               <FormDescription>
-                The source for currency exchange rates.
+                {t('settings.finance.exchange_rate_source_description')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -134,7 +145,7 @@ export function FinanceForm({ settings, currencies }: Props) {
           name='fiscal_year_start'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Fiscal Year Start</FormLabel>
+              <FormLabel>{t('settings.finance.fiscal_year_start')}</FormLabel>
               <div className='relative w-max'>
                 <FormControl>
                   <select
@@ -155,7 +166,7 @@ export function FinanceForm({ settings, currencies }: Props) {
                 <ChevronDownIcon className='absolute right-3 top-2.5 h-4 w-4 opacity-50' />
               </div>
               <FormDescription>
-                The month your fiscal year begins.
+                {t('settings.finance.fiscal_year_start_description')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -167,15 +178,15 @@ export function FinanceForm({ settings, currencies }: Props) {
           name='number_format'
           render={({ field }) => (
             <FormItem className='space-y-1'>
-              <FormLabel>Number Format</FormLabel>
+              <FormLabel>{t('settings.finance.number_format')}</FormLabel>
               <FormDescription>
-                How numbers are formatted throughout the finance module.
+                {t('settings.finance.number_format_description')}
               </FormDescription>
               <FormMessage />
               <RadioGroup
                 onValueChange={field.onChange}
                 defaultValue={field.value}
-                className='grid max-w-xl grid-cols-2 gap-4 pt-2'
+                className='grid max-w-xl md:grid-cols-2 gap-4 pt-2'
               >
                 {numberFormatOptions.map((option) => (
                   <FormItem key={option.value}>
@@ -197,7 +208,43 @@ export function FinanceForm({ settings, currencies }: Props) {
           )}
         />
 
-        <Button type='submit'>Update preferences</Button>
+        {accounts.length > 0 && (
+          <FormField
+            control={form.control}
+            name='default_smart_input_account_id'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('settings.finance.default_smart_input_account')}</FormLabel>
+                <div className='relative w-max'>
+                  <FormControl>
+                    <select
+                      className={cn(
+                        buttonVariants({ variant: 'outline' }),
+                        'w-[280px] appearance-none font-normal'
+                      )}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                    >
+                      <option value=''>{t('settings.finance.no_default_account')}</option>
+                      {accounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name} ({account.currency_code})
+                        </option>
+                      ))}
+                    </select>
+                  </FormControl>
+                  <ChevronDownIcon className='absolute right-3 top-2.5 h-4 w-4 opacity-50' />
+                </div>
+                <FormDescription>
+                  {t('settings.finance.default_smart_input_account_description')}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        <Button type='submit'>{t('settings.finance.update')}</Button>
       </form>
     </Form>
   )

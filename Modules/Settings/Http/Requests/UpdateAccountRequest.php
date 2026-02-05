@@ -16,7 +16,7 @@ class UpdateAccountRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'min:2', 'max:30'],
             'dob' => ['nullable', 'date'],
-            'language' => ['required', 'string', 'in:en,fr,de,es,pt,ru,ja,ko,zh'],
+            'language' => ['required', 'string', 'in:en,vi,fr,de,es,pt,ru,ja,ko,zh'],
         ];
     }
 }

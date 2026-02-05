@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { router, usePage } from '@inertiajs/react'
 import {
   DndContext,
@@ -46,6 +47,7 @@ interface SortableModuleItemProps {
 }
 
 function SortableModuleItem({ module, processing, onToggle }: SortableModuleItemProps) {
+  const { t } = useTranslation()
   const {
     attributes,
     listeners,
@@ -83,14 +85,14 @@ function SortableModuleItem({ module, processing, onToggle }: SortableModuleItem
             <span className='text-base font-medium'>{module.name}</span>
             {module.isCore && (
               <Badge variant='secondary' className='text-xs'>
-                Core
+                {t('settings.modules.core')}
               </Badge>
             )}
             <Badge
               variant={module.enabled ? 'default' : 'outline'}
               className='text-xs'
             >
-              {module.enabled ? 'Enabled' : 'Disabled'}
+              {module.enabled ? t('settings.modules.enabled') : t('settings.modules.disabled')}
             </Badge>
           </div>
           {module.description && (
@@ -125,6 +127,7 @@ function SortableModuleItem({ module, processing, onToggle }: SortableModuleItem
 }
 
 export function ModulesForm({ modules: initialModules }: Props) {
+  const { t } = useTranslation()
   const { sidebarSettings } = usePage<PageProps>().props
   const savedOrder = sidebarSettings?.module_order || []
 
@@ -180,15 +183,15 @@ export function ModulesForm({ modules: initialModules }: Props) {
         preserveScroll: true,
         onSuccess: () => {
           toast({
-            title: 'Order saved',
-            description: 'Sidebar module order has been updated.',
+            title: t('settings.modules.order_saved'),
+            description: t('settings.modules.order_saved_description'),
           })
           setOrderChanged(false)
           setSavingOrder(false)
         },
         onError: (errors) => {
           toast({
-            title: 'Error saving order',
+            title: t('settings.modules.order_error'),
             description: Object.values(errors).flat().join(', '),
             variant: 'destructive',
           })
@@ -201,8 +204,8 @@ export function ModulesForm({ modules: initialModules }: Props) {
   function handleToggle(module: Module) {
     if (module.isCore) {
       toast({
-        title: 'Cannot disable core module',
-        description: `${module.name} is required for system operation.`,
+        title: t('settings.modules.core_error'),
+        description: t('settings.modules.core_error_description', { name: module.name }),
         variant: 'destructive',
       })
       return
@@ -233,17 +236,17 @@ export function ModulesForm({ modules: initialModules }: Props) {
       {
         preserveScroll: true,
         onSuccess: () => {
-          const action = module.enabled ? 'disabled' : 'enabled'
+          const actionKey = module.enabled ? 'module_disabled' : 'module_enabled'
           toast({
-            title: `Module ${action}`,
-            description: `${module.name} has been ${action} successfully.`,
+            title: t(`settings.modules.${actionKey}`),
+            description: t(`settings.modules.${actionKey}_description`, { name: module.name }),
           })
           setProcessing(null)
         },
         onError: (errors) => {
           setModules(previousState)
           toast({
-            title: 'Error toggling module',
+            title: t('settings.modules.toggle_error'),
             description: Object.values(errors).flat().join(', '),
             variant: 'destructive',
           })
@@ -258,7 +261,7 @@ export function ModulesForm({ modules: initialModules }: Props) {
       <div className='space-y-4'>
         <div className='flex items-center justify-between'>
           <p className='text-sm text-muted-foreground'>
-            Drag modules to reorder them in the sidebar.
+            {t('settings.modules.drag_hint')}
           </p>
           {orderChanged && (
             <Button
@@ -267,7 +270,7 @@ export function ModulesForm({ modules: initialModules }: Props) {
               disabled={savingOrder}
             >
               {savingOrder && <IconLoader2 className='mr-2 h-4 w-4 animate-spin' />}
-              Save Order
+              {t('settings.modules.save_order')}
             </Button>
           )}
         </div>
@@ -301,19 +304,18 @@ export function ModulesForm({ modules: initialModules }: Props) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Disable {pendingDisable?.name}?</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.modules.disable_title', { name: pendingDisable?.name })}</AlertDialogTitle>
             <AlertDialogDescription>
-              Disabling this module will remove its functionality from the system.
-              Other features or modules may depend on it. Are you sure you want to continue?
+              {t('settings.modules.disable_description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => pendingDisable && executeToggle(pendingDisable)}
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
             >
-              Disable Module
+              {t('settings.modules.disable_confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
