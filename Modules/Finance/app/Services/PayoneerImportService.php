@@ -185,6 +185,7 @@ class PayoneerImportService
 
                         if ($exists) {
                             $skipped++;
+
                             continue;
                         }
                     }

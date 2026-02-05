@@ -5,7 +5,7 @@ namespace Modules\Finance\Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
-use Modules\Finance\Models\{Account, Category, Currency, RecurringTransaction};
+use Modules\Finance\Models\{Account, Currency, RecurringTransaction};
 use Tests\TestCase;
 
 class RecurringTransactionApiTest extends TestCase

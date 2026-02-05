@@ -90,7 +90,7 @@ class MigrateMediaToR2Command extends Command
             $this->line("  Processing media #{$record->id}: {$record->file_name}");
 
             if ($this->fileExistsOnR2($path)) {
-                $this->line("    <fg=yellow>⊘</> Already exists on R2, skipping file copy.");
+                $this->line('    <fg=yellow>⊘</> Already exists on R2, skipping file copy.');
 
                 if (! $dryRun) {
                     $this->updateMediaDisk($record);
@@ -102,7 +102,7 @@ class MigrateMediaToR2Command extends Command
             }
 
             if (! Storage::disk('public')->exists($path)) {
-                $this->line("    <fg=red>✗</> Source file missing on public disk.");
+                $this->line('    <fg=red>✗</> Source file missing on public disk.');
                 $this->failed++;
                 $this->failures[] = "media #{$record->id}: {$path} (source missing)";
 
@@ -110,7 +110,7 @@ class MigrateMediaToR2Command extends Command
             }
 
             if ($dryRun) {
-                $this->line("    <fg=blue>→</> Would copy to R2.");
+                $this->line('    <fg=blue>→</> Would copy to R2.');
                 $this->migrated++;
 
                 continue;
@@ -125,7 +125,7 @@ class MigrateMediaToR2Command extends Command
                 }
 
                 $this->updateMediaDisk($record);
-                $this->line("    <fg=green>✓</> Copied and updated.");
+                $this->line('    <fg=green>✓</> Copied and updated.');
                 $this->migrated++;
             } catch (\Exception $e) {
                 $this->line("    <fg=red>✗</> Failed: {$e->getMessage()}");
@@ -175,14 +175,14 @@ class MigrateMediaToR2Command extends Command
             $this->line("  Processing user #{$user->id}: {$path}");
 
             if ($this->fileExistsOnR2($path)) {
-                $this->line("    <fg=yellow>⊘</> Already exists on R2, skipping.");
+                $this->line('    <fg=yellow>⊘</> Already exists on R2, skipping.');
                 $this->skipped++;
 
                 continue;
             }
 
             if (! Storage::disk('public')->exists($path)) {
-                $this->line("    <fg=red>✗</> Source file missing on public disk.");
+                $this->line('    <fg=red>✗</> Source file missing on public disk.');
                 $this->failed++;
                 $this->failures[] = "user #{$user->id}: {$path} (source missing)";
 
@@ -190,7 +190,7 @@ class MigrateMediaToR2Command extends Command
             }
 
             if ($dryRun) {
-                $this->line("    <fg=blue>→</> Would copy to R2.");
+                $this->line('    <fg=blue>→</> Would copy to R2.');
                 $this->migrated++;
 
                 continue;
@@ -204,7 +204,7 @@ class MigrateMediaToR2Command extends Command
                     fclose($stream);
                 }
 
-                $this->line("    <fg=green>✓</> Copied.");
+                $this->line('    <fg=green>✓</> Copied.');
                 $this->migrated++;
             } catch (\Exception $e) {
                 $this->line("    <fg=red>✗</> Failed: {$e->getMessage()}");

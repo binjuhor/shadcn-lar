@@ -5,7 +5,7 @@ namespace Modules\Finance\Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
-use Modules\Finance\Models\{Account, Budget, Category, Currency, RecurringTransaction, Transaction};
+use Modules\Finance\Models\{Account, Budget, Category, Currency, Transaction};
 use Tests\TestCase;
 
 class DashboardApiTest extends TestCase

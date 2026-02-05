@@ -14,12 +14,19 @@ class TechcombankImportService
 
     // Column letters based on actual Techcombank statement structure
     protected const COL_DATE = 'B';
+
     protected const COL_REMITTER = 'H';
+
     protected const COL_REMITTER_BANK = 'Q';
+
     protected const COL_DESCRIPTION = 'Y';
+
     protected const COL_TRANSACTION_NO = 'AG';
+
     protected const COL_DEBIT = 'AT';
+
     protected const COL_CREDIT = 'BB';
+
     protected const COL_BALANCE = 'BH';
 
     protected array $categoryMappings = [
@@ -84,20 +91,20 @@ class TechcombankImportService
      */
     protected function parseRow($worksheet, int $row): ?array
     {
-        $dateValue = $worksheet->getCell(self::COL_DATE . $row)->getValue();
+        $dateValue = $worksheet->getCell(self::COL_DATE.$row)->getValue();
 
         // Skip empty rows
         if (empty($dateValue)) {
             return null;
         }
 
-        $remitter = trim($worksheet->getCell(self::COL_REMITTER . $row)->getValue() ?? '');
-        $remitterBank = trim($worksheet->getCell(self::COL_REMITTER_BANK . $row)->getValue() ?? '');
-        $description = trim($worksheet->getCell(self::COL_DESCRIPTION . $row)->getValue() ?? '');
-        $transactionNo = trim($worksheet->getCell(self::COL_TRANSACTION_NO . $row)->getValue() ?? '');
-        $debitValue = $worksheet->getCell(self::COL_DEBIT . $row)->getValue();
-        $creditValue = $worksheet->getCell(self::COL_CREDIT . $row)->getValue();
-        $balanceValue = $worksheet->getCell(self::COL_BALANCE . $row)->getValue();
+        $remitter = trim($worksheet->getCell(self::COL_REMITTER.$row)->getValue() ?? '');
+        $remitterBank = trim($worksheet->getCell(self::COL_REMITTER_BANK.$row)->getValue() ?? '');
+        $description = trim($worksheet->getCell(self::COL_DESCRIPTION.$row)->getValue() ?? '');
+        $transactionNo = trim($worksheet->getCell(self::COL_TRANSACTION_NO.$row)->getValue() ?? '');
+        $debitValue = $worksheet->getCell(self::COL_DEBIT.$row)->getValue();
+        $creditValue = $worksheet->getCell(self::COL_CREDIT.$row)->getValue();
+        $balanceValue = $worksheet->getCell(self::COL_BALANCE.$row)->getValue();
 
         // Parse amounts (remove commas)
         $debitAmount = $this->parseAmount($debitValue);
@@ -265,6 +272,7 @@ class TechcombankImportService
 
                         if ($exists) {
                             $skipped++;
+
                             continue;
                         }
                     }

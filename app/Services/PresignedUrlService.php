@@ -42,7 +42,7 @@ class PresignedUrlService
 
         $presignedRequest = $client->createPresignedRequest(
             $command,
-            "+".self::DEFAULT_EXPIRY_MINUTES." minutes"
+            '+'.self::DEFAULT_EXPIRY_MINUTES.' minutes'
         );
 
         return [
@@ -67,7 +67,7 @@ class PresignedUrlService
     {
         if ($contentLength <= 0 || $contentLength > self::MAX_FILE_SIZE) {
             throw new InvalidArgumentException(
-                "Content length must be between 1 and ".self::MAX_FILE_SIZE." bytes."
+                'Content length must be between 1 and '.self::MAX_FILE_SIZE.' bytes.'
             );
         }
     }

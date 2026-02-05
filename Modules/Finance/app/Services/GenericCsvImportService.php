@@ -87,7 +87,7 @@ class GenericCsvImportService
                 // Build full description
                 $fullDesc = $description;
                 if ($remitter && ! str_contains($description, $remitter)) {
-                    $fullDesc = $description . ' - ' . $remitter;
+                    $fullDesc = $description.' - '.$remitter;
                 }
 
                 $transactionDate = $this->parseDate($date);
@@ -227,6 +227,7 @@ class GenericCsvImportService
 
                         if ($exists) {
                             $skipped++;
+
                             continue;
                         }
                     }

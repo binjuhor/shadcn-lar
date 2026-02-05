@@ -26,7 +26,7 @@ class FinancialContextBuilder
         ]);
 
         if (empty($sections)) {
-            return "No financial data available yet.";
+            return 'No financial data available yet.';
         }
 
         return implode("\n\n", $sections);
@@ -42,7 +42,7 @@ class FinancialContextBuilder
             return '';
         }
 
-        $lines = ["## Accounts"];
+        $lines = ['## Accounts'];
         $totalAssets = 0;
         $totalLiabilities = 0;
 
@@ -70,7 +70,7 @@ class FinancialContextBuilder
 
         $summary = Transaction::where('user_id', $userId)
             ->where('transaction_date', '>=', $since)
-            ->selectRaw("transaction_type, SUM(amount) as total, COUNT(*) as count")
+            ->selectRaw('transaction_type, SUM(amount) as total, COUNT(*) as count')
             ->groupBy('transaction_type')
             ->get()
             ->keyBy('transaction_type');
@@ -88,7 +88,7 @@ class FinancialContextBuilder
         $expenseCount = $expense?->count ?? 0;
         $net = $incomeTotal - $expenseTotal;
 
-        $lines = ["## Last 30 Days"];
+        $lines = ['## Last 30 Days'];
         $lines[] = "Income: {$incomeTotal} ({$incomeCount} transactions)";
         $lines[] = "Expenses: {$expenseTotal} ({$expenseCount} transactions)";
         $lines[] = "Net: {$net}";
@@ -105,7 +105,7 @@ class FinancialContextBuilder
             ->get();
 
         if ($topCategories->isNotEmpty()) {
-            $lines[] = "Top expense categories: " . $topCategories->map(
+            $lines[] = 'Top expense categories: '.$topCategories->map(
                 fn ($c) => "{$c->name}: {$c->total}"
             )->implode(', ');
         }
@@ -125,11 +125,11 @@ class FinancialContextBuilder
             return '';
         }
 
-        $lines = ["## Active Budgets"];
+        $lines = ['## Active Budgets'];
 
         foreach ($budgets as $budget) {
             $pct = $budget->getSpentPercent();
-            $status = $budget->isOverBudget() ? 'OVER BUDGET' : round($pct) . '% used';
+            $status = $budget->isOverBudget() ? 'OVER BUDGET' : round($pct).'% used';
             $categoryName = $budget->category?->name ?? 'General';
             $lines[] = "- {$budget->name} ({$categoryName}): {$budget->spent_amount}/{$budget->allocated_amount} ({$status})";
         }
@@ -147,7 +147,7 @@ class FinancialContextBuilder
             return '';
         }
 
-        $lines = ["## Savings Goals"];
+        $lines = ['## Savings Goals'];
 
         foreach ($goals as $goal) {
             $pct = round($goal->progress_percent);
@@ -182,7 +182,7 @@ class FinancialContextBuilder
 
         $net = $monthlyIncome - $monthlyExpense;
 
-        $lines = ["## Recurring (Monthly Projection)"];
+        $lines = ['## Recurring (Monthly Projection)'];
         $lines[] = "Projected income: {$monthlyIncome} | Projected expenses: {$monthlyExpense} | Net: {$net}";
         $lines[] = "Active recurring items: {$recurring->count()}";
 
@@ -200,14 +200,14 @@ class FinancialContextBuilder
             return '';
         }
 
-        $lines = ["## Financial Plans"];
+        $lines = ['## Financial Plans'];
 
         foreach ($plans as $plan) {
             $currentYearPeriod = $plan->periods->firstWhere('year', now()->year);
 
             if ($currentYearPeriod) {
-                $lines[] = "- {$plan->name} ({$plan->start_year}-{$plan->end_year}): " .
-                    "This year target - Income: {$currentYearPeriod->planned_income}, " .
+                $lines[] = "- {$plan->name} ({$plan->start_year}-{$plan->end_year}): ".
+                    "This year target - Income: {$currentYearPeriod->planned_income}, ".
                     "Expense: {$currentYearPeriod->planned_expense}";
             } else {
                 $lines[] = "- {$plan->name} ({$plan->start_year}-{$plan->end_year})";
@@ -242,13 +242,13 @@ class FinancialContextBuilder
             $income = (float) ($data->income ?? 0);
             $expense = (float) ($data->expense ?? 0);
 
-            return "{$month['label']}: +{$income}/-{$expense} (net " . ($income - $expense) . ")";
+            return "{$month['label']}: +{$income}/-{$expense} (net ".($income - $expense).')';
         });
 
         if ($trend->filter(fn ($t) => ! str_contains($t, '+0/-0'))->isEmpty()) {
             return '';
         }
 
-        return "## 6-Month Trend\n" . $trend->implode("\n");
+        return "## 6-Month Trend\n".$trend->implode("\n");
     }
 }

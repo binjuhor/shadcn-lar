@@ -30,7 +30,7 @@ class ConvertTechcombankPdfCommand extends Command
         $this->info("Parsing PDF: {$inputPath}");
 
         try {
-            $parser = new Parser();
+            $parser = new Parser;
             $pdf = $parser->parseFile($inputPath);
 
             $allTransactions = collect();
@@ -59,12 +59,12 @@ class ConvertTechcombankPdfCommand extends Command
                     $t['date'],
                     $t['debit'] > 0 ? 'Debit' : 'Credit',
                     number_format($t['debit'] > 0 ? $t['debit'] : $t['credit'], 0),
-                    mb_substr($t['description'], 0, 40) . '...',
+                    mb_substr($t['description'], 0, 40).'...',
                 ])->toArray()
             );
 
             if ($allTransactions->count() > 5) {
-                $this->info("... and " . ($allTransactions->count() - 5) . " more transactions");
+                $this->info('... and '.($allTransactions->count() - 5).' more transactions');
             }
 
             return 0;
@@ -219,7 +219,7 @@ class ConvertTechcombankPdfCommand extends Command
         $handle = fopen($path, 'w');
 
         // BOM for UTF-8
-        fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
         // Header
         fputcsv($handle, [

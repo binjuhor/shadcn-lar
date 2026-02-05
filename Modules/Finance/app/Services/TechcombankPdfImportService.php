@@ -73,13 +73,14 @@ class TechcombankPdfImportService
 
         // Skip BOM if present and read header
         $bom = fread($handle, 3);
-        if ($bom !== chr(0xEF) . chr(0xBB) . chr(0xBF)) {
+        if ($bom !== chr(0xEF).chr(0xBB).chr(0xBF)) {
             rewind($handle);
         }
 
         $headers = fgetcsv($handle);
         if (! $headers) {
             fclose($handle);
+
             return $transactions;
         }
 
@@ -152,6 +153,7 @@ class TechcombankPdfImportService
         }
 
         fclose($handle);
+
         return $transactions->values();
     }
 
@@ -174,7 +176,7 @@ class TechcombankPdfImportService
     {
         $transactions = $this->parsePdfRaw($pdfPath);
 
-        $filename = 'imports/techcombank_' . now()->format('YmdHis') . '_' . uniqid() . '.csv';
+        $filename = 'imports/techcombank_'.now()->format('YmdHis').'_'.uniqid().'.csv';
 
         $csvContent = $this->generateCsvContent($transactions);
         Storage::put($filename, $csvContent);
@@ -187,7 +189,7 @@ class TechcombankPdfImportService
      */
     protected function parsePdfRaw(string $filePath): Collection
     {
-        $parser = new Parser();
+        $parser = new Parser;
         $pdf = $parser->parseFile($filePath);
 
         $allTransactions = collect();
@@ -288,7 +290,7 @@ class TechcombankPdfImportService
         $output = fopen('php://temp', 'r+');
 
         // BOM for UTF-8
-        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
         // Header
         fputcsv($output, [
@@ -480,6 +482,7 @@ class TechcombankPdfImportService
 
                         if ($exists) {
                             $skipped++;
+
                             continue;
                         }
                     }
