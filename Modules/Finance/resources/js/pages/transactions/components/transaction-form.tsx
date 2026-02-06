@@ -31,6 +31,7 @@ interface TransactionFormProps {
   accounts: Account[]
   categories: Category[]
   transaction?: Transaction | null
+  duplicateFrom?: Transaction | null
   onSuccess?: () => void
 }
 
@@ -40,6 +41,7 @@ export function TransactionForm({
   accounts,
   categories,
   transaction,
+  duplicateFrom,
   onSuccess,
 }: TransactionFormProps) {
   const { t } = useTranslation()
@@ -57,7 +59,7 @@ export function TransactionForm({
     transfer_account_id: '',
   })
 
-  // Populate form when editing
+  // Populate form when editing or duplicating
   useEffect(() => {
     if (transaction && open) {
       setData({
@@ -70,10 +72,21 @@ export function TransactionForm({
         transaction_date: transaction.transaction_date,
         transfer_account_id: transaction.transfer_account_id ? String(transaction.transfer_account_id) : '',
       })
+    } else if (duplicateFrom && open) {
+      setData({
+        type: duplicateFrom.type === 'transfer' ? 'expense' : duplicateFrom.type,
+        account_id: String(duplicateFrom.account_id),
+        category_id: duplicateFrom.category_id ? String(duplicateFrom.category_id) : '',
+        amount: String(duplicateFrom.amount),
+        description: duplicateFrom.description || '',
+        notes: duplicateFrom.notes || '',
+        transaction_date: new Date().toISOString().split('T')[0],
+        transfer_account_id: '',
+      })
     } else if (!open) {
       reset()
     }
-  }, [transaction, open])
+  }, [transaction, duplicateFrom, open])
 
   const incomeCategories = categories.filter((c) => c.type === 'income')
   const expenseCategories = categories.filter((c) => c.type === 'expense')

@@ -64,6 +64,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Link2,
+  Copy,
 } from 'lucide-react'
 import { TransactionForm } from './components/transaction-form'
 import { ExportDialog } from './components/export-dialog'
@@ -113,6 +114,7 @@ export default function TransactionsIndex({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
+  const [duplicatingTransaction, setDuplicatingTransaction] = useState<Transaction | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false)
@@ -174,6 +176,13 @@ export default function TransactionsIndex({
 
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction)
+    setDuplicatingTransaction(null)
+    setShowForm(true)
+  }
+
+  const handleDuplicate = (transaction: Transaction) => {
+    setDuplicatingTransaction(transaction)
+    setEditingTransaction(null)
     setShowForm(true)
   }
 
@@ -229,6 +238,7 @@ export default function TransactionsIndex({
 
   const handleSuccess = () => {
     setEditingTransaction(null)
+    setDuplicatingTransaction(null)
     router.reload({ only: ['transactions'] })
   }
 
@@ -236,6 +246,7 @@ export default function TransactionsIndex({
     setShowForm(open)
     if (!open) {
       setEditingTransaction(null)
+      setDuplicatingTransaction(null)
     }
   }
 
@@ -654,6 +665,12 @@ export default function TransactionsIndex({
                                 {t('action.edit')}
                               </DropdownMenuItem>
                             )}
+                            <DropdownMenuItem
+                              onClick={() => handleDuplicate(transaction)}
+                            >
+                              <Copy className="mr-2 h-4 w-4" />
+                              {t('action.duplicate')}
+                            </DropdownMenuItem>
                             {!transaction.is_reconciled ? (
                               <DropdownMenuItem
                                 onClick={() => handleReconcile(transaction)}
@@ -803,6 +820,7 @@ export default function TransactionsIndex({
           accounts={accounts}
           categories={categories}
           transaction={editingTransaction}
+          duplicateFrom={duplicatingTransaction}
           onSuccess={handleSuccess}
         />
 
