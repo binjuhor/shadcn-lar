@@ -49,7 +49,14 @@ class TransactionApiController extends Controller
         }
 
         if ($request->has('search')) {
-            $query->where('description', 'like', '%'.$request->search.'%');
+            $query->where(function ($q) use ($request) {
+                $q->where('description', 'like', '%'.$request->search.'%')
+                    ->orWhere('notes', 'like', '%'.$request->search.'%');
+
+                if (is_numeric($request->search)) {
+                    $q->orWhere('amount', $request->search);
+                }
+            });
         }
 
         if ($request->boolean('reconciled_only', false)) {
@@ -284,6 +291,125 @@ class TransactionApiController extends Controller
                 'net' => (float) ($totalIncome - $totalExpense),
                 'transaction_count' => $transactionCount,
             ],
+        ]);
+    }
+
+    public function bulkUpdate(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['required', 'exists:finance_transactions,id'],
+            'category_id' => ['nullable', 'exists:finance_categories,id'],
+        ]);
+
+        $userId = auth()->id();
+
+        $transactions = Transaction::whereIn('id', $validated['ids'])
+            ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
+            ->get();
+
+        if ($transactions->isEmpty()) {
+            return response()->json([
+                'message' => 'No valid transactions found',
+            ], 404);
+        }
+
+        $updateData = [];
+        if (array_key_exists('category_id', $validated)) {
+            $updateData['category_id'] = $validated['category_id'];
+        }
+
+        if (! empty($updateData)) {
+            Transaction::whereIn('id', $transactions->pluck('id'))->update($updateData);
+        }
+
+        return response()->json([
+            'message' => "{$transactions->count()} transaction(s) updated successfully",
+            'data' => ['updated_count' => $transactions->count()],
+        ]);
+    }
+
+    public function bulkDestroy(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['required', 'exists:finance_transactions,id'],
+        ]);
+
+        $userId = auth()->id();
+
+        $transactions = Transaction::whereIn('id', $validated['ids'])
+            ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
+            ->get();
+
+        if ($transactions->isEmpty()) {
+            return response()->json([
+                'message' => 'No valid transactions found',
+            ], 404);
+        }
+
+        $deletedCount = 0;
+
+        DB::transaction(function () use ($transactions, &$deletedCount) {
+            foreach ($transactions as $transaction) {
+                if ($transaction->transfer_transaction_id) {
+                    $linkedTransaction = Transaction::find($transaction->transfer_transaction_id);
+
+                    if ($linkedTransaction) {
+                        if ($linkedTransaction->transaction_type === 'income') {
+                            $linkedTransaction->account->updateBalance(-$linkedTransaction->amount);
+                        } elseif ($linkedTransaction->transaction_type === 'expense') {
+                            $linkedTransaction->account->updateBalance($linkedTransaction->amount);
+                        }
+
+                        $linkedTransaction->delete();
+                    }
+                }
+
+                if ($transaction->transaction_type === 'income') {
+                    $transaction->account->updateBalance(-$transaction->amount);
+                } elseif ($transaction->transaction_type === 'expense') {
+                    $transaction->account->updateBalance($transaction->amount);
+                }
+
+                $transaction->delete();
+                $deletedCount++;
+            }
+        });
+
+        return response()->json([
+            'message' => "{$deletedCount} transaction(s) deleted successfully",
+            'data' => ['deleted_count' => $deletedCount],
+        ]);
+    }
+
+    public function conversionPreview(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'from_account_id' => ['required', 'exists:finance_accounts,id'],
+            'to_account_id' => ['required', 'exists:finance_accounts,id', 'different:from_account_id'],
+            'amount' => ['required', 'numeric', 'min:1'],
+        ]);
+
+        $userId = auth()->id();
+
+        // Verify both accounts belong to user
+        Account::where('id', $validated['from_account_id'])
+            ->where('user_id', $userId)
+            ->firstOrFail();
+
+        Account::where('id', $validated['to_account_id'])
+            ->where('user_id', $userId)
+            ->firstOrFail();
+
+        $result = $this->transactionService->getTransferConversionPreview(
+            $validated['from_account_id'],
+            $validated['to_account_id'],
+            (int) $validated['amount']
+        );
+
+        return response()->json([
+            'data' => $result,
         ]);
     }
 }

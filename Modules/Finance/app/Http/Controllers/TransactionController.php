@@ -5,17 +5,20 @@ namespace Modules\Finance\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\{JsonResponse, RedirectResponse};
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Redirect};
 use Inertia\{Inertia, Response};
 use Modules\Finance\Http\Requests\Transaction\{
     BulkUpdateTransactionRequest,
     ConversionPreviewRequest,
     ExportTransactionRequest,
+    ImportTransactionRequest,
     IndexTransactionRequest,
     StoreTransactionRequest,
     UpdateTransactionRequest
 };
 use Modules\Finance\Models\{Account, Category, Transaction};
+use Modules\Finance\Services\{GenericCsvImportService, PayoneerImportService, TechcombankImportService, TechcombankPdfImportService};
 use Modules\Finance\Services\TransactionService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -34,12 +37,12 @@ class TransactionController extends Controller
         $query = Transaction::with(['account', 'category', 'transferAccount'])
             ->whereHas('account', fn ($q) => $q->where('user_id', $userId));
 
-        if ($request->account_id) {
-            $query->where('account_id', $request->account_id);
+        if ($request->account_ids && count($request->account_ids) > 0) {
+            $query->whereIn('account_id', $request->account_ids);
         }
 
-        if ($request->category_id) {
-            $query->where('category_id', $request->category_id);
+        if ($request->category_ids && count($request->category_ids) > 0) {
+            $query->whereIn('category_id', $request->category_ids);
         }
 
         if ($request->type) {
@@ -55,7 +58,14 @@ class TransactionController extends Controller
         }
 
         if ($request->search) {
-            $query->where('description', 'like', '%'.$request->search.'%');
+            $query->where(function ($q) use ($request) {
+                $q->where('description', 'like', '%'.$request->search.'%')
+                    ->orWhere('notes', 'like', '%'.$request->search.'%');
+
+                if (is_numeric($request->search)) {
+                    $q->orWhere('amount', $request->search);
+                }
+            });
         }
 
         if ($request->amount_from) {
@@ -141,7 +151,7 @@ class TransactionController extends Controller
 
     public function update(UpdateTransactionRequest $request, Transaction $transaction): RedirectResponse
     {
-        if ($transaction->transfer_transaction_id) {
+        if ($transaction->transfer_transaction_id || $transaction->transaction_type === 'transfer') {
             return Redirect::back()->with('error', 'Transfer transactions cannot be edited. Please delete and create a new transfer.');
         }
 
@@ -152,35 +162,45 @@ class TransactionController extends Controller
             $newAmount = isset($validated['amount']) ? (float) $validated['amount'] : $oldAmount;
             $oldAccountId = $transaction->account_id;
             $newAccountId = isset($validated['account_id']) ? (int) $validated['account_id'] : $oldAccountId;
+            $oldType = $transaction->transaction_type;
+            $newType = $validated['transaction_type'] ?? $oldType;
 
-            // Handle account change
-            if ($oldAccountId !== $newAccountId) {
-                // Reverse on old account
-                if ($transaction->transaction_type === 'income') {
-                    $transaction->account->decrement('current_balance', $oldAmount);
-                } elseif ($transaction->transaction_type === 'expense') {
-                    $transaction->account->increment('current_balance', $oldAmount);
-                }
-
-                // Apply on new account
-                $newAccount = Account::find($newAccountId);
-                if ($transaction->transaction_type === 'income') {
-                    $newAccount->increment('current_balance', $newAmount);
-                } elseif ($transaction->transaction_type === 'expense') {
-                    $newAccount->decrement('current_balance', $newAmount);
-                }
-            } elseif ($oldAmount !== $newAmount) {
-                // Same account, different amount
-                $difference = $newAmount - $oldAmount;
-
-                if ($transaction->transaction_type === 'income') {
-                    $transaction->account->increment('current_balance', $difference);
-                } elseif ($transaction->transaction_type === 'expense') {
-                    $transaction->account->decrement('current_balance', $difference);
-                }
+            // Reverse old transaction impact
+            if ($oldType === 'income') {
+                $transaction->account->decrement('current_balance', $oldAmount);
+            } elseif ($oldType === 'expense') {
+                $transaction->account->increment('current_balance', $oldAmount);
             }
 
-            $transaction->update($validated);
+            // Apply new transaction impact on the appropriate account
+            $targetAccount = $oldAccountId !== $newAccountId
+                ? Account::find($newAccountId)
+                : $transaction->account;
+
+            if ($newType === 'income') {
+                $targetAccount->increment('current_balance', $newAmount);
+            } elseif ($newType === 'expense') {
+                $targetAccount->decrement('current_balance', $newAmount);
+            }
+
+            // Build update data explicitly
+            $updateData = [
+                'account_id' => $newAccountId,
+                'transaction_type' => $newType,
+                'amount' => $newAmount,
+                'description' => $validated['description'] ?? $transaction->description,
+                'notes' => $validated['notes'] ?? $transaction->notes,
+                'transaction_date' => $validated['transaction_date'] ?? $transaction->transaction_date,
+            ];
+
+            // Handle category: clear if type changed, otherwise use provided value
+            if ($oldType !== $newType) {
+                $updateData['category_id'] = null;
+            } elseif (array_key_exists('category_id', $validated)) {
+                $updateData['category_id'] = $validated['category_id'];
+            }
+
+            $transaction->update($updateData);
         });
 
         return Redirect::back()->with('success', 'Transaction updated successfully');
@@ -191,8 +211,10 @@ class TransactionController extends Controller
         $validated = $request->validated();
         $userId = auth()->id();
 
+        $newType = $validated['transaction_type'] ?? null;
+
         $updateData = collect($validated)
-            ->only(['account_id', 'category_id', 'transaction_date'])
+            ->only(['account_id', 'category_id', 'transaction_date', 'transaction_type'])
             ->filter(fn ($value) => $value !== null)
             ->toArray();
 
@@ -200,7 +222,8 @@ class TransactionController extends Controller
             return Redirect::back()->with('error', 'No fields to update');
         }
 
-        $transactions = Transaction::whereIn('id', $validated['transaction_ids'])
+        $transactions = Transaction::with('account')
+            ->whereIn('id', $validated['transaction_ids'])
             ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
             ->whereNull('transfer_transaction_id')
             ->where('transaction_type', '!=', 'transfer')
@@ -208,8 +231,32 @@ class TransactionController extends Controller
 
         $updatedCount = 0;
 
-        DB::transaction(function () use ($transactions, $updateData, &$updatedCount) {
+        DB::transaction(function () use ($transactions, $updateData, $newType, $validated, &$updatedCount) {
             foreach ($transactions as $transaction) {
+                // Handle type change with balance adjustments
+                if ($newType && $newType !== $transaction->transaction_type) {
+                    $amount = (float) $transaction->amount;
+
+                    // Reverse old impact
+                    if ($transaction->transaction_type === 'income') {
+                        $transaction->account->decrement('current_balance', $amount);
+                    } elseif ($transaction->transaction_type === 'expense') {
+                        $transaction->account->increment('current_balance', $amount);
+                    }
+
+                    // Apply new impact
+                    if ($newType === 'income') {
+                        $transaction->account->increment('current_balance', $amount);
+                    } elseif ($newType === 'expense') {
+                        $transaction->account->decrement('current_balance', $amount);
+                    }
+
+                    // Clear category when type changes, unless user provided a new category
+                    if (! array_key_exists('category_id', $validated) || $validated['category_id'] === null) {
+                        $updateData['category_id'] = null;
+                    }
+                }
+
                 $transaction->update($updateData);
                 $updatedCount++;
             }
@@ -271,6 +318,38 @@ class TransactionController extends Controller
         });
 
         return Redirect::back()->with('success', "{$deletedCount} transaction(s) deleted");
+    }
+
+    public function linkAsTransfer(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'transaction_ids' => ['required', 'array', 'size:2'],
+            'transaction_ids.*' => ['exists:finance_transactions,id'],
+        ]);
+
+        $userId = auth()->id();
+
+        $transactions = Transaction::whereIn('id', $validated['transaction_ids'])
+            ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
+            ->get();
+
+        if ($transactions->count() !== 2) {
+            return Redirect::back()->with('error', 'Both transactions must belong to you');
+        }
+
+        // Check neither is already linked
+        if ($transactions->whereNotNull('transfer_transaction_id')->isNotEmpty()) {
+            return Redirect::back()->with('error', 'One or both transactions are already linked');
+        }
+
+        [$first, $second] = $transactions->values();
+
+        DB::transaction(function () use ($first, $second) {
+            $first->update(['transfer_transaction_id' => $second->id]);
+            $second->update(['transfer_transaction_id' => $first->id]);
+        });
+
+        return Redirect::back()->with('success', 'Transactions linked as transfer pair');
     }
 
     public function destroy(Transaction $transaction): RedirectResponse
@@ -450,5 +529,135 @@ class TransactionController extends Controller
 
             echo '</Table></Worksheet></Workbook>';
         }, 200, $headers);
+    }
+
+    public function import(): Response
+    {
+        $userId = auth()->id();
+
+        $accounts = Account::where('user_id', $userId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $categories = Category::userCategories($userId)
+            ->where('is_active', true)
+            ->orderBy('type')
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('Finance::transactions/import', [
+            'accounts' => $accounts,
+            'categories' => $categories,
+        ]);
+    }
+
+    public function importPreview(
+        Request $request,
+        PayoneerImportService $payoneerService,
+        TechcombankImportService $techcombankService,
+        GenericCsvImportService $genericCsvService,
+        TechcombankPdfImportService $techcombankPdfService
+    ): JsonResponse {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls,pdf', 'max:10240'],
+            'source' => ['required', 'in:payoneer,techcombank,techcombank_pdf,generic'],
+        ]);
+
+        $file = $request->file('file');
+        $source = $request->input('source');
+
+        $transactions = match ($source) {
+            'techcombank' => $techcombankService->parseExcel($file->getPathname()),
+            'techcombank_pdf' => $techcombankPdfService->parsePdf($file->getPathname()),
+            'generic' => $genericCsvService->parseCSV($file->getPathname()),
+            default => $payoneerService->parseCSV($file->getPathname()),
+        };
+
+        // Get unique suggested categories
+        $suggestedCategories = $transactions
+            ->pluck('suggested_category')
+            ->filter()
+            ->unique()
+            ->values();
+
+        return response()->json([
+            'transactions' => $transactions->values(),
+            'summary' => [
+                'total' => $transactions->count(),
+                'income' => $transactions->where('type', 'income')->count(),
+                'expense' => $transactions->where('type', 'expense')->count(),
+                'total_income' => $transactions->where('type', 'income')->sum('amount'),
+                'total_expense' => $transactions->where('type', 'expense')->sum('amount'),
+                'date_range' => [
+                    'from' => $transactions->min('transaction_date'),
+                    'to' => $transactions->max('transaction_date'),
+                ],
+            ],
+            'suggested_categories' => $suggestedCategories,
+        ]);
+    }
+
+    public function importStore(
+        ImportTransactionRequest $request,
+        PayoneerImportService $payoneerService,
+        TechcombankImportService $techcombankService,
+        GenericCsvImportService $genericCsvService,
+        TechcombankPdfImportService $techcombankPdfService
+    ): RedirectResponse {
+        $validated = $request->validated();
+        $userId = auth()->id();
+        $source = $validated['source'] ?? 'payoneer';
+
+        $file = $request->file('file');
+
+        if ($source === 'techcombank') {
+            $transactions = $techcombankService->parseExcel($file->getPathname());
+            $result = $techcombankService->importTransactions(
+                $transactions,
+                $validated['account_id'],
+                $userId,
+                $validated['category_mappings'] ?? [],
+                $validated['skip_duplicates'] ?? true
+            );
+        } elseif ($source === 'techcombank_pdf') {
+            $transactions = $techcombankPdfService->parsePdf($file->getPathname());
+            $result = $techcombankPdfService->importTransactions(
+                $transactions,
+                $validated['account_id'],
+                $userId,
+                $validated['category_mappings'] ?? [],
+                $validated['skip_duplicates'] ?? true
+            );
+        } elseif ($source === 'generic') {
+            $transactions = $genericCsvService->parseCSV($file->getPathname());
+            $result = $genericCsvService->importTransactions(
+                $transactions,
+                $validated['account_id'],
+                $userId,
+                $validated['category_mappings'] ?? [],
+                $validated['skip_duplicates'] ?? true
+            );
+        } else {
+            $transactions = $payoneerService->parseCSV($file->getPathname());
+            $result = $payoneerService->importTransactions(
+                $transactions,
+                $validated['account_id'],
+                $userId,
+                $validated['category_mappings'] ?? [],
+                $validated['skip_duplicates'] ?? true
+            );
+        }
+
+        $message = "Imported {$result['imported']} transactions";
+        if ($result['skipped'] > 0) {
+            $message .= ", skipped {$result['skipped']} duplicates";
+        }
+        if (count($result['errors']) > 0) {
+            $message .= ', '.count($result['errors']).' errors';
+        }
+
+        return Redirect::route('dashboard.finance.transactions.index')
+            ->with('success', $message);
     }
 }

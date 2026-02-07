@@ -1,12 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Nwidart\Modules\Facades\Module;
 use Modules\Settings\Http\Controllers\{
     ModulesController,
     ProfileController,
     SettingsController
 };
+use Nwidart\Modules\Facades\Module;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Language switch route
