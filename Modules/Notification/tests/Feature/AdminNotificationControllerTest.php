@@ -112,15 +112,15 @@ class AdminNotificationControllerTest extends TestCase
 
     public function test_admin_can_search_users(): void
     {
-        User::factory()->create(['name' => 'John Doe', 'email' => 'john@example.com']);
+        User::factory()->create(['name' => 'Xylocarp Doe', 'email' => 'xylocarp@example.com']);
         User::factory()->create(['name' => 'Jane Smith', 'email' => 'jane@example.com']);
 
         $response = $this->actingAs($this->admin)
-            ->getJson(route('dashboard.notifications.search-users', ['q' => 'John']));
+            ->getJson(route('dashboard.notifications.search-users', ['q' => 'Xylocarp']));
 
         $response->assertStatus(200);
         $response->assertJsonCount(1, 'users');
-        $response->assertJsonPath('users.0.label', 'John Doe');
+        $response->assertJsonPath('users.0.label', 'Xylocarp Doe');
     }
 
     public function test_regular_user_cannot_send_notifications(): void
