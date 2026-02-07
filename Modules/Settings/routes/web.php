@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Nwidart\Modules\Facades\Module;
 use Modules\Settings\Http\Controllers\{
     ModulesController,
     ProfileController,
@@ -36,11 +37,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/display', [SettingsController::class, 'display'])->name('display');
         Route::patch('/display', [SettingsController::class, 'updateDisplay'])->name('display.update');
 
-        Route::get('/finance', [SettingsController::class, 'finance'])->name('finance');
-        Route::patch('/finance', [SettingsController::class, 'updateFinance'])->name('finance.update');
+        if (Module::isEnabled('Finance')) {
+            Route::get('/finance', [SettingsController::class, 'finance'])->name('finance');
+            Route::patch('/finance', [SettingsController::class, 'updateFinance'])->name('finance.update');
+        }
 
-        Route::get('/invoice', [SettingsController::class, 'invoice'])->name('invoice');
-        Route::patch('/invoice', [SettingsController::class, 'updateInvoice'])->name('invoice.update');
+        if (Module::isEnabled('Invoice')) {
+            Route::get('/invoice', [SettingsController::class, 'invoice'])->name('invoice');
+            Route::patch('/invoice', [SettingsController::class, 'updateInvoice'])->name('invoice.update');
+        }
 
         // Modules (Super Admin only)
         Route::get('/modules', [ModulesController::class, 'index'])->name('modules');

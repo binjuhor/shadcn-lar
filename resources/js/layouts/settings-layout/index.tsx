@@ -9,16 +9,17 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { Separator } from '@/components/ui/separator'
-import SidebarNav from '@/pages/settings/components/sidebar-nav'
+import SidebarNav from '@modules/Settings/pages/components/sidebar-nav'
 import { Main } from '@/components/layout'
-import { settingsNavItems } from '@/pages/settings/data/nav-items'
+import { settingsNavItems, type SettingsNavItem } from '@modules/Settings/pages/data/nav-items'
 import { usePermission } from '@/hooks/use-permission'
 import { PageProps } from '@/types'
 
 export function SettingLayout({ children, title }: { children: React.ReactNode; title?: string }) {
   const { t } = useTranslation()
   const { isSuperAdmin } = usePermission()
-  const { url, props: { enabledModules } } = usePage<PageProps>()
+  const { url, props } = usePage<PageProps>()
+  const enabledModules = props.enabledModules ?? []
 
   const navItems = [
     { title: t('nav.accounts'), href: '/dashboard/finance/accounts' },
