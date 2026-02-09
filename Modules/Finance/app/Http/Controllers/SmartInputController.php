@@ -48,15 +48,24 @@ class SmartInputController extends Controller
     }
 
     /**
+     * Providers that don't support audio natively
+     */
+    protected const NO_VOICE_PROVIDERS = ['deepseek', 'ollama', 'openrouter', 'openai'];
+
+    /**
+     * Providers that don't support image/vision natively
+     */
+    protected const NO_VISION_PROVIDERS = ['deepseek'];
+
+    /**
      * Get parser for voice input — falls back to Gemini/Claude since
      * DeepSeek, Ollama, OpenRouter, OpenAI don't support audio natively
      */
-    protected function getVoiceParser(): TransactionParserInterface
+    protected function getVoiceParser(): ?TransactionParserInterface
     {
         $provider = config('services.smart_input.provider', 'deepseek');
-        $noVoice = ['deepseek', 'ollama', 'openrouter', 'openai'];
 
-        if (in_array($provider, $noVoice)) {
+        if (in_array($provider, self::NO_VOICE_PROVIDERS)) {
             if (config('services.gemini.api_key')) {
                 return TransactionParserFactory::make('gemini');
             }
@@ -64,6 +73,8 @@ class SmartInputController extends Controller
             if (config('services.claude.api_key')) {
                 return TransactionParserFactory::make('claude');
             }
+
+            return null;
         }
 
         return $this->parser;
@@ -73,13 +84,21 @@ class SmartInputController extends Controller
      * Get parser for receipt/image input — prefers Gemini for speed,
      * falls back to current provider's vision capability
      */
-    protected function getReceiptParser(): TransactionParserInterface
+    protected function getReceiptParser(): ?TransactionParserInterface
     {
         $provider = config('services.smart_input.provider', 'deepseek');
 
         // Gemini is fastest for image parsing, use it when available
         if ($provider !== 'gemini' && config('services.gemini.api_key')) {
             return TransactionParserFactory::make('gemini');
+        }
+
+        if (in_array($provider, self::NO_VISION_PROVIDERS) && config('services.claude.api_key')) {
+            return TransactionParserFactory::make('claude');
+        }
+
+        if (in_array($provider, self::NO_VISION_PROVIDERS)) {
+            return null;
         }
 
         return $this->parser;
@@ -143,6 +162,16 @@ class SmartInputController extends Controller
 
         $language = $request->input('language', 'vi');
         $voiceParser = $this->getVoiceParser();
+
+        if (! $voiceParser) {
+            $provider = config('services.smart_input.provider', 'deepseek');
+
+            return response()->json([
+                'success' => false,
+                'error' => "Voice input is not supported by {$provider}. Please configure GEMINI_API_KEY or CLAUDE_API_KEY in your .env file to enable voice parsing.",
+            ], 422);
+        }
+
         $result = $voiceParser->parseVoice(
             $request->file('audio'),
             $language
@@ -179,6 +208,16 @@ class SmartInputController extends Controller
 
         $language = $request->input('language', 'vi');
         $receiptParser = $this->getReceiptParser();
+
+        if (! $receiptParser) {
+            $provider = config('services.smart_input.provider', 'deepseek');
+
+            return response()->json([
+                'success' => false,
+                'error' => "Image parsing is not supported by {$provider}. Please configure GEMINI_API_KEY or CLAUDE_API_KEY in your .env file to enable image parsing.",
+            ], 422);
+        }
+
         $result = $receiptParser->parseReceipt(
             $request->file('image'),
             $language
@@ -257,6 +296,16 @@ class SmartInputController extends Controller
         $imageFile = $request->file('image');
 
         $receiptParser = $this->getReceiptParser();
+
+        if (! $receiptParser) {
+            $provider = config('services.smart_input.provider', 'deepseek');
+
+            return response()->json([
+                'success' => false,
+                'error' => "Image parsing is not supported by {$provider}. Please configure GEMINI_API_KEY or CLAUDE_API_KEY in your .env file to enable image parsing.",
+            ], 422);
+        }
+
         $result = $receiptParser->parseReceipt($imageFile, $language);
 
         if (! $result['success']) {
