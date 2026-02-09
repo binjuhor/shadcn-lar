@@ -244,6 +244,20 @@ class SavingsGoalController extends Controller
         return Redirect::back()->with('success', 'Savings goal resumed');
     }
 
+    public function sync(SavingsGoal $savingsGoal): RedirectResponse
+    {
+        $this->authorize('update', $savingsGoal);
+
+        if (! $savingsGoal->target_account_id) {
+            return Redirect::back()->withErrors(['sync' => 'No linked account to sync with']);
+        }
+
+        $this->savingsGoalService->syncWithLinkedAccount($savingsGoal);
+        $this->savingsGoalService->checkCompletion($savingsGoal->fresh());
+
+        return Redirect::back()->with('success', 'Savings goal synced with account balance');
+    }
+
     public function transfer(Request $request, SavingsGoal $savingsGoal): RedirectResponse
     {
         $this->authorize('contribute', $savingsGoal);

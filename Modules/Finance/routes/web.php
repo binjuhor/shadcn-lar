@@ -91,6 +91,8 @@ Route::middleware(['auth', 'verified'])
                 ->name('pause');
             Route::post('resume', [SavingsGoalController::class, 'resume'])
                 ->name('resume');
+            Route::post('sync', [SavingsGoalController::class, 'sync'])
+                ->name('sync');
         });
 
         Route::resource('plans', FinancialPlanController::class);
