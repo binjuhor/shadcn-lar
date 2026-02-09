@@ -97,6 +97,7 @@ class SmartInputTest extends TestCase
                 'transaction_date' => now()->format('Y-m-d'),
             ]);
 
-        $response->assertRedirect();
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
     }
 }
