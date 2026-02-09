@@ -234,4 +234,118 @@ class SavingsGoalApiTest extends TestCase
 
         $response->assertUnauthorized();
     }
+
+    public function test_auto_sync_updates_goal_when_account_balance_changes(): void
+    {
+        $goal = $this->createSavingsGoal([
+            'target_account_id' => $this->account->id,
+            'target_amount' => 10000,
+            'current_amount' => 5000,
+        ]);
+
+        $this->account->updateBalance(1000);
+
+        $goal->refresh();
+        $this->assertEquals(6000, $goal->current_amount);
+    }
+
+    public function test_auto_sync_completes_goal_when_target_reached(): void
+    {
+        $goal = $this->createSavingsGoal([
+            'target_account_id' => $this->account->id,
+            'target_amount' => 5000,
+            'current_amount' => 4000,
+        ]);
+
+        $this->account->updateBalance(1000);
+
+        $goal->refresh();
+        $this->assertEquals(6000, $goal->current_amount);
+        $this->assertEquals('completed', $goal->status);
+        $this->assertNotNull($goal->completed_at);
+    }
+
+    public function test_auto_sync_reactivates_goal_when_balance_drops_below_target(): void
+    {
+        $goal = $this->createSavingsGoal([
+            'target_account_id' => $this->account->id,
+            'target_amount' => 5000,
+            'current_amount' => 5000,
+            'status' => 'completed',
+            'completed_at' => now(),
+        ]);
+
+        $this->account->updateBalance(-1000);
+
+        $goal->refresh();
+        $this->assertEquals(4000, $goal->current_amount);
+        $this->assertEquals('active', $goal->status);
+        $this->assertNull($goal->completed_at);
+    }
+
+    public function test_auto_sync_skips_currency_mismatch(): void
+    {
+        Currency::create([
+            'code' => 'VND',
+            'name' => 'Vietnamese Dong',
+            'symbol' => 'd',
+            'decimal_places' => 0,
+        ]);
+
+        $goal = $this->createSavingsGoal([
+            'target_account_id' => $this->account->id,
+            'currency_code' => 'VND',
+            'current_amount' => 1000,
+        ]);
+
+        $this->account->updateBalance(2000);
+
+        $goal->refresh();
+        $this->assertEquals(1000, $goal->current_amount);
+    }
+
+    public function test_auto_sync_skips_paused_goals(): void
+    {
+        $goal = $this->createSavingsGoal([
+            'target_account_id' => $this->account->id,
+            'current_amount' => 3000,
+            'status' => 'paused',
+        ]);
+
+        $this->account->updateBalance(1000);
+
+        $goal->refresh();
+        $this->assertEquals(3000, $goal->current_amount);
+    }
+
+    public function test_initial_sync_on_goal_creation_with_linked_account(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $response = $this->postJson('/api/v1/finance/savings-goals', [
+            'name' => 'Linked Goal',
+            'target_amount' => 20000,
+            'currency_code' => 'USD',
+            'target_account_id' => $this->account->id,
+        ]);
+
+        $response->assertCreated();
+        $goal = SavingsGoal::where('name', 'Linked Goal')->first();
+        $this->assertEquals(5000, $goal->current_amount);
+    }
+
+    public function test_sync_on_goal_update_when_account_linked(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $goal = $this->createSavingsGoal(['current_amount' => 0]);
+
+        $response = $this->putJson("/api/v1/finance/savings-goals/{$goal->id}", [
+            'target_account_id' => $this->account->id,
+        ]);
+
+        $response->assertOk();
+        $goal->refresh();
+        $this->assertEquals(5000, $goal->current_amount);
+    }
 }
