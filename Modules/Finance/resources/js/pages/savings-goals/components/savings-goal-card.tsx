@@ -27,6 +27,7 @@ import {
   Play,
   CheckCircle,
   Calendar,
+  RefreshCw,
 } from 'lucide-react'
 import type { SavingsGoal } from '@modules/Finance/types/finance'
 
@@ -200,6 +201,13 @@ export function SavingsGoalCard({
             <p className="text-xs text-muted-foreground">
               {formatMoney(goal.remaining_amount, goal.currency_code)} remaining
             </p>
+          )}
+
+          {goal.target_account && goal.target_account.currency_code === goal.currency_code && (
+            <div className="flex items-center gap-1 text-xs text-blue-500">
+              <RefreshCw className="h-3 w-3" />
+              <span>Auto-synced with {goal.target_account.name}</span>
+            </div>
           )}
         </div>
       </CardContent>

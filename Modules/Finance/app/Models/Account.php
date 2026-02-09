@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\{
     Relations\HasMany,
     SoftDeletes
 };
+use Modules\Finance\Events\SavingsGoalCompleted;
 use Modules\Finance\ValueObjects\Money;
 use OwenIt\Auditing\Contracts\Auditable;
 
@@ -131,6 +132,11 @@ class Account extends Model implements Auditable
         return $this->hasMany(Transaction::class);
     }
 
+    public function savingsGoals(): HasMany
+    {
+        return $this->hasMany(SavingsGoal::class, 'target_account_id');
+    }
+
     public function getBalanceMoney(): Money
     {
         return new Money($this->current_balance ?? 0, $this->currency_code);
@@ -140,6 +146,42 @@ class Account extends Model implements Auditable
     {
         $this->current_balance += $amount;
         $this->save();
+
+        $this->syncLinkedSavingsGoals();
+    }
+
+    public function syncLinkedSavingsGoals(): void
+    {
+        $goals = $this->savingsGoals()
+            ->whereIn('status', ['active', 'completed'])
+            ->where('is_active', true)
+            ->where('currency_code', $this->currency_code)
+            ->get();
+
+        foreach ($goals as $goal) {
+            $newAmount = max($this->current_balance, 0);
+
+            if ((float) $goal->current_amount === (float) $newAmount) {
+                continue;
+            }
+
+            $goal->update(['current_amount' => $newAmount]);
+            $goal->refresh();
+
+            if ($goal->hasReachedTarget() && $goal->status === 'active') {
+                $goal->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                ]);
+
+                event(new SavingsGoalCompleted($goal));
+            } elseif (! $goal->hasReachedTarget() && $goal->status === 'completed') {
+                $goal->update([
+                    'status' => 'active',
+                    'completed_at' => null,
+                ]);
+            }
+        }
     }
 
     protected static function newFactory()

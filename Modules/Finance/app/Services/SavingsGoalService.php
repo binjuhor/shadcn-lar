@@ -4,14 +4,14 @@ namespace Modules\Finance\Services;
 
 use Illuminate\Support\Facades\DB;
 use Modules\Finance\Events\SavingsGoalCompleted;
-use Modules\Finance\Models\{SavingsContribution, SavingsGoal, Transaction};
+use Modules\Finance\Models\{Account, SavingsContribution, SavingsGoal, Transaction};
 
 class SavingsGoalService
 {
     public function createGoal(array $data): SavingsGoal
     {
         return DB::transaction(function () use ($data) {
-            return SavingsGoal::create([
+            $goal = SavingsGoal::create([
                 'user_id' => $data['user_id'] ?? auth()->id(),
                 'target_account_id' => $data['target_account_id'] ?? null,
                 'name' => $data['name'],
@@ -25,6 +25,10 @@ class SavingsGoalService
                 'status' => 'active',
                 'is_active' => $data['is_active'] ?? true,
             ]);
+
+            $this->syncWithLinkedAccount($goal);
+
+            return $goal;
         });
     }
 
@@ -32,6 +36,11 @@ class SavingsGoalService
     {
         return DB::transaction(function () use ($goal, $data) {
             $goal->update($data);
+
+            if (array_key_exists('target_account_id', $data)) {
+                $this->syncWithLinkedAccount($goal->fresh());
+            }
+
             $this->checkCompletion($goal);
 
             return $goal->fresh();
@@ -179,6 +188,22 @@ class SavingsGoalService
                 'notes' => $data['notes'] ?? 'Transfer from account',
             ]);
         });
+    }
+
+    public function syncWithLinkedAccount(SavingsGoal $goal): void
+    {
+        if (! $goal->target_account_id) {
+            return;
+        }
+
+        $account = Account::find($goal->target_account_id);
+
+        if (! $account || $account->currency_code !== $goal->currency_code) {
+            return;
+        }
+
+        $newAmount = max($account->current_balance, 0);
+        $goal->update(['current_amount' => $newAmount]);
     }
 
     public function unlinkContribution(SavingsContribution $contribution): void
