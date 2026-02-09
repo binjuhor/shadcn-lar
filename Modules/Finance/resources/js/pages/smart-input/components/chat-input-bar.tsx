@@ -43,6 +43,9 @@ export function ChatInputBar({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [isDragging, setIsDragging] = useState(false)
+  const dragCounterRef = useRef(0)
+
   const hasContent = text.trim().length > 0 || imageFile !== null
 
   // Auto-resize textarea as content grows
@@ -102,6 +105,41 @@ export function ChatInputBar({
     setImagePreview(URL.createObjectURL(file))
     setAttachOpen(false)
   }, [])
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current++
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragging(true)
+    }
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current--
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false)
+    }
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    dragCounterRef.current = 0
+
+    const file = e.dataTransfer.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      handleFileSelect(file)
+    }
+  }, [handleFileSelect])
 
   const handleUploadClick = () => {
     fileInputRef.current?.click()
@@ -169,9 +207,25 @@ export function ChatInputBar({
   }
 
   return (
-    <div className="bg-background px-3 sm:px-4 pb-3 pt-2 sm:pb-4">
+    <div
+      className="bg-background px-3 sm:px-4 pb-3 pt-2 sm:pb-4"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       <div className="max-w-2xl mx-auto">
-        <div className="relative rounded-2xl border bg-muted/30 shadow-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1 transition-shadow">
+        <div className={`relative rounded-2xl border shadow-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1 transition-all ${isDragging ? 'border-primary border-dashed bg-primary/5 ring-2 ring-primary/20' : 'bg-muted/30'}`}>
+          {/* Drop zone overlay */}
+          {isDragging && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl pointer-events-none">
+              <div className="flex items-center gap-2 text-primary font-medium">
+                <Upload className="h-5 w-5" />
+                <span>{t('page.smart_input.drop_image')}</span>
+              </div>
+            </div>
+          )}
+
           {/* Image preview strip */}
           {imagePreview && (
             <div className="px-3 pt-3 sm:px-4 sm:pt-4">

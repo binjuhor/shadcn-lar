@@ -180,6 +180,155 @@ class SmartInputApiController extends Controller
     }
 
     /**
+     * Sync offline transactions from mobile app
+     */
+    public function syncOffline(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'transactions' => ['required', 'array', 'min:1', 'max:100'],
+            'transactions.*.type' => ['required', 'in:income,expense,transfer'],
+            'transactions.*.amount' => ['required', 'numeric', 'min:1'],
+            'transactions.*.description' => ['required', 'string', 'max:255'],
+            'transactions.*.account_id' => ['required', 'exists:finance_accounts,id'],
+            'transactions.*.category_id' => ['nullable', 'exists:finance_categories,id'],
+            'transactions.*.transaction_date' => ['required', 'date'],
+            'transactions.*.notes' => ['nullable', 'string'],
+            'transactions.*.offline_id' => ['nullable', 'string', 'max:100'],
+            'transactions.*.transfer_account_id' => ['nullable', 'exists:finance_accounts,id'],
+        ]);
+
+        $userId = auth()->id();
+        $results = [];
+
+        foreach ($validated['transactions'] as $index => $txData) {
+            $account = Account::where('id', $txData['account_id'])
+                ->where('user_id', $userId)
+                ->first();
+
+            if (! $account) {
+                $results[] = [
+                    'index' => $index,
+                    'offline_id' => $txData['offline_id'] ?? null,
+                    'success' => false,
+                    'error' => 'Account not found or not owned by user',
+                ];
+
+                continue;
+            }
+
+            try {
+                $transaction = Transaction::create([
+                    'account_id' => $txData['account_id'],
+                    'transaction_type' => $txData['type'],
+                    'amount' => $txData['amount'],
+                    'description' => $txData['description'],
+                    'category_id' => $txData['category_id'] ?? null,
+                    'transaction_date' => $txData['transaction_date'],
+                    'notes' => $txData['notes'] ?? null,
+                    'currency_code' => $account->currency_code,
+                    'is_reconciled' => false,
+                    'transfer_account_id' => $txData['transfer_account_id'] ?? null,
+                ]);
+
+                $results[] = [
+                    'index' => $index,
+                    'offline_id' => $txData['offline_id'] ?? null,
+                    'success' => true,
+                    'transaction_id' => $transaction->id,
+                ];
+            } catch (\Exception $e) {
+                $results[] = [
+                    'index' => $index,
+                    'offline_id' => $txData['offline_id'] ?? null,
+                    'success' => false,
+                    'error' => 'Failed to create transaction',
+                ];
+            }
+        }
+
+        $successCount = collect($results)->where('success', true)->count();
+        $failCount = collect($results)->where('success', false)->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total' => count($results),
+                'synced' => $successCount,
+                'failed' => $failCount,
+                'results' => $results,
+            ],
+        ]);
+    }
+
+    /**
+     * Quick entry for common transactions
+     */
+    public function quickEntry(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'type' => ['required', 'in:income,expense'],
+            'amount' => ['required', 'numeric', 'min:1'],
+            'description' => ['required', 'string', 'max:255'],
+            'account_id' => ['nullable', 'exists:finance_accounts,id'],
+        ]);
+
+        $userId = auth()->id();
+
+        $account = null;
+        if (! empty($validated['account_id'])) {
+            $account = Account::where('id', $validated['account_id'])
+                ->where('user_id', $userId)
+                ->first();
+        }
+
+        if (! $account) {
+            $account = Account::where('user_id', $userId)
+                ->where('is_active', true)
+                ->first();
+        }
+
+        if (! $account) {
+            return response()->json([
+                'success' => false,
+                'error' => 'No active account found',
+            ], 422);
+        }
+
+        $suggestedCategory = $this->parser->matchCategory(
+            $validated['description'],
+            $userId,
+            $validated['type']
+        );
+
+        $transaction = Transaction::create([
+            'account_id' => $account->id,
+            'transaction_type' => $validated['type'],
+            'amount' => $validated['amount'],
+            'description' => $validated['description'],
+            'category_id' => $suggestedCategory['id'] ?? null,
+            'transaction_date' => now(),
+            'currency_code' => $account->currency_code,
+            'is_reconciled' => false,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $transaction->id,
+                'type' => $transaction->transaction_type,
+                'amount' => $transaction->amount,
+                'description' => $transaction->description,
+                'category' => $suggestedCategory,
+                'account' => [
+                    'id' => $account->id,
+                    'name' => $account->name,
+                ],
+                'transaction_date' => $transaction->transaction_date->format('Y-m-d'),
+            ],
+        ], 201);
+    }
+
+    /**
      * Enrich parsed result with matched category/account
      */
     protected function enrichResult(array $result): JsonResponse

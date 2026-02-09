@@ -31,15 +31,15 @@ class FinanceDashboardController extends Controller
 
         $includedAccounts = $allAccounts->where('exclude_from_total', false);
 
-        // Assets: only from accounts where exclude_from_total = false
+        // Assets: only from accounts where exclude_from_total = false and no credit limit
         $totalAssets = $includedAccounts
-            ->whereIn('account_type', ['bank', 'investment', 'cash', 'e_wallet'])
+            ->where('has_credit_limit', false)
             ->where('current_balance', '>', 0)
             ->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode, $account->rate_source));
 
-        // Liabilities: from ALL credit cards/loans (debt is always tracked)
+        // Liabilities: from ALL accounts with credit limit (debt is always tracked regardless of exclude_from_total)
         $totalLiabilities = $allAccounts
-            ->whereIn('account_type', ['credit_card', 'loan'])
+            ->where('has_credit_limit', true)
             ->sum(function ($account) use ($defaultCode) {
                 $amountOwed = $account->initial_balance - $account->current_balance;
                 if ($amountOwed <= 0) {

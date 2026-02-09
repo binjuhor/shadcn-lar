@@ -40,34 +40,45 @@ class SmartInputController extends Controller
             'gemini' => config('services.gemini.api_key'),
             'claude' => config('services.claude.api_key'),
             'deepseek' => config('services.deepseek.api_key'),
+            'ollama' => config('services.ollama.base_url'),
+            'openrouter' => config('services.openrouter.api_key'),
+            'openai' => config('services.openai.api_key'),
             default => false,
         };
     }
 
     /**
-     * Get parser for voice input (prefers Gemini for audio support)
+     * Get parser for voice input — falls back to Gemini/Claude since
+     * DeepSeek, Ollama, OpenRouter, OpenAI don't support audio natively
      */
     protected function getVoiceParser(): TransactionParserInterface
     {
         $provider = config('services.smart_input.provider', 'deepseek');
+        $noVoice = ['deepseek', 'ollama', 'openrouter', 'openai'];
 
-        // DeepSeek doesn't support audio, use Gemini if available
-        if ($provider === 'deepseek' && config('services.gemini.api_key')) {
-            return TransactionParserFactory::make('gemini');
+        if (in_array($provider, $noVoice)) {
+            if (config('services.gemini.api_key')) {
+                return TransactionParserFactory::make('gemini');
+            }
+
+            if (config('services.claude.api_key')) {
+                return TransactionParserFactory::make('claude');
+            }
         }
 
         return $this->parser;
     }
 
     /**
-     * Get parser for receipt/image input (prefers Gemini for better multimodal)
+     * Get parser for receipt/image input — prefers Gemini for speed,
+     * falls back to current provider's vision capability
      */
     protected function getReceiptParser(): TransactionParserInterface
     {
         $provider = config('services.smart_input.provider', 'deepseek');
 
-        // Route image/receipt parsing to Gemini for better multimodal capabilities
-        if ($provider === 'deepseek' && config('services.gemini.api_key')) {
+        // Gemini is fastest for image parsing, use it when available
+        if ($provider !== 'gemini' && config('services.gemini.api_key')) {
             return TransactionParserFactory::make('gemini');
         }
 
@@ -472,10 +483,16 @@ class SmartInputController extends Controller
         ]);
 
         if ($attachment) {
+            $webpPath = null;
+
             try {
                 $webpPath = $this->convertToWebp($attachment);
+            } catch (\Throwable $e) {
+                report($e);
+            }
 
-                if ($webpPath) {
+            try {
+                if ($webpPath && file_exists($webpPath) && filesize($webpPath) > 0) {
                     $originalName = pathinfo($attachment->getClientOriginalName(), PATHINFO_FILENAME) . '.webp';
 
                     $history->addMedia($webpPath)
@@ -488,6 +505,10 @@ class SmartInputController extends Controller
                 }
             } catch (\Throwable $e) {
                 report($e);
+            } finally {
+                if ($webpPath && file_exists($webpPath)) {
+                    @unlink($webpPath);
+                }
             }
         }
 

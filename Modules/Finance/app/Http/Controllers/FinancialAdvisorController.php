@@ -103,9 +103,13 @@ class FinancialAdvisorController extends Controller
         } catch (\Throwable $e) {
             report($e);
 
+            $error = app()->isLocal()
+                ? $e->getMessage()
+                : 'Failed to get AI response. Please try again.';
+
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to get AI response. Please try again.',
+                'error' => $error,
             ], 500);
         }
     }

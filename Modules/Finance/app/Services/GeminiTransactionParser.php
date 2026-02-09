@@ -23,36 +23,101 @@ class GeminiTransactionParser implements TransactionParserInterface
 
     /**
      * Parse voice audio to extract transaction details
+     * Note: Browser typically records in WebM/Opus format which Gemini doesn't directly support.
+     * We try multiple MIME types to find one that works.
      */
     public function parseVoice(UploadedFile $audioFile, string $language = 'vi'): array
     {
         $audioBase64 = base64_encode(file_get_contents($audioFile->getRealPath()));
-        $mimeType = $audioFile->getMimeType() ?: 'audio/webm';
+        $originalMime = $audioFile->getMimeType() ?: 'audio/webm';
+
+        Log::info('Voice parsing request', [
+            'original_mime' => $originalMime,
+            'file_size' => $audioFile->getSize(),
+            'audio_length' => strlen($audioBase64),
+        ]);
+
+        // Gemini officially supports: audio/wav, audio/mp3, audio/aiff, audio/aac, audio/ogg, audio/flac
+        // Browser WebM/Opus is not officially supported, but we'll try compatible formats
+        $mimeTypesToTry = $this->getMimeTypesToTry($originalMime);
 
         $prompt = $this->getParsePrompt($language);
+        $lastError = null;
 
-        $response = $this->callGeminiApi([
-            'contents' => [
-                [
-                    'parts' => [
-                        ['text' => $prompt],
-                        [
-                            'inline_data' => [
-                                'mime_type' => $mimeType,
-                                'data' => $audioBase64,
+        foreach ($mimeTypesToTry as $mimeType) {
+            Log::info("Trying audio format: {$mimeType}");
+
+            $response = $this->callGeminiApi([
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt],
+                            [
+                                'inline_data' => [
+                                    'mime_type' => $mimeType,
+                                    'data' => $audioBase64,
+                                ],
                             ],
                         ],
                     ],
                 ],
-            ],
-            'generationConfig' => [
-                'temperature' => 0.1,
-                'topP' => 0.8,
-                'maxOutputTokens' => 1024,
-            ],
-        ]);
+                'generationConfig' => [
+                    'temperature' => 0.1,
+                    'topP' => 0.8,
+                    'maxOutputTokens' => 1024,
+                ],
+            ]);
 
-        return $this->parseResponse($response);
+            // If successful, return the result
+            if (! isset($response['error'])) {
+                Log::info("Audio format {$mimeType} succeeded");
+
+                return $this->parseResponse($response);
+            }
+
+            $lastError = $response['error'];
+
+            // If it's not a format error (400), don't try other formats
+            if (($response['status'] ?? 0) !== 400) {
+                break;
+            }
+        }
+
+        // All formats failed - suggest using text input instead
+        return [
+            'success' => false,
+            'error' => 'Voice input is temporarily unavailable. Please use the Text tab to enter your transaction (e.g., "Cafe 50k").',
+            'confidence' => 0,
+        ];
+    }
+
+    /**
+     * Get list of MIME types to try based on original format
+     */
+    protected function getMimeTypesToTry(string $originalMime): array
+    {
+        // If it's already a supported format, just try that
+        $supportedFormats = ['audio/wav', 'audio/mp3', 'audio/aiff', 'audio/aac', 'audio/ogg', 'audio/flac'];
+
+        foreach ($supportedFormats as $format) {
+            if (str_contains($originalMime, str_replace('audio/', '', $format))) {
+                return [$format];
+            }
+        }
+
+        // For WebM/Opus (browser default), try these formats
+        // WebM contains Opus or Vorbis codec, which is similar to OGG
+        if (str_contains($originalMime, 'webm') || str_contains($originalMime, 'opus')) {
+            return ['audio/ogg', 'audio/webm', 'audio/mp3'];
+        }
+
+        // For MP4 audio
+        if (str_contains($originalMime, 'mp4')) {
+            return ['audio/aac', 'audio/mp4', 'audio/mp3'];
+        }
+
+        // Default fallback
+        return [$originalMime, 'audio/ogg', 'audio/mp3'];
     }
 
     /**
@@ -101,6 +166,34 @@ class GeminiTransactionParser implements TransactionParserInterface
                 [
                     'parts' => [
                         ['text' => $prompt],
+                    ],
+                ],
+            ],
+            'generationConfig' => [
+                'temperature' => 0.1,
+                'topP' => 0.8,
+                'maxOutputTokens' => 1024,
+            ],
+        ]);
+
+        return $this->parseResponse($response);
+    }
+
+    public function parseTextWithImage(string $text, string $imageBase64, string $mimeType, string $language = 'vi'): array
+    {
+        $prompt = $this->getTextWithImagePrompt($language, $text);
+
+        $response = $this->callGeminiApi([
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt],
+                        [
+                            'inline_data' => [
+                                'mime_type' => $mimeType,
+                                'data' => $imageBase64,
+                            ],
+                        ],
                     ],
                 ],
             ],
@@ -226,14 +319,19 @@ class GeminiTransactionParser implements TransactionParserInterface
                 ->post($url, $payload);
 
             if ($response->failed()) {
+                $errorBody = $response->json('error') ?? [];
                 Log::error('Gemini API error', [
                     'status' => $response->status(),
-                    'body' => $response->body(),
+                    'error_code' => $errorBody['code'] ?? null,
+                    'error_message' => $errorBody['message'] ?? null,
+                    'error_status' => $errorBody['status'] ?? null,
+                    'full_body' => $response->body(),
                 ]);
 
                 $errorMessage = match ($response->status()) {
                     429 => 'AI service quota exceeded. Please try again later or check your API plan.',
                     401, 403 => 'AI service authentication failed. Please check your API key.',
+                    400 => 'Invalid audio format. '.($errorBody['message'] ?? 'Please try again.'),
                     500, 502, 503 => 'AI service temporarily unavailable. Please try again.',
                     default => 'AI service error. Please try again.',
                 };
@@ -407,6 +505,34 @@ Extract:
 - date_hint: transaction date if visible
 - confidence: 0.0 to 1.0 based on image clarity and extraction certainty
 - raw_text: key text extracted from receipt
+
+Return ONLY valid JSON, no explanation:
+{"type":"expense","amount":150000,"description":"Highland Coffee","category_hint":"food","date_hint":"2026-01-04","confidence":0.92,"raw_text":"Highland Coffee - Total: 150,000 VND"}
+PROMPT;
+    }
+
+    protected function getTextWithImagePrompt(string $language, string $userText): string
+    {
+        $langInstructions = $language === 'vi'
+            ? 'Input is in Vietnamese. Handle Vietnamese number shortcuts: k/nghìn=×1000, tr/triệu=×1000000. Receipt may be in Vietnamese.'
+            : 'Input is in English.';
+
+        return <<<PROMPT
+You are a financial transaction parser. The user provides text context AND an image (receipt/bill). Use both to extract transaction details.
+
+User says: "{$userText}"
+
+{$langInstructions}
+
+Extract:
+- type: "income" or "expense" (default: expense)
+- amount: number in local currency (convert shortcuts to full numbers)
+- description: brief description combining text and image context
+- category_hint: suggested category (food, transport, utilities, salary, shopping, entertainment, etc.)
+- account_hint: payment method if mentioned (cash, card, bank)
+- date_hint: date if visible or mentioned
+- confidence: 0.0 to 1.0 based on clarity of input
+- raw_text: key text extracted from the image
 
 Return ONLY valid JSON, no explanation:
 {"type":"expense","amount":150000,"description":"Highland Coffee","category_hint":"food","date_hint":"2026-01-04","confidence":0.92,"raw_text":"Highland Coffee - Total: 150,000 VND"}

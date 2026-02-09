@@ -94,9 +94,9 @@ class FinancialContextBuilder
         $lines[] = "Net: {$net}";
 
         // Top expense categories
-        $topCategories = Transaction::where('user_id', $userId)
-            ->where('transaction_type', 'expense')
-            ->where('transaction_date', '>=', $since)
+        $topCategories = Transaction::where('finance_transactions.user_id', $userId)
+            ->where('finance_transactions.transaction_type', 'expense')
+            ->where('finance_transactions.transaction_date', '>=', $since)
             ->join('finance_categories', 'finance_transactions.category_id', '=', 'finance_categories.id')
             ->selectRaw('finance_categories.id, finance_categories.name, SUM(finance_transactions.amount) as total')
             ->groupBy('finance_categories.id', 'finance_categories.name')

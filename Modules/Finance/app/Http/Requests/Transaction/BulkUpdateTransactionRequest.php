@@ -16,6 +16,7 @@ class BulkUpdateTransactionRequest extends FormRequest
         return [
             'transaction_ids' => ['required', 'array', 'min:1'],
             'transaction_ids.*' => ['exists:finance_transactions,id'],
+            'transaction_type' => ['nullable', 'in:income,expense'],
             'account_id' => ['nullable', 'exists:finance_accounts,id'],
             'category_id' => ['nullable', 'exists:finance_categories,id'],
             'transaction_date' => ['nullable', 'date'],

@@ -107,6 +107,37 @@ class ClaudeTransactionParser implements TransactionParserInterface
         return $this->parseResponse($response);
     }
 
+    public function parseTextWithImage(string $text, string $imageBase64, string $mimeType, string $language = 'vi'): array
+    {
+        $prompt = $this->getTextWithImagePrompt($language, $text);
+
+        $response = $this->callClaudeApi([
+            'model' => $this->model,
+            'max_tokens' => 1024,
+            'messages' => [
+                [
+                    'role' => 'user',
+                    'content' => [
+                        [
+                            'type' => 'text',
+                            'text' => $prompt,
+                        ],
+                        [
+                            'type' => 'image',
+                            'source' => [
+                                'type' => 'base64',
+                                'media_type' => $mimeType,
+                                'data' => $imageBase64,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        return $this->parseResponse($response);
+    }
+
     public function matchCategory(string $hint, int $userId, string $type = 'expense'): ?array
     {
         $categories = Category::where(function ($q) use ($userId) {
@@ -392,6 +423,34 @@ Extract:
 - date_hint: transaction date if visible
 - confidence: 0.0 to 1.0 based on image clarity and extraction certainty
 - raw_text: key text extracted from receipt
+
+Return ONLY valid JSON, no explanation:
+{"type":"expense","amount":150000,"description":"Highland Coffee","category_hint":"food","date_hint":"2026-01-04","confidence":0.92,"raw_text":"Highland Coffee - Total: 150,000 VND"}
+PROMPT;
+    }
+
+    protected function getTextWithImagePrompt(string $language, string $userText): string
+    {
+        $langInstructions = $language === 'vi'
+            ? 'Input is in Vietnamese. Handle Vietnamese number shortcuts: k/nghìn=×1000, tr/triệu=×1000000. Receipt may be in Vietnamese.'
+            : 'Input is in English.';
+
+        return <<<PROMPT
+You are a financial transaction parser. The user provides text context AND an image (receipt/bill). Use both to extract transaction details.
+
+User says: "{$userText}"
+
+{$langInstructions}
+
+Extract:
+- type: "income" or "expense" (default: expense)
+- amount: number in local currency (convert shortcuts to full numbers)
+- description: brief description combining text and image context
+- category_hint: suggested category (food, transport, utilities, salary, shopping, entertainment, etc.)
+- account_hint: payment method if mentioned (cash, card, bank)
+- date_hint: date if visible or mentioned
+- confidence: 0.0 to 1.0 based on clarity of input
+- raw_text: key text extracted from the image
 
 Return ONLY valid JSON, no explanation:
 {"type":"expense","amount":150000,"description":"Highland Coffee","category_hint":"food","date_hint":"2026-01-04","confidence":0.92,"raw_text":"Highland Coffee - Total: 150,000 VND"}

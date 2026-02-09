@@ -15,6 +15,9 @@ class TransactionParserFactory
             'claude' => new ClaudeTransactionParser,
             'gemini' => new GeminiTransactionParser,
             'deepseek' => new DeepSeekTransactionParser,
+            'ollama' => new OllamaTransactionParser,
+            'openrouter' => new OpenRouterTransactionParser,
+            'openai' => new OpenAiTransactionParser,
             default => throw new InvalidArgumentException("Unknown parser provider: {$provider}"),
         };
     }

@@ -14,8 +14,10 @@ class IndexTransactionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'account_id' => ['nullable', 'exists:finance_accounts,id'],
-            'category_id' => ['nullable', 'exists:finance_categories,id'],
+            'account_ids' => ['nullable', 'array'],
+            'account_ids.*' => ['exists:finance_accounts,id'],
+            'category_ids' => ['nullable', 'array'],
+            'category_ids.*' => ['exists:finance_categories,id'],
             'type' => ['nullable', 'in:income,expense,transfer'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
@@ -27,6 +29,6 @@ class IndexTransactionRequest extends FormRequest
 
     public function filters(): array
     {
-        return $this->only(['account_id', 'category_id', 'type', 'date_from', 'date_to', 'amount_from', 'amount_to', 'search']);
+        return $this->only(['account_ids', 'category_ids', 'type', 'date_from', 'date_to', 'amount_from', 'amount_to', 'search']);
     }
 }

@@ -75,6 +75,7 @@ function buildHistoryMessages(history: HistoryItem[], t: (key: string) => string
         role: 'assistant',
         content: t('page.smart_input.chat_parsed'),
         inputType: h.input_type,
+        attachment,
         historyId: h.id,
         transactionSaved: h.transaction_saved,
         parsedTransaction: {

@@ -20,6 +20,9 @@ class FinancialAdvisorService
             'gemini' => config('services.gemini.api_key'),
             'claude' => config('services.claude.api_key'),
             'deepseek' => config('services.deepseek.api_key'),
+            'ollama' => config('services.ollama.base_url'),
+            'openrouter' => config('services.openrouter.api_key'),
+            'openai' => config('services.openai.api_key'),
             default => false,
         };
     }
@@ -74,6 +77,9 @@ class FinancialAdvisorService
             'deepseek' => $this->callDeepSeek($systemPrompt, $messages),
             'claude' => $this->callClaude($systemPrompt, $messages),
             'gemini' => $this->callGemini($systemPrompt, $messages),
+            'ollama' => $this->callOllama($systemPrompt, $messages),
+            'openrouter' => $this->callOpenRouter($systemPrompt, $messages),
+            'openai' => $this->callOpenAi($systemPrompt, $messages),
             default => throw new \RuntimeException("Unsupported provider: {$provider}"),
         };
     }
@@ -180,6 +186,109 @@ class FinancialAdvisorService
             'content' => $data['candidates'][0]['content']['parts'][0]['text'] ?? '',
             'prompt_tokens' => $data['usageMetadata']['promptTokenCount'] ?? null,
             'completion_tokens' => $data['usageMetadata']['candidatesTokenCount'] ?? null,
+        ];
+    }
+
+    protected function callOllama(string $systemPrompt, array $messages): array
+    {
+        $baseUrl = rtrim(config('services.ollama.base_url', 'http://localhost:11434'), '/');
+        $model = config('services.ollama.model', 'llama3.2');
+
+        $apiMessages = [
+            ['role' => 'system', 'content' => $systemPrompt],
+            ...$messages,
+        ];
+
+        $response = Http::timeout(120)
+            ->withOptions(['allow_redirects' => ['strict' => true]])
+            ->post("{$baseUrl}/v1/chat/completions", [
+                'model' => $model,
+                'messages' => $apiMessages,
+                'temperature' => 0.7,
+            ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException("Ollama API error: {$response->status()} - {$response->body()}");
+        }
+
+        $data = $response->json();
+
+        return [
+            'content' => $data['choices'][0]['message']['content'] ?? '',
+            'prompt_tokens' => $data['usage']['prompt_tokens'] ?? null,
+            'completion_tokens' => $data['usage']['completion_tokens'] ?? null,
+        ];
+    }
+
+    protected function callOpenAi(string $systemPrompt, array $messages): array
+    {
+        $apiKey = config('services.openai.api_key');
+        $model = config('services.openai.model', 'gpt-4o-mini');
+
+        $apiMessages = [
+            ['role' => 'system', 'content' => $systemPrompt],
+            ...$messages,
+        ];
+
+        $response = Http::timeout(60)
+            ->withHeaders([
+                'Authorization' => "Bearer {$apiKey}",
+                'Content-Type' => 'application/json',
+            ])
+            ->post('https://api.openai.com/v1/chat/completions', [
+                'model' => $model,
+                'max_tokens' => 2048,
+                'messages' => $apiMessages,
+                'temperature' => 0.7,
+            ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException("OpenAI API error: {$response->status()} - {$response->body()}");
+        }
+
+        $data = $response->json();
+
+        return [
+            'content' => $data['choices'][0]['message']['content'] ?? '',
+            'prompt_tokens' => $data['usage']['prompt_tokens'] ?? null,
+            'completion_tokens' => $data['usage']['completion_tokens'] ?? null,
+        ];
+    }
+
+    protected function callOpenRouter(string $systemPrompt, array $messages): array
+    {
+        $apiKey = config('services.openrouter.api_key');
+        $model = config('services.openrouter.model', 'openrouter/auto');
+
+        $apiMessages = [
+            ['role' => 'system', 'content' => $systemPrompt],
+            ...$messages,
+        ];
+
+        $response = Http::timeout(60)
+            ->withHeaders([
+                'Authorization' => "Bearer {$apiKey}",
+                'Content-Type' => 'application/json',
+                'HTTP-Referer' => config('app.url', 'http://localhost'),
+                'X-Title' => config('app.name', 'Mokey'),
+            ])
+            ->post('https://openrouter.ai/api/v1/chat/completions', [
+                'model' => $model,
+                'max_tokens' => 2048,
+                'messages' => $apiMessages,
+                'temperature' => 0.7,
+            ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException("OpenRouter API error: {$response->status()} - {$response->body()}");
+        }
+
+        $data = $response->json();
+
+        return [
+            'content' => $data['choices'][0]['message']['content'] ?? '',
+            'prompt_tokens' => $data['usage']['prompt_tokens'] ?? null,
+            'completion_tokens' => $data['usage']['completion_tokens'] ?? null,
         ];
     }
 

@@ -391,13 +391,9 @@ class FinanceReportController extends Controller
 
     protected function getAccountDistribution(int $userId, string $defaultCode): array
     {
-        // Get all active accounts - liabilities always shown, assets respect exclude_from_total
+        // Get all active accounts - we'll filter in-memory for flexibility
         $accounts = Account::where('user_id', $userId)
             ->where('is_active', true)
-            ->where(function ($query) {
-                $query->where('exclude_from_total', false)
-                    ->orWhereIn('account_type', ['credit_card', 'loan']);
-            })
             ->get();
 
         $typeLabels = [
@@ -421,29 +417,41 @@ class FinanceReportController extends Controller
         ];
 
         $liabilityTypes = ['credit_card', 'loan'];
-
         $distribution = [];
 
         foreach ($accounts as $account) {
             $type = $account->account_type;
-            $isLiability = in_array($type, $liabilityTypes);
+            $isLiability = $account->has_credit_limit;
 
-            // For credit accounts: show amount owed (initial_balance - current_balance)
-            // For regular accounts: show current_balance
-            $rawBalance = $isLiability
-                ? ($account->initial_balance - $account->current_balance)
-                : $account->current_balance;
+            // Determine balance to show
+            if ($isLiability) {
+                // For credit accounts: show amount owed (initial_balance - current_balance)
+                $rawBalance = $account->initial_balance - $account->current_balance;
 
-            // Skip if no balance to show
-            if ($rawBalance <= 0) {
-                continue;
+                // Skip if no debt
+                if ($rawBalance <= 0) {
+                    continue;
+                }
+            } else {
+                // For regular accounts: show current_balance
+                // Skip if excluded from total
+                if ($account->exclude_from_total) {
+                    continue;
+                }
+
+                $rawBalance = $account->current_balance;
+
+                // Skip negative or zero balance
+                if ($rawBalance <= 0) {
+                    continue;
+                }
             }
 
             $balance = $this->convertToDefault(
                 (float) $rawBalance,
                 $account->currency_code,
                 $defaultCode,
-                $account->rate_source
+                $account->rate_source ?? null
             );
 
             if (! isset($distribution[$type])) {

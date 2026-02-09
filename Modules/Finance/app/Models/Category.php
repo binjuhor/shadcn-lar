@@ -22,6 +22,7 @@ class Category extends Model
         'parent_id',
         'user_id',
         'name',
+        'name_key',
         'type',
         'icon',
         'color',
