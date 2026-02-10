@@ -37,30 +37,38 @@ const periodTypeValues: BudgetPeriod[] = ['weekly', 'monthly', 'quarterly', 'yea
 
 function getDefaultDates(period: BudgetPeriod) {
   const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth(), 1)
+  let start: Date
   let end: Date
 
   switch (period) {
-    case 'weekly':
-      end = new Date(start)
-      end.setDate(start.getDate() + 6)
+    case 'weekly': {
+      const day = now.getDay()
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1)
+      end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6)
       break
+    }
     case 'monthly':
+      start = new Date(now.getFullYear(), now.getMonth(), 1)
       end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
       break
-    case 'quarterly':
-      end = new Date(now.getFullYear(), now.getMonth() + 3, 0)
+    case 'quarterly': {
+      const quarterStart = Math.floor(now.getMonth() / 3) * 3
+      start = new Date(now.getFullYear(), quarterStart, 1)
+      end = new Date(now.getFullYear(), quarterStart + 3, 0)
       break
+    }
     case 'yearly':
+      start = new Date(now.getFullYear(), 0, 1)
       end = new Date(now.getFullYear(), 11, 31)
       break
     default:
+      start = new Date(now.getFullYear(), now.getMonth(), 1)
       end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
   }
 
   return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
+    start: format(start, 'yyyy-MM-dd'),
+    end: format(end, 'yyyy-MM-dd'),
   }
 }
 

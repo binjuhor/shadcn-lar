@@ -22,6 +22,8 @@ class BudgetController extends Controller
     {
         $userId = auth()->id();
 
+        $this->budgetService->renewExpiredBudgets($userId);
+
         $budgets = Budget::with(['category', 'currency'])
             ->where('user_id', $userId)
             ->orderBy('start_date', 'desc')

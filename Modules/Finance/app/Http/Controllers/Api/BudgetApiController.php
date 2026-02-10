@@ -10,15 +10,24 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Modules\Finance\Http\Resources\BudgetResource;
 use Modules\Finance\Models\Budget;
 use Modules\Finance\Models\Transaction;
+use Modules\Finance\Services\BudgetService;
 
 class BudgetApiController extends Controller
 {
     use AuthorizesRequests;
 
+    public function __construct(
+        protected BudgetService $budgetService
+    ) {}
+
     public function index(Request $request): AnonymousResourceCollection
     {
+        $userId = auth()->id();
+
+        $this->budgetService->renewExpiredBudgets($userId);
+
         $query = Budget::with('category')
-            ->where('user_id', auth()->id());
+            ->where('user_id', $userId);
 
         if ($request->boolean('active_only', false)) {
             $query->where('is_active', true)
