@@ -9,6 +9,7 @@ use Modules\Finance\Console\Commands\{
     FetchExchangeRatesCommand,
     ImportTransactionsCommand,
     ProcessRecurringTransactionsCommand,
+    PurgeSoftDeletedRecordsCommand,
     RecalculatePlanTotalsCommand
 };
 use Modules\Finance\Models\{Account, Budget, SavingsGoal, Transaction};
@@ -66,6 +67,7 @@ class FinanceServiceProvider extends ServiceProvider
             FetchExchangeRatesCommand::class,
             ImportTransactionsCommand::class,
             ProcessRecurringTransactionsCommand::class,
+            PurgeSoftDeletedRecordsCommand::class,
             RecalculatePlanTotalsCommand::class,
         ]);
     }
