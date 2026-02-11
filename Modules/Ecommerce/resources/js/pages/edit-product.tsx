@@ -323,7 +323,7 @@ export default function EditProduct({ product, categories = [], tags = [] }: Edi
                         </div>
                         {selectedTagObjects.length > 0 && (
                           <div>
-                            <Label className="text-sm font-medium mb-2 block">{t('page.ecommerce.products.form.selected_tags')}</Label>
+                            <Label className="text-sm font-medium mb-2 block">{t('page.ecommerce.products.form.selected_tags', { count: selectedTagObjects.length })}</Label>
                             <div className="flex flex-wrap gap-1">
                               {selectedTagObjects.map((tag) => (
                                 <Badge key={tag.id} variant="secondary" className="text-xs">

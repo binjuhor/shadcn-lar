@@ -509,7 +509,7 @@ export default function EditBlogPost({ post, categories, tags }: EditBlogPostPag
                         {selectedTagObjects.length > 0 && (
                           <div>
                             <Label className="text-sm font-medium mb-2 block">
-                              {t('page.blog.posts.form.selected_tags')}
+                              {t('page.blog.posts.form.selected_tags', { count: selectedTagObjects.length })}
                             </Label>
                             <div className="flex flex-wrap gap-1">
                               {selectedTagObjects.map((tag) => (
