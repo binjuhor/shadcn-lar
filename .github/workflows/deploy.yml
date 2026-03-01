@@ -50,23 +50,23 @@ jobs:
       - name: Install Composer dependencies
         run: |
           echo "Installing Composer dependencies..."
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && docker exec -i ${{secrets.DOCKER_NAME}} composer install --no-interaction --prefer-dist --optimize-autoloader"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker exec -i ${{secrets.DOCKER_NAME}} composer install --no-interaction --prefer-dist --optimize-autoloader"
           echo "Composer dependencies installed."
 
       - name: Run database migrations
         run: |
           echo "Running database migrations..."
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && docker exec -i ${{secrets.DOCKER_NAME}} php artisan migrate --force"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker exec -i ${{secrets.DOCKER_NAME}} php artisan migrate --force"
           echo "Database migrations completed."
 
       - name: Clear application cache
         run: |
           echo "Clearing application cache..."
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && docker exec -i ${{secrets.DOCKER_NAME}} php artisan cache:clear"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker exec -i ${{secrets.DOCKER_NAME}} php artisan cache:clear"
           echo "Application cache cleared."
 
       - name: Optimize Laravel application
         run: |
           echo "Clearing and optimizing application cache..."
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && docker exec -i ${{secrets.DOCKER_NAME}} php artisan optimize:clear"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker exec -i ${{secrets.DOCKER_NAME}} php artisan optimize:clear"
           echo "Application optimized."
