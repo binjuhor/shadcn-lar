@@ -56,6 +56,6 @@ class SmartInputHistory extends Model implements HasMedia
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('input_attachments')
-            ->useDisk('public');
+            ->useDisk(config('media-library.disk_name'));
     }
 }
