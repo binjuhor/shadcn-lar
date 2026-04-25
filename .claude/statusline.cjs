@@ -2,273 +2,209 @@
 'use strict';
 
 /**
- * Custom Claude Code statusline for Node.js
- * Cross-platform support: Windows, macOS, Linux
- * Theme: detailed | Colors: true | Features: directory, git, model, usage, session, tokens
- * No external dependencies - uses only Node.js built-in modules
+ * Claude Code statusline renderer — reads JSON from stdin, writes ANSI lines to stdout.
+ * Rendering is config-driven via statuslineLayout in .ck.json.
+ * When statuslineLayout is absent, output is IDENTICAL to pre-refactor behavior.
  */
 
-const { stdin, stdout, env } = require('process');
-const { execSync } = require('child_process');
+const { stdin, env } = require('process');
 const os = require('os');
+const fs = require('fs');
+const path = require('path');
 
-// Configuration
-const USE_COLOR = !env.NO_COLOR && stdout.isTTY;
+const { setColorEnabled } = require('./hooks/lib/colors.cjs');
+const { loadConfig, readSessionState } = require('./hooks/lib/ck-config-utils.cjs');
+const { getGitInfo } = require('./hooks/lib/git-info-cache.cjs');
+const { readActivitySnapshot } = require('./hooks/lib/statusline-session-cache.cjs');
+const {
+  readUsageCache,
+  normalizeUtilization,
+  isUsageCacheFresh,
+  resolveQuotaDisplayEligibility
+} = require('./hooks/lib/usage-limits-cache.cjs');
+const { resolveLayout } = require('./hooks/lib/statusline-section-registry.cjs');
+const { render, renderCompact, renderMinimal } = require('./hooks/lib/statusline-render-modes.cjs');
+const { formatCountdown } = require('./hooks/lib/statusline-string-utils.cjs');
 
-// Color helpers
-const color = (code) => USE_COLOR ? `\x1b[${code}m` : '';
-const reset = () => USE_COLOR ? '\x1b[0m' : '';
+const AUTOCOMPACT_BUFFER = 40000;
+const USAGE_CACHE_RENDER_TTL_MS = 300000;
 
-// Color definitions
-const DirColor = color('1;36');      // cyan
-const GitColor = color('1;32');      // green
-const ModelColor = color('1;35');    // magenta
-const VersionColor = color('1;33');  // yellow
-const UsageColor = color('1;35');    // magenta
-const CostColor = color('1;36');     // cyan
-const Reset = reset();
+// ============================================================================
+// UTILITIES
+// ============================================================================
 
-/**
- * Safe command execution wrapper
- */
-function exec(cmd) {
-    try {
-        return execSync(cmd, {
-            encoding: 'utf8',
-            stdio: ['pipe', 'pipe', 'ignore'],
-            windowsHide: true
-        }).trim();
-    } catch (err) {
-        return '';
-    }
+function expandHome(filePath) {
+  const homeDir = os.homedir();
+  return filePath.startsWith(homeDir) ? filePath.replace(homeDir, '~') : filePath;
 }
 
-/**
- * Convert ISO8601 timestamp to Unix epoch
- */
-function toEpoch(timestamp) {
-    try {
-        const date = new Date(timestamp);
-        return Math.floor(date.getTime() / 1000);
-    } catch (err) {
-        return 0;
-    }
-}
-
-/**
- * Format epoch timestamp as HH:mm
- */
-function formatTimeHM(epoch) {
-    try {
-        const date = new Date(epoch * 1000);
-        const hours = date.getHours().toString().padStart(2, '0');
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        return `${hours}:${minutes}`;
-    } catch (err) {
-        return '00:00';
-    }
-}
-
-/**
- * Get session color based on remaining percentage
- */
-function getSessionColor(sessionPercent) {
-    if (!USE_COLOR) return '';
-
-    const remaining = 100 - sessionPercent;
-    if (remaining <= 10) {
-        return '\x1b[1;31m';  // red
-    } else if (remaining <= 25) {
-        return '\x1b[1;33m';  // yellow
-    } else {
-        return '\x1b[1;32m';  // green
-    }
-}
-
-/**
- * Expand home directory to ~
- */
-function expandHome(path) {
-    const homeDir = os.homedir();
-    if (path.startsWith(homeDir)) {
-        return path.replace(homeDir, '~');
-    }
-    return path;
-}
-
-/**
- * Read stdin asynchronously
- */
+// Read stdin with optional inactivity timeout (CK_STATUSLINE_STDIN_TIMEOUT_MS)
 async function readStdin() {
-    return new Promise((resolve, reject) => {
-        const chunks = [];
-        stdin.setEncoding('utf8');
-
-        stdin.on('data', (chunk) => {
-            chunks.push(chunk);
-        });
-
-        stdin.on('end', () => {
-            resolve(chunks.join(''));
-        });
-
-        stdin.on('error', (err) => {
-            reject(err);
-        });
-    });
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stdin.setEncoding('utf8');
+    const parsedTimeout = Number.parseInt(env.CK_STATUSLINE_STDIN_TIMEOUT_MS || '', 10);
+    const timeoutMs = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 0;
+    let timer = null;
+    const clearTimer = () => { if (timer) { clearTimeout(timer); timer = null; } };
+    const armTimer = () => {
+      if (!timeoutMs) return;
+      clearTimer();
+      timer = setTimeout(() => reject(new Error(`stdin timeout after ${timeoutMs}ms`)), timeoutMs);
+    };
+    armTimer();
+    stdin.on('data', chunk => { chunks.push(chunk); armTimer(); });
+    stdin.on('end', () => { clearTimer(); resolve(chunks.join('')); });
+    stdin.on('error', err => { clearTimer(); reject(err); });
+  });
 }
 
-/**
- * Main function
- */
-async function main() {
-    try {
-        // Read and parse JSON input
-        const input = await readStdin();
-        if (!input.trim()) {
-            console.error('No input provided');
-            process.exit(1);
-        }
-
-        const data = JSON.parse(input);
-
-        // Extract basic information
-        let currentDir = 'unknown';
-        if (data.workspace?.current_dir) {
-            currentDir = data.workspace.current_dir;
-        } else if (data.cwd) {
-            currentDir = data.cwd;
-        }
-        currentDir = expandHome(currentDir);
-
-        const modelName = data.model?.display_name || 'Claude';
-        const modelVersion = data.model?.version && data.model.version !== 'null' ? data.model.version : '';
-
-        // Git branch detection
-        let gitBranch = '';
-        const gitCheck = exec('git rev-parse --git-dir');
-        if (gitCheck) {
-            gitBranch = exec('git branch --show-current');
-            if (!gitBranch) {
-                gitBranch = exec('git rev-parse --short HEAD');
-            }
-        }
-
-        // Native Claude Code data integration
-        let sessionText = '';
-        let sessionPercent = 0;
-        let costUSD = '';
-        let linesAdded = 0;
-        let linesRemoved = 0;
-        const billingMode = env.CLAUDE_BILLING_MODE || 'api';
-
-        // Extract native cost data from Claude Code
-        costUSD = data.cost?.total_cost_usd || '';
-        linesAdded = data.cost?.total_lines_added || 0;
-        linesRemoved = data.cost?.total_lines_removed || 0;
-
-        // Session timer - parse local transcript JSONL (zero external dependencies)
-        const transcriptPath = data.transcript_path;
-
-        if (transcriptPath) {
-            try {
-                const fs = require('fs');
-                if (fs.existsSync(transcriptPath)) {
-                    const content = fs.readFileSync(transcriptPath, 'utf8');
-                    const lines = content.split('\n').filter(l => l.trim());
-
-                    // Find first API call with usage data
-                    let firstApiCall = null;
-                    for (const line of lines) {
-                        try {
-                            const entry = JSON.parse(line);
-                            if (entry.usage && entry.timestamp) {
-                                firstApiCall = entry.timestamp;
-                                break;
-                            }
-                        } catch (e) {
-                            continue;
-                        }
-                    }
-
-                    if (firstApiCall) {
-                        // Calculate 5-hour billing block (Anthropic windows)
-                        const now = new Date();
-                        const currentUtcHour = now.getUTCHours();
-                        const blockStart = Math.floor(currentUtcHour / 5) * 5;
-                        let blockEnd = blockStart + 5;
-
-                        // Handle day wraparound
-                        let blockEndDate = new Date(now);
-                        if (blockEnd >= 24) {
-                            blockEnd -= 24;
-                            blockEndDate.setUTCDate(blockEndDate.getUTCDate() + 1);
-                        }
-                        blockEndDate.setUTCHours(blockEnd, 0, 0, 0);
-
-                        const nowSec = Math.floor(Date.now() / 1000);
-                        const blockEndSec = Math.floor(blockEndDate.getTime() / 1000);
-                        const remaining = blockEndSec - nowSec;
-
-                        if (remaining > 0 && remaining < 18000) {
-                            const rh = Math.floor(remaining / 3600);
-                            const rm = Math.floor((remaining % 3600) / 60);
-                            const blockEndLocal = formatTimeHM(blockEndSec);
-                            sessionText = `${rh}h ${rm}m until reset at ${blockEndLocal}`;
-                            sessionPercent = Math.floor((18000 - remaining) * 100 / 18000);
-                        }
-                    }
-                }
-            } catch (err) {
-                // Silent fail - transcript not readable
-            }
-        }
-
-        // Render statusline
-        let output = '';
-
-        // Directory
-        output += `📁 ${DirColor}${currentDir}${Reset}`;
-
-        // Git branch
-        if (gitBranch) {
-            output += `  🌿 ${GitColor}${gitBranch}${Reset}`;
-        }
-
-        // Model
-        output += `  🤖 ${ModelColor}${modelName}${Reset}`;
-
-        // Model version
-        if (modelVersion) {
-            output += `  🏷️ ${VersionColor}${modelVersion}${Reset}`;
-        }
-
-        // Session time
-        if (sessionText) {
-            const sessionColorCode = getSessionColor(sessionPercent);
-            output += `  ⌛ ${sessionColorCode}${sessionText}${Reset}`;
-        }
-
-        // Cost (only show for API billing mode)
-        if (billingMode === 'api' && costUSD && /^\d+(\.\d+)?$/.test(costUSD.toString())) {
-            const costUSDNum = parseFloat(costUSD);
-            output += `  💵 ${CostColor}$${costUSDNum.toFixed(4)}${Reset}`;
-        }
-
-        // Lines changed
-        if ((linesAdded > 0 || linesRemoved > 0)) {
-            const linesColor = color('1;32');  // green
-            output += `  📝 ${linesColor}+${linesAdded} -${linesRemoved}${Reset}`;
-        }
-
-        console.log(output);
-    } catch (err) {
-        console.error('Error:', err.message);
-        process.exit(1);
+// Build usage window strings from cache (e.g. ["5h 20% (1h30m)", "wk 45% (4d)"])
+function buildUsageWindows(cache) {
+  if (!cache || cache.status !== 'available') return [];
+  if (!isUsageCacheFresh(cache, USAGE_CACHE_RENDER_TTL_MS)) return [];
+  const now = Date.now();
+  // Prefer pre-calculated snapshot percentages (with reset countdown when available)
+  const snap = [
+    { label: '5h', percent: cache.snapshot?.fiveHourPercent, resetsAt: cache.data?.five_hour?.resets_at },
+    { label: 'wk', percent: cache.snapshot?.weekPercent,     resetsAt: cache.data?.seven_day?.resets_at }
+  ].map(({ label, percent, resetsAt }) => {
+    if (percent == null) return null;
+    let countdown = '';
+    if (resetsAt) {
+      const cd = formatCountdown(new Date(resetsAt).getTime() - now);
+      if (cd) countdown = ` (${cd})`;
     }
+    return `${label} ${percent}%${countdown}`;
+  }).filter(Boolean);
+  if (snap.length > 0) return snap;
+  // Fall back to raw utilization values (no resets_at countdown in fallback path)
+  return [
+    { label: '5h', value: cache.data?.five_hour?.utilization },
+    { label: 'wk', value: cache.data?.seven_day?.utilization }
+  ].map(({ label, value }) => {
+    const pct = normalizeUtilization(value);
+    return pct == null ? null : `${label} ${pct}%`;
+  }).filter(Boolean);
 }
 
-main().catch(err => {
-    console.error('Fatal error:', err);
-    process.exit(1);
-});
+// ============================================================================
+// MAIN
+// ============================================================================
+
+async function main() {
+  try {
+    const input = await readStdin();
+    if (!input.trim()) { console.error('No input provided'); process.exit(1); }
+
+    const data = JSON.parse(input);
+
+    // Directory
+    let currentDir = data.workspace?.current_dir || data.cwd || 'unknown';
+    currentDir = expandHome(currentDir);
+
+    const modelName = data.model?.display_name || 'Claude';
+
+    // Git info
+    const gitInfo = getGitInfo(data.workspace?.current_dir || data.cwd || process.cwd());
+    const gitBranch   = gitInfo?.branch   || '';
+    const gitUnstaged = gitInfo?.unstaged || 0;
+    const gitStaged   = gitInfo?.staged   || 0;
+    const gitAhead    = gitInfo?.ahead    || 0;
+    const gitBehind   = gitInfo?.behind   || 0;
+
+    // Session state (active plan + activity snapshot)
+    let activePlan = '';
+    let transcript = { agents: [], todos: [], sessionStart: null };
+    try {
+      const sessionId = data.session_id;
+      if (sessionId) {
+        const session = readSessionState(sessionId);
+        const planPath = session?.activePlan?.trim();
+        if (planPath) {
+          const match = planPath.match(/plans\/\d+-\d+-(.+?)(?:\/|$)/);
+          activePlan = match ? match[1] : planPath.split('/').pop();
+        }
+        transcript = readActivitySnapshot(sessionId, readSessionState) || transcript;
+      }
+    } catch {}
+
+    // Context window percentage
+    const usage = data.context_window?.current_usage || {};
+    const contextSize = data.context_window?.context_window_size || 0;
+    let contextPercent = 0;
+    let totalTokens = 0;
+    if (contextSize > 0) {
+      totalTokens = (usage.input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0);
+      const preCalc = data.context_window?.used_percentage;
+      if (typeof preCalc === 'number' && preCalc >= 0) {
+        contextPercent = Math.round(preCalc);
+      } else if (contextSize > AUTOCOMPACT_BUFFER) {
+        contextPercent = Math.min(100, Math.round(((totalTokens + AUTOCOMPACT_BUFFER) / contextSize) * 100));
+      }
+    }
+
+    // Persist context data for hooks
+    const sessionId = data.session_id;
+    if (sessionId && contextSize > 0) {
+      try {
+        const contextDataPath = path.join(os.tmpdir(), `ck-context-${sessionId}.json`);
+        fs.writeFileSync(contextDataPath, JSON.stringify({
+          percent: contextPercent,
+          remaining: data.context_window?.remaining_percentage ?? (100 - contextPercent),
+          tokens: totalTokens,
+          size: contextSize,
+          usage,
+          timestamp: Date.now()
+        }));
+      } catch {}
+    }
+
+    // Config
+    const config = loadConfig({ includeProject: false, includeAssertions: false, includeLocale: false });
+    const statuslineMode = config.statusline || 'full';
+    const usageWindows = config.statuslineQuota === false
+      ? []
+      : (resolveQuotaDisplayEligibility({ useCache: true }).eligible
+          ? buildUsageWindows(readUsageCache())
+          : []);
+
+    // Cost + lines changed
+    const billingMode = env.CLAUDE_BILLING_MODE || 'api';
+    const costUSD = data.cost?.total_cost_usd;
+    const costText = billingMode === 'api' && costUSD && /^\d+(\.\d+)?$/.test(String(costUSD))
+      ? `$${parseFloat(costUSD).toFixed(4)}`
+      : null;
+    const linesAdded   = data.cost?.total_lines_added   || 0;
+    const linesRemoved = data.cost?.total_lines_removed || 0;
+
+    // Render context
+    const ctx = {
+      modelName, currentDir,
+      gitBranch, gitUnstaged, gitStaged, gitAhead, gitBehind,
+      activePlan, contextPercent, usageWindows,
+      costText, linesAdded, linesRemoved,
+      transcript
+    };
+
+    // Color config (NO_COLOR env var checked inside isColorEnabled() and always wins)
+    if (config.statuslineColors === false) setColorEnabled(false);
+
+    // Resolve layout — uses statuslineLayout from config when present, else defaults
+    const layout = resolveLayout(config.statuslineLayout);
+
+    // Dispatch to render mode
+    switch (statuslineMode) {
+      case 'none':    console.log(''); break;
+      case 'minimal': renderMinimal(ctx, layout); break;
+      case 'compact': renderCompact(ctx, layout); break;
+      case 'full':
+      default:        render(ctx, layout, false); break;
+    }
+
+  } catch {
+    console.log('📁 ' + (process.cwd() || 'unknown'));
+  }
+}
+
+main().catch(() => { console.log('📁 error'); process.exit(1); });

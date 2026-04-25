@@ -1,356 +1,179 @@
-# Claude Code Notification Hooks
+# Claude Code Hooks
 
-This directory contains notification hooks for Claude Code sessions. These hooks send real-time notifications to Discord and Telegram when Claude completes tasks.
+This directory contains hooks for Claude Code sessions.
 
-## Overview
+## Hooks Overview
 
-Claude Code hooks automate notifications and actions at specific points in your development workflow. This project includes notification systems for Discord and Telegram:
+| Hook | Location | Description |
+|------|----------|-------------|
+| **Notifications** | `notifications/` | Multi-provider notification system (Telegram, Discord, Slack) |
+| **Scout Block** | `scout-block.cjs` | Blocks heavy directories (node_modules, .git, etc.) |
+| **Privacy Block** | `privacy-block.cjs` | Prevents access to sensitive files |
+| **Modularization** | `modularization-hook.js` | Suggests code modularization for large files |
+| **Session Init** | `session-init.cjs` | Session startup initialization |
+| **Dev Rules** | `dev-rules-reminder.cjs` | Development rules injection |
 
-| Hook | File | Type | Description |
-|------|------|------|-------------|
-| **Scout Block** | `scout-block.js` | Automated | Cross-platform hook blocking heavy directories (node_modules, .git, etc.) |
-| **Modularization** | `modularization-hook.js` | Automated | Non-blocking suggestions for files >200 LOC to encourage code modularization |
-| **Discord (Auto)** | `discord_notify.sh` | Automated | Auto-sends rich embeds on session/subagent completion |
-| **Discord (Manual)** | `send-discord.sh` | Manual | Sends custom messages to Discord channel |
-| **Telegram** | `telegram_notify.sh` | Automated | Auto-sends detailed notifications on session/subagent completion |
+## Notifications
 
-### Cross-Platform Support
+Unified Node.js notification system with multi-provider support, smart throttling, and zero dependencies.
 
-**Scout Block Hook** now supports both Windows and Unix systems:
-- **Windows**: Uses PowerShell (`scout-block.ps1`)
-- **Linux/macOS/WSL**: Uses Bash (`scout-block.sh`)
-- **Automatic detection**: `scout-block.js` dispatcher selects the correct implementation
+> **Note:** Notification hooks are NOT enabled by default. Follow the setup guide below to enable them.
 
-No manual configuration needed - the Node.js dispatcher handles platform detection automatically.
+### Supported Providers
 
-## Quick Start
+| Provider | Env Variables Required | Setup Guide |
+|----------|----------------------|-------------|
+| **Telegram** | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | [telegram-hook-setup.md](../notifications/docs/telegram-hook-setup.md) |
+| **Discord** | `DISCORD_WEBHOOK_URL` | [discord-hook-setup.md](../notifications/docs/discord-hook-setup.md) |
+| **Slack** | `SLACK_WEBHOOK_URL` | [slack-hook-setup.md](../notifications/docs/slack-hook-setup.md) |
 
-### Current Setup
-Check **[SETUP-SUMMARY.md](./SETUP-SUMMARY.md)** for current configuration and quick reference.
+### Setup Guide
 
-### Scout Block Hook (Cross-Platform)
-Automatically blocks Claude Code from accessing heavy directories to improve performance.
+#### Step 1: Configure Environment Variables
 
-**Configuration:** Already enabled in `.claude/settings.json`
+Copy the example and add your credentials:
 
-**Default Blocked Patterns** (configured in `.claude/.ckignore`):
-- `node_modules` - NPM dependencies
-- `__pycache__` - Python cache
-- `.git` - Git internal files
-- `dist` - Distribution builds
-- `build` - Build artifacts
-
-**Customization:**
-Edit `.claude/.ckignore` to customize blocked patterns:
 ```bash
-# Lines starting with # are comments
-# One pattern per line
-node_modules
-__pycache__
-.git
-dist
-build
-vendor
-.cache
+cp .claude/hooks/notifications/.env.example ~/.claude/.env
 ```
 
-**Testing:**
+Edit `~/.claude/.env`:
 ```bash
-# Linux/macOS/WSL
-bash tests/test-scout-block.sh
-
-# Windows PowerShell
-pwsh tests/test-scout-block.ps1
-
-# Test .ckignore functionality
-node .claude/hooks/tests/test-ckignore.js
-```
-
-**Requirements:**
-- Node.js >=18.0.0 (already required by project)
-
-### Modularization Hook (Automated)
-Automatically analyzes files after Write/Edit operations and suggests modularization for large files.
-
-**Configuration:** Already enabled in `.claude/settings.json`
-
-**Behavior:**
-- Triggers on Write/Edit tool usage
-- Analyzes file line count (LOC)
-- Suggests modularization if >200 LOC
-- **Non-blocking**: Claude continues main task automatically
-- Provides context-aware guidance using `additionalContext`
-
-**Testing:**
-```bash
-# Create test file with 205 lines
-for i in {1..205}; do echo "console.log('Line $i');"; done > /tmp/test-large.js
-
-# Test hook (should output modularization suggestion)
-echo '{"tool_input":{"file_path":"/tmp/test-large.js"}}' | node .claude/hooks/modularization-hook.js
-
-# Test with small file (should be silent)
-echo "console.log('test');" > /tmp/test-small.js
-echo '{"tool_input":{"file_path":"/tmp/test-small.js"}}' | node .claude/hooks/modularization-hook.js
-```
-
-**Requirements:**
-- Node.js >=18.0.0 (already required by project)
-
-**How It Works:**
-1. Hook receives file path from Write/Edit tool
-2. Counts lines in modified file
-3. If >200 LOC, injects suggestion into Claude's context
-4. Claude receives guidance but continues without blocking
-5. Exit code 0 ensures non-blocking behavior
-
-### Discord Hook (Automated)
-Automatic notifications on Claude Code session events with rich embeds.
-
-**Setup:** [discord-hook-setup.md](./discord-hook-setup.md)
-
-**Quick Test:**
-```bash
-echo '{"hookType":"Stop","projectDir":"'$(pwd)'","sessionId":"test","toolsUsed":[{"tool":"Read","parameters":{"file_path":"test.ts"}}]}' | ./.claude/hooks/discord_notify.sh
-```
-
-### Discord Hook (Manual)
-Send custom notifications to Discord with your own messages.
-
-**Quick Test:**
-```bash
-./.claude/hooks/send-discord.sh 'Test notification'
-```
-
-### Telegram Hook
-Automatic notifications on Claude Code session events.
-
-**Setup:** [telegram-hook-setup.md](./telegram-hook-setup.md)
-
-**Quick Test:**
-```bash
-echo '{"hookType":"Stop","projectDir":"'$(pwd)'","sessionId":"test","toolsUsed":[]}' | ./.claude/hooks/telegram_notify.sh
-```
-
-## Documentation
-
-### Quick Reference
-- **[Setup Summary](./SETUP-SUMMARY.md)** - Current configuration, testing, and troubleshooting
-
-### Detailed Setup Guides
-
-- **[Discord Hook Setup](./discord-hook-setup.md)** - Complete Discord webhook configuration
-- **[Telegram Hook Setup](./telegram-hook-setup.md)** - Complete Telegram bot configuration
-
-### What's Included in Each Guide
-
-**Discord Hook Guide:**
-- Discord webhook creation
-- Environment configuration
-- Manual & automated usage
-- Message formatting
-- Troubleshooting
-- Advanced customization
-
-**Telegram Hook Guide:**
-- Telegram bot creation
-- Chat ID retrieval
-- Global vs project config
-- Hook event configuration
-- Testing procedures
-- Security best practices
-
-## Features Comparison
-
-| Feature | Discord (Auto) | Discord (Manual) | Telegram |
-|---------|----------------|------------------|----------|
-| **Trigger Type** | Automatic on events | Manual invocation | Automatic on events |
-| **Message Style** | Rich embeds | Rich embeds | Markdown formatted |
-| **Setup Complexity** | Simple (webhook only) | Simple (webhook only) | Medium (bot + chat ID) |
-| **Use Case** | Session monitoring | Custom messages | Session monitoring |
-| **Events** | Stop, SubagentStop | On-demand | Stop, SubagentStop |
-| **Tool Tracking** | Yes | No | Yes |
-| **File Tracking** | Yes | No | Yes |
-
-## Scripts
-
-### modularization-hook.js
-PostToolUse hook for automated code modularization suggestions.
-
-**Triggers:**
-- `Write` - File creation
-- `Edit` - File modification
-
-**Required:** None (standalone Node.js script)
-
-**Features:**
-- LOC (Lines of Code) analysis
-- Non-blocking execution (exit code 0)
-- Context injection via `additionalContext`
-- Kebab-case naming guidance
-- Automatic continuation after suggestion
-
-### discord_notify.sh
-Automated Discord notification hook for Claude Code events with rich embeds.
-
-**Triggers:**
-- `Stop` - Main session completion
-- `SubagentStop` - Subagent task completion
-
-**Required:** `DISCORD_WEBHOOK_URL` environment variable
-
-**Features:**
-- Rich embeds with session details
-- Tool usage statistics (with counts)
-- File modification tracking
-- Session ID and timestamps
-- Color-coded by event type
-
-### send-discord.sh
-Manual Discord notification script with rich embed formatting.
-
-**Usage:**
-```bash
-./.claude/hooks/send-discord.sh 'Your message here'
-```
-
-**Required:** `DISCORD_WEBHOOK_URL` environment variable
-
-### telegram_notify.sh
-Automated Telegram notification hook for Claude Code events.
-
-**Triggers:**
-- `Stop` - Main session completion
-- `SubagentStop` - Subagent task completion
-
-**Required:** `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` environment variables
-
-## Configuration
-
-### Environment Variables
-
-Environment variables are loaded with the following priority (highest to lowest):
-1. **process.env** - System/shell environment variables
-2. **.claude/.env** - Project-level Claude configuration
-3. **.claude/hooks/.env** - Hook-specific configuration
-
-Create environment files based on your needs:
-
-**Project Root `.env`** (recommended for general use):
-```bash
-# Discord
-DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_TOKEN
-
-# Telegram
+# Telegram (get token from @BotFather, chat_id from getUpdates API)
 TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 TELEGRAM_CHAT_ID=987654321
+
+# Discord (create webhook: Server Settings > Integrations > Webhooks)
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+
+# Slack (create app at api.slack.com/apps, enable Incoming Webhooks)
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
 ```
 
-**OR `.claude/.env`** (for project-specific overrides):
-```bash
-# Same variables as above
-```
+Only configure the providers you want to use.
 
-**OR `.claude/hooks/.env`** (for hook-only configuration):
-```bash
-# Same variables as above
-```
+#### Step 2: Enable Notification Hooks
 
-See `.env.example` files in each location for templates.
-
-### Claude Code Hooks Config
-
-Hooks are configured in `.claude/settings.local.json`:
+Add to your `.claude/settings.json` or `.claude/settings.local.json`:
 
 ```json
 {
   "hooks": {
-    "Stop": [{
-      "hooks": [{
-        "type": "command",
-        "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/telegram_notify.sh"
-      }]
-    }],
-    "SubagentStop": [{
-      "hooks": [{
-        "type": "command",
-        "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/telegram_notify.sh"
-      }]
-    }]
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/notifications/notify.cjs"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/notifications/notify.cjs"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/notifications/notify.cjs"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
+**Available Hook Events:**
+- `Stop` - Main session completion
+- `SubagentStop` - Subagent task completion
+- `Notification` - Claude notification events (input prompts, etc.)
+
+Choose only the events you want notifications for.
+
+#### Step 3: Test Your Setup
+
+```bash
+echo '{"hook_event_name":"Stop","cwd":"'$(pwd)'","session_id":"test123"}' | node .claude/hooks/notifications/notify.cjs
+```
+
+Expected output (if Telegram and Discord configured):
+```
+[env-loader] Loaded: /home/user/.claude/.env
+[notify] telegram: sent
+[notify] discord: sent
+[notify] Summary: 2/2 succeeded
+```
+
+### Features
+
+- **Smart Throttling**: 5-minute quiet period after errors to prevent spam
+- **Env Cascade**: `process.env` > `~/.claude/.env` > `.claude/.env`
+- **Zero Dependencies**: Uses native Node.js fetch (Node 18+)
+- **Cross-Platform**: Uses `path.basename()` for Windows compatibility
+- **Non-Blocking**: Always exits 0 to never block Claude
+- **Selective Providers**: Only configured providers receive notifications
+
+### Architecture
+
+```
+notifications/
+├── notify.cjs           # Main router - reads stdin, routes to providers
+├── .env.example         # Environment template
+├── docs/                # Provider setup guides
+├── lib/
+│   ├── env-loader.cjs   # Env cascade loader
+│   └── sender.cjs       # HTTP sender with throttling
+└── providers/
+    ├── telegram.cjs     # Telegram Bot API
+    ├── discord.cjs      # Discord webhooks with embeds
+    └── slack.cjs        # Slack Block Kit format
+```
+
+## Scout Block Hook
+
+Cross-platform hook blocking heavy directories to improve Claude performance.
+
+**Blocked Patterns** (baseline in `.claude/.ckignore`, optional override in `<project-root>/.claude/.ckignore`):
+- `node_modules`, `__pycache__`, `.git`, `dist`, `build`
+
+**Testing:**
+```bash
+echo '{"tool_input":{"command":"ls node_modules"}}' | node .claude/hooks/scout-block.cjs
+```
+
 ## Security
 
-**⚠️ Important Security Practices:**
-
-1. **Never commit tokens/webhooks:**
-   ```bash
-   # Add to .gitignore
-   .env
-   .env.*
-   ```
-
+1. **Never commit tokens** - Add `.env` to `.gitignore`
 2. **Use environment variables** - Never hardcode credentials
-
 3. **Rotate tokens regularly** - Regenerate periodically
-
-4. **Limit permissions** - Minimum required access only
-
-5. **Monitor usage** - Check for unauthorized activity
-
-See individual setup guides for detailed security recommendations.
 
 ## Troubleshooting
 
-### Scout Block Hook
+**No notifications received:**
+- Verify env vars are set: `echo $TELEGRAM_BOT_TOKEN`
+- Check throttle state: `cat /tmp/ck-noti-throttle.json`
+- Test manually with echo pipe above
 
-**"Node.js not found"**
-- Install Node.js >=18.0.0 from [nodejs.org](https://nodejs.org)
-- Verify installation: `node --version`
+**Provider throttled:**
+- Wait 5 minutes or delete `/tmp/ck-noti-throttle.json`
 
-**Hook not blocking directories**
-- Verify `.claude/settings.json` uses `node .claude/hooks/scout-block.js`
-- Test manually: `echo '{"tool_input":{"command":"ls node_modules"}}' | node .claude/hooks/scout-block.js`
-- Should exit with code 2 and error message
-
-**Windows PowerShell execution policy errors**
-- Run: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
-- Or use bypass flag (already included in dispatcher)
-
-**Testing the hook**
-- Linux/macOS/WSL: `bash tests/test-scout-block.sh`
-- Windows: `pwsh tests/test-scout-block.ps1`
-
-### Notification Hooks
-
-**"Environment variable not set"**
-- Verify `.env` file exists and is properly formatted
-- Reload shell after updating profile files (`source ~/.bashrc`)
-
-**"jq: command not found"** (Legacy - no longer needed)
-- All hooks now use Node.js for JSON parsing
-- No jq dependency required
-
-**No messages received**
-- Verify tokens/webhooks are valid
-- Check network connectivity
-- Ensure proper permissions
-
-### Getting Help
-
-- Check individual setup guides for detailed troubleshooting
-- Review [Claude Code Documentation](https://docs.claude.com/claude-code)
-- Report issues at [Claude Code GitHub](https://github.com/anthropics/claude-code/issues)
-
-## Additional Resources
-
-- [Claude Code Documentation](https://docs.claude.com/claude-code)
-- [Claude Code Hooks Reference](https://docs.claude.com/claude-code/hooks)
-- [Discord Webhooks Guide](https://discord.com/developers/docs/resources/webhook)
-- [Telegram Bot API](https://core.telegram.org/bots/api)
+**Hooks not triggering:**
+- Verify hooks are added to `.claude/settings.json`
+- Check Claude Code is using correct settings file
 
 ---
 
-**Last Updated:** 2025-11-04
+**Last Updated:** 2025-12-21

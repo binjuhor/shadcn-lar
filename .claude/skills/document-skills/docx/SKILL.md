@@ -1,7 +1,10 @@
 ---
-name: docx
-description: "Comprehensive document creation, editing, and analysis with support for tracked changes, comments, formatting preservation, and text extraction. When Claude needs to work with professional documents (.docx files) for: (1) Creating new documents, (2) Modifying or editing content, (3) Working with tracked changes, (4) Adding comments, or any other document tasks"
+name: ck:docx
+description: Create, edit, analyze .docx Word documents. Use for document creation, tracked changes, comments, formatting preservation, text extraction, template modification.
 license: Proprietary. LICENSE.txt has complete terms
+metadata:
+  author: claudekit
+  version: "1.0.0"
 ---
 
 # DOCX creation, editing, and analysis

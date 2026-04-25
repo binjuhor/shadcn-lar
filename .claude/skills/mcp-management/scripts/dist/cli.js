@@ -8,10 +8,42 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const GLOBAL_TIMEOUT_MS = parseInt(process.env.MCP_TIMEOUT || '120000', 10);
+let globalManager = null;
+function setupShutdownHandlers() {
+    const shutdown = async (signal) => {
+        console.log(`\nReceived ${signal}, cleaning up...`);
+        if (globalManager) {
+            await globalManager.cleanup();
+        }
+        process.exit(0);
+    };
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGHUP', () => shutdown('SIGHUP'));
+    process.on('unhandledRejection', (reason) => {
+        console.error('Unhandled rejection:', reason);
+        process.exit(1);
+    });
+}
 async function main() {
     const args = process.argv.slice(2);
     const command = args[0];
+    // Setup shutdown handlers
+    setupShutdownHandlers();
+    // Check for help flags BEFORE connecting to servers
+    if (!command || command === '--help' || command === 'help') {
+        printUsage();
+        process.exit(0);
+    }
+    // Global timeout
+    const timeoutHandle = setTimeout(() => {
+        console.error('Global timeout exceeded, forcing exit');
+        process.exit(1);
+    }, GLOBAL_TIMEOUT_MS);
+    timeoutHandle.unref();
     const manager = new MCPClientManager();
+    globalManager = manager;
     try {
         // Load config
         await manager.loadConfig();
@@ -36,6 +68,7 @@ async function main() {
                 printUsage();
         }
         await manager.cleanup();
+        process.exit(0);
     }
     catch (error) {
         console.error('Error:', error);

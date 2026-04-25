@@ -50,6 +50,50 @@ npm install
 
 **CRITICAL**: Always check `pwd` before running scripts.
 
+### inject-auth.js
+Inject authentication (cookies, tokens, storage) for testing protected routes.
+
+**Workflow for testing protected routes:**
+1. User manually logs into the site in their browser
+2. User extracts cookies/tokens from browser DevTools (Application tab)
+3. Run inject-auth.js to inject auth into puppeteer session
+4. Run other scripts which will use the authenticated session
+
+```bash
+# Inject cookies
+node inject-auth.js --url https://example.com --cookies '[{"name":"session","value":"abc123","domain":".example.com"}]'
+
+# Inject Bearer token (stores in localStorage + sets HTTP header)
+node inject-auth.js --url https://example.com --token "Bearer eyJhbGciOi..." --header Authorization
+
+# Inject localStorage items
+node inject-auth.js --url https://example.com --local-storage '{"auth_token":"xyz","user_id":"123"}'
+
+# Inject sessionStorage items
+node inject-auth.js --url https://example.com --session-storage '{"temp_key":"value"}'
+
+# Combined injection
+node inject-auth.js --url https://example.com \
+  --cookies '[{"name":"session","value":"abc"}]' \
+  --local-storage '{"user":"data"}' \
+  --reload true
+
+# Clear saved auth session
+node inject-auth.js --url https://example.com --cookies '[]' --clear true
+```
+
+Options:
+- `--cookies '<json>'` - JSON array of cookie objects (name, value, domain required)
+- `--token '<token>'` - Bearer token to inject
+- `--token-key '<key>'` - localStorage key for token (default: access_token)
+- `--header '<name>'` - HTTP header name for token (e.g., Authorization)
+- `--local-storage '<json>'` - JSON object of localStorage key-value pairs
+- `--session-storage '<json>'` - JSON object of sessionStorage key-value pairs
+- `--reload true` - Reload page after injection to apply auth
+- `--clear true` - Clear the saved auth session file
+
+**Session persistence:** Auth is saved to `.auth-session.json` (valid 24h) and automatically applied by subsequent script runs until `--clear true` is used or browser closes.
+
 ### navigate.js
 Navigate to a URL.
 
@@ -124,6 +168,24 @@ Measure performance metrics and record trace.
 ```bash
 node performance.js --url https://example.com [--trace trace.json] [--metrics] [--resources true]
 ```
+
+### ws-debug.js
+Debug WebSocket connections (basic mode).
+
+```bash
+node ws-debug.js
+```
+
+Monitors WebSocket events via CDP: created, handshake, response, closed, error.
+
+### ws-full-debug.js
+Debug WebSocket connections with full event tracking.
+
+```bash
+node ws-full-debug.js
+```
+
+Monitors all WebSocket events including frame sent/received, with detailed logging.
 
 ## Common Options
 

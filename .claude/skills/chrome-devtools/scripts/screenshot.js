@@ -113,7 +113,7 @@ async function screenshot() {
 
   try {
     const browser = await getBrowser({
-      headless: args.headless !== 'false'
+      headless: args.headless
     });
 
     const page = await getPage(browser);
@@ -124,6 +124,10 @@ async function screenshot() {
         waitUntil: args['wait-until'] || 'networkidle2'
       });
     }
+
+    // Ensure output directory exists
+    const outputDir = path.dirname(path.resolve(args.output));
+    await fs.mkdir(outputDir, { recursive: true });
 
     const screenshotOptions = {
       path: args.output,
@@ -179,6 +183,7 @@ async function screenshot() {
     } else {
       await disconnectBrowser();
     }
+    process.exit(0);
   } catch (error) {
     // Enhance error message if selector-related
     if (args.selector) {

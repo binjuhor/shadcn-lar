@@ -1,8 +1,11 @@
 ---
-name: mobile-development
-description: Build modern mobile applications with React Native, Flutter, Swift/SwiftUI, and Kotlin/Jetpack Compose. Covers mobile-first design principles, performance optimization (battery, memory, network), offline-first architecture, platform-specific guidelines (iOS HIG, Material Design), testing strategies, security best practices, accessibility, app store deployment, and mobile development mindset. Use when building mobile apps, implementing mobile UX patterns, optimizing for mobile constraints, or making native vs cross-platform decisions.
+name: ck:mobile-development
+description: Build mobile apps with React Native, Flutter, Swift/SwiftUI, Kotlin/Jetpack Compose. Use for iOS/Android, mobile UX, performance optimization, offline-first, app store deployment.
 license: MIT
-version: 1.0.0
+argument-hint: "[platform] [feature]"
+metadata:
+  author: claudekit
+  version: "1.0.0"
 ---
 
 # Mobile Development Skill

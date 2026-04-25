@@ -1,7 +1,11 @@
 ---
-name: databases
-description: Work with MongoDB (document database, BSON documents, aggregation pipelines, Atlas cloud) and PostgreSQL (relational database, SQL queries, psql CLI, pgAdmin). Use when designing database schemas, writing queries and aggregations, optimizing indexes for performance, performing database migrations, configuring replication and sharding, implementing backup and restore strategies, managing database users and permissions, analyzing query performance, or administering production databases.
+name: ck:databases
+description: Design schemas, write queries for MongoDB and PostgreSQL. Use for database design, SQL/NoSQL queries, aggregation pipelines, indexes, migrations, replication, performance optimization, psql CLI.
 license: MIT
+argument-hint: "[query or schema task]"
+metadata:
+  author: claudekit
+  version: "1.0.0"
 ---
 
 # Databases Skill
@@ -22,147 +26,10 @@ Use when:
 - Analyzing slow queries and performance issues
 - Administering production database deployments
 
-## Database Selection Guide
-
-### Choose MongoDB When:
-- Schema flexibility: frequent structure changes, heterogeneous data
-- Document-centric: natural JSON/BSON data model
-- Horizontal scaling: need to shard across multiple servers
-- High write throughput: IoT, logging, real-time analytics
-- Nested/hierarchical data: embedded documents preferred
-- Rapid prototyping: schema evolution without migrations
-
-**Best for:** Content management, catalogs, IoT time series, real-time analytics, mobile apps, user profiles
-
-### Choose PostgreSQL When:
-- Strong consistency: ACID transactions critical
-- Complex relationships: many-to-many joins, referential integrity
-- SQL requirement: team expertise, reporting tools, BI systems
-- Data integrity: strict schema validation, constraints
-- Mature ecosystem: extensive tooling, extensions
-- Complex queries: window functions, CTEs, analytical workloads
-
-**Best for:** Financial systems, e-commerce transactions, ERP, CRM, data warehousing, analytics
-
-### Both Support:
-- JSON/JSONB storage and querying
-- Full-text search capabilities
-- Geospatial queries and indexing
-- Replication and high availability
-- ACID transactions (MongoDB 4.0+)
-- Strong security features
-
-## Quick Start
-
-### MongoDB Setup
-
-```bash
-# Atlas (Cloud) - Recommended
-# 1. Sign up at mongodb.com/atlas
-# 2. Create M0 free cluster
-# 3. Get connection string
-
-# Connection
-mongodb+srv://user:pass@cluster.mongodb.net/db
-
-# Shell
-mongosh "mongodb+srv://cluster.mongodb.net/mydb"
-
-# Basic operations
-db.users.insertOne({ name: "Alice", age: 30 })
-db.users.find({ age: { $gte: 18 } })
-db.users.updateOne({ name: "Alice" }, { $set: { age: 31 } })
-db.users.deleteOne({ name: "Alice" })
-```
-
-### PostgreSQL Setup
-
-```bash
-# Ubuntu/Debian
-sudo apt-get install postgresql postgresql-contrib
-
-# Start service
-sudo systemctl start postgresql
-
-# Connect
-psql -U postgres -d mydb
-
-# Basic operations
-CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT, age INT);
-INSERT INTO users (name, age) VALUES ('Alice', 30);
-SELECT * FROM users WHERE age >= 18;
-UPDATE users SET age = 31 WHERE name = 'Alice';
-DELETE FROM users WHERE name = 'Alice';
-```
-
-## Common Operations
-
-### Create/Insert
-```javascript
-// MongoDB
-db.users.insertOne({ name: "Bob", email: "bob@example.com" })
-db.users.insertMany([{ name: "Alice" }, { name: "Charlie" }])
-```
-
-```sql
--- PostgreSQL
-INSERT INTO users (name, email) VALUES ('Bob', 'bob@example.com');
-INSERT INTO users (name, email) VALUES ('Alice', NULL), ('Charlie', NULL);
-```
-
-### Read/Query
-```javascript
-// MongoDB
-db.users.find({ age: { $gte: 18 } })
-db.users.findOne({ email: "bob@example.com" })
-```
-
-```sql
--- PostgreSQL
-SELECT * FROM users WHERE age >= 18;
-SELECT * FROM users WHERE email = 'bob@example.com' LIMIT 1;
-```
-
-### Update
-```javascript
-// MongoDB
-db.users.updateOne({ name: "Bob" }, { $set: { age: 25 } })
-db.users.updateMany({ status: "pending" }, { $set: { status: "active" } })
-```
-
-```sql
--- PostgreSQL
-UPDATE users SET age = 25 WHERE name = 'Bob';
-UPDATE users SET status = 'active' WHERE status = 'pending';
-```
-
-### Delete
-```javascript
-// MongoDB
-db.users.deleteOne({ name: "Bob" })
-db.users.deleteMany({ status: "deleted" })
-```
-
-```sql
--- PostgreSQL
-DELETE FROM users WHERE name = 'Bob';
-DELETE FROM users WHERE status = 'deleted';
-```
-
-### Indexing
-```javascript
-// MongoDB
-db.users.createIndex({ email: 1 })
-db.users.createIndex({ status: 1, createdAt: -1 })
-```
-
-```sql
--- PostgreSQL
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_status_created ON users(status, created_at DESC);
-```
-
 ## Reference Navigation
+
+### Database Design
+- **[db-design.md](references/db-design.md)** - Activate when user requests: Database/table design for transactional (OLTP), analytics (OLAP), create or extend schema, design fact/dimension tables, analyze/review CSV/JSON/SQL files to create tables, or need advice on data storage structure.
 
 ### MongoDB References
 - **[mongodb-crud.md](references/mongodb-crud.md)** - CRUD operations, query operators, atomic updates
@@ -179,7 +46,7 @@ CREATE INDEX idx_users_status_created ON users(status, created_at DESC);
 ## Python Utilities
 
 Database utility scripts in `scripts/`:
-- **db_migrate.py** - Generate and apply migrations for both databases
+- **db_migrate.py** - Generate and apply migrations for both databases (MongoDB and PostgreSQL)
 - **db_backup.py** - Backup and restore MongoDB and PostgreSQL
 - **db_performance_check.py** - Analyze slow queries and recommend indexes
 
@@ -193,18 +60,6 @@ python scripts/db_backup.py --db postgres --output /backups/
 # Check performance
 python scripts/db_performance_check.py --db mongodb --threshold 100ms
 ```
-
-## Key Differences Summary
-
-| Feature | MongoDB | PostgreSQL |
-|---------|---------|------------|
-| Data Model | Document (JSON/BSON) | Relational (Tables/Rows) |
-| Schema | Flexible, dynamic | Strict, predefined |
-| Query Language | MongoDB Query Language | SQL |
-| Joins | $lookup (limited) | Native, optimized |
-| Transactions | Multi-document (4.0+) | Native ACID |
-| Scaling | Horizontal (sharding) | Vertical (primary), Horizontal (extensions) |
-| Indexes | Single, compound, text, geo, etc | B-tree, hash, GiST, GIN, etc |
 
 ## Best Practices
 

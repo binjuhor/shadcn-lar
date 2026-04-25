@@ -99,18 +99,18 @@ class NextJSInitializer:
 
         # Create layout
         layout_content = self._get_layout_content()
-        (app_dir / f"layout.{ext}").write_text(layout_content)
+        (app_dir / f"layout.{ext}").write_text(layout_content, encoding='utf-8')
 
         # Create page
         page_content = self._get_page_content()
-        (app_dir / f"page.{ext}").write_text(page_content)
+        (app_dir / f"page.{ext}").write_text(page_content, encoding='utf-8')
 
         # Create global styles
         if self.tailwind:
             globals_content = self._get_tailwind_globals()
         else:
             globals_content = self._get_basic_globals()
-        (app_dir / "globals.css").write_text(globals_content)
+        (app_dir / "globals.css").write_text(globals_content, encoding='utf-8')
 
     def _create_pages_router_files(self, pages_dir: Path) -> None:
         """Create Pages Router files."""
@@ -118,11 +118,11 @@ class NextJSInitializer:
 
         # Create _app
         app_content = self._get_app_content()
-        (pages_dir / f"_app.{ext}").write_text(app_content)
+        (pages_dir / f"_app.{ext}").write_text(app_content, encoding='utf-8')
 
         # Create index
         index_content = self._get_index_content()
-        (pages_dir / f"index.{ext}").write_text(index_content)
+        (pages_dir / f"index.{ext}").write_text(index_content, encoding='utf-8')
 
     def create_config_files(self) -> None:
         """Create configuration files."""
@@ -131,43 +131,43 @@ class NextJSInitializer:
         # package.json
         package_json = self._get_package_json()
         (self.directory / "package.json").write_text(
-            json.dumps(package_json, indent=2)
+            json.dumps(package_json, indent=2), encoding='utf-8'
         )
 
         # next.config.js
         next_config = self._get_next_config()
-        (self.directory / "next.config.js").write_text(next_config)
+        (self.directory / "next.config.js").write_text(next_config, encoding='utf-8')
 
         # tsconfig.json
         if self.typescript:
             tsconfig = self._get_tsconfig()
             (self.directory / "tsconfig.json").write_text(
-                json.dumps(tsconfig, indent=2)
+                json.dumps(tsconfig, indent=2), encoding='utf-8'
             )
 
         # .eslintrc.json
         if self.eslint:
             eslint_config = self._get_eslint_config()
             (self.directory / ".eslintrc.json").write_text(
-                json.dumps(eslint_config, indent=2)
+                json.dumps(eslint_config, indent=2), encoding='utf-8'
             )
 
         # tailwind.config
         if self.tailwind:
             tailwind_config = self._get_tailwind_config()
             ext = "ts" if self.typescript else "js"
-            (self.directory / f"tailwind.config.{ext}").write_text(tailwind_config)
+            (self.directory / f"tailwind.config.{ext}").write_text(tailwind_config, encoding='utf-8')
 
             postcss_config = self._get_postcss_config()
-            (self.directory / "postcss.config.js").write_text(postcss_config)
+            (self.directory / "postcss.config.js").write_text(postcss_config, encoding='utf-8')
 
         # .gitignore
         gitignore = self._get_gitignore()
-        (self.directory / ".gitignore").write_text(gitignore)
+        (self.directory / ".gitignore").write_text(gitignore, encoding='utf-8')
 
         # README.md
         readme = self._get_readme()
-        (self.directory / "README.md").write_text(readme)
+        (self.directory / "README.md").write_text(readme, encoding='utf-8')
 
     def _get_package_json(self) -> dict:
         """Generate package.json content."""

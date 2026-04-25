@@ -9,6 +9,7 @@ import { resolve } from 'path';
 export class MCPClientManager {
     config = null;
     clients = new Map();
+    transports = new Map();
     async loadConfig(configPath = '.claude/.mcp.json') {
         const fullPath = resolve(process.cwd(), configPath);
         const content = await readFile(fullPath, 'utf-8');
@@ -32,27 +33,49 @@ export class MCPClientManager {
         }, { capabilities: {} });
         await client.connect(transport);
         this.clients.set(serverName, client);
+        this.transports.set(serverName, transport); // Track transport!
         return client;
     }
     async connectAll() {
         if (!this.config) {
             throw new Error('Config not loaded. Call loadConfig() first.');
         }
-        const connections = Object.keys(this.config.mcpServers).map(name => this.connectToServer(name));
-        await Promise.all(connections);
+        const serverNames = Object.keys(this.config.mcpServers);
+        console.log(`Connecting to ${serverNames.length} servers sequentially...`);
+        for (const serverName of serverNames) {
+            try {
+                await this.connectToServer(serverName);
+                console.log(`✓ ${serverName} connected`);
+            }
+            catch (error) {
+                console.error(`✗ ${serverName} failed:`, error);
+                // Continue with other servers
+            }
+        }
     }
     async getAllTools() {
         const allTools = [];
         for (const [serverName, client] of this.clients.entries()) {
-            const response = await client.listTools({}, { timeout: 300000 });
-            for (const tool of response.tools) {
-                allTools.push({
-                    serverName,
-                    name: tool.name,
-                    description: tool.description || '',
-                    inputSchema: tool.inputSchema,
-                    outputSchema: tool.outputSchema
-                });
+            try {
+                const response = await client.listTools({}, { timeout: 300000 });
+                for (const tool of response.tools) {
+                    allTools.push({
+                        serverName,
+                        name: tool.name,
+                        description: tool.description || '',
+                        inputSchema: tool.inputSchema,
+                        outputSchema: tool.outputSchema
+                    });
+                }
+            }
+            catch (error) {
+                if (error?.code === -32601) {
+                    console.warn(`${serverName} does not support listTools`);
+                }
+                else {
+                    console.error(`Error from ${serverName}:`, error);
+                }
+                // Continue with other servers!
             }
         }
         return allTools;
@@ -60,14 +83,25 @@ export class MCPClientManager {
     async getAllPrompts() {
         const allPrompts = [];
         for (const [serverName, client] of this.clients.entries()) {
-            const response = await client.listPrompts({}, { timeout: 300000 });
-            for (const prompt of response.prompts) {
-                allPrompts.push({
-                    serverName,
-                    name: prompt.name,
-                    description: prompt.description || '',
-                    arguments: prompt.arguments
-                });
+            try {
+                const response = await client.listPrompts({}, { timeout: 300000 });
+                for (const prompt of response.prompts) {
+                    allPrompts.push({
+                        serverName,
+                        name: prompt.name,
+                        description: prompt.description || '',
+                        arguments: prompt.arguments
+                    });
+                }
+            }
+            catch (error) {
+                if (error?.code === -32601) {
+                    console.warn(`${serverName} does not support listPrompts`);
+                }
+                else {
+                    console.error(`Error from ${serverName}:`, error);
+                }
+                // Continue with other servers!
             }
         }
         return allPrompts;
@@ -75,15 +109,26 @@ export class MCPClientManager {
     async getAllResources() {
         const allResources = [];
         for (const [serverName, client] of this.clients.entries()) {
-            const response = await client.listResources({}, { timeout: 300000 });
-            for (const resource of response.resources) {
-                allResources.push({
-                    serverName,
-                    uri: resource.uri,
-                    name: resource.name,
-                    description: resource.description,
-                    mimeType: resource.mimeType
-                });
+            try {
+                const response = await client.listResources({}, { timeout: 300000 });
+                for (const resource of response.resources) {
+                    allResources.push({
+                        serverName,
+                        uri: resource.uri,
+                        name: resource.name,
+                        description: resource.description,
+                        mimeType: resource.mimeType
+                    });
+                }
+            }
+            catch (error) {
+                if (error?.code === -32601) {
+                    console.warn(`${serverName} does not support listResources`);
+                }
+                else {
+                    console.error(`Error from ${serverName}:`, error);
+                }
+                // Continue with other servers!
             }
         }
         return allResources;
@@ -107,9 +152,32 @@ export class MCPClientManager {
         return await client.readResource({ uri }, { timeout: 300000 });
     }
     async cleanup() {
-        for (const client of this.clients.values()) {
-            await client.close();
+        // Close clients with timeout
+        const cleanupPromises = [];
+        for (const [serverName, client] of this.clients.entries()) {
+            cleanupPromises.push((async () => {
+                try {
+                    await client.close();
+                }
+                catch (error) {
+                    console.warn(`Warning closing ${serverName}:`, error);
+                }
+            })());
+        }
+        await Promise.race([
+            Promise.all(cleanupPromises),
+            new Promise((resolve) => setTimeout(resolve, 5000))
+        ]);
+        // CRITICAL: Close transports to kill subprocesses
+        for (const [serverName, transport] of this.transports.entries()) {
+            try {
+                await transport.close();
+            }
+            catch (error) {
+                console.warn(`Warning closing ${serverName} transport:`, error);
+            }
         }
         this.clients.clear();
+        this.transports.clear();
     }
 }

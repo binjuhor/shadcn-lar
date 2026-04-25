@@ -13,6 +13,14 @@ import os
 import sys
 from pathlib import Path
 
+# Fix Windows cp1252 encoding: Unicode symbols (✓, ⚠, ✗) can't encode on Windows.
+# Reconfigure stdout to UTF-8 with replacement (Python 3.7+).
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # Color codes for terminal output
 GREEN = '\033[92m'
 YELLOW = '\033[93m'
@@ -81,7 +89,8 @@ def check_centralized_resolver():
     """Check if centralized resolver is available."""
     print_header("Checking Centralized Resolver")
 
-    resolver_path = Path.home() / '.claude' / 'scripts' / 'resolve_env.py'
+    claude_root = Path(__file__).parent.parent.parent.parent
+    resolver_path = claude_root / 'scripts' / 'resolve_env.py'
 
     if resolver_path.exists():
         print_success(f"Centralized resolver found: {resolver_path}")
@@ -106,7 +115,8 @@ def find_api_key():
     print_header("Checking API Key Configuration")
 
     # Try to use centralized resolver
-    sys.path.insert(0, str(Path.home() / '.claude' / 'scripts'))
+    claude_root = Path(__file__).parent.parent.parent.parent
+    sys.path.insert(0, str(claude_root / 'scripts'))
     try:
         from resolve_env import resolve_env
 
@@ -289,7 +299,13 @@ def main():
         print_info("\nNext steps:")
         print("  • Read SKILL.md for usage examples")
         print("  • Try: python scripts/gemini_batch_process.py --help")
-        print("  • Generate image: python scripts/gemini_batch_process.py --task generate --prompt 'A sunset' --model gemini-2.5-flash-image")
+        print("\nImage generation models:")
+        print("  • gemini-2.5-flash-image    - Nano Banana Flash (DEFAULT - fast)")
+        print("  • imagen-4.0-generate-001   - Imagen 4 (alternative - production)")
+        print("  • gemini-3-pro-image-preview - Nano Banana Pro (4K text, reasoning)")
+        print("\nExample (uses default model):")
+        print("  python scripts/gemini_batch_process.py --task generate \\")
+        print("    --prompt 'A sunset over mountains' --aspect-ratio 16:9 --size 2K")
     else:
         print_error("❌ Some checks failed. Please fix the issues above.")
         sys.exit(1)

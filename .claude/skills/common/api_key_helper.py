@@ -18,9 +18,10 @@ Vertex AI Configuration:
 """
 
 import os
+import re
 import sys
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 
 def find_api_key(skill_dir: Optional[Path] = None) -> Optional[str]:
@@ -172,6 +173,116 @@ def find_env_var(var_name: str, skill_dir: Optional[Path] = None) -> Optional[st
                 return value
 
     return None
+
+
+def find_all_api_keys(skill_dir: Optional[Path] = None) -> List[str]:
+    """
+    Find all Gemini API keys for rotation.
+
+    Searches for:
+    - GEMINI_API_KEY (primary, required)
+    - GEMINI_API_KEY_2, GEMINI_API_KEY_3, ... (additional, optional)
+
+    Uses the same 5-step lookup as find_api_key().
+
+    Args:
+        skill_dir: Path to skill directory (optional, auto-detected if None)
+
+    Returns:
+        List of API keys (may be empty if none found)
+    """
+    keys: List[str] = []
+    seen: set = set()  # Deduplicate keys
+
+    # Determine paths
+    if skill_dir is None:
+        skill_dir = Path(__file__).parent.parent
+    project_dir = skill_dir.parent.parent.parent
+
+    # Collect all .env file paths in priority order
+    env_files = [
+        project_dir / '.env',
+        project_dir / '.claude' / '.env',
+        project_dir / '.claude' / 'skills' / '.env',
+        skill_dir / '.env'
+    ]
+
+    def add_key(key: Optional[str]) -> None:
+        """Add key if valid and not duplicate."""
+        if key and key not in seen:
+            seen.add(key)
+            keys.append(key)
+
+    # Step 1: Check process environment for all GEMINI_API_KEY* vars
+    for env_key, value in os.environ.items():
+        if env_key == 'GEMINI_API_KEY' or re.match(r'^GEMINI_API_KEY_\d+$', env_key):
+            add_key(value)
+
+    # Step 2-5: Check .env files
+    for env_path in env_files:
+        if not env_path.exists():
+            continue
+
+        # Load all GEMINI_API_KEY* from this file
+        file_keys = _load_all_api_keys_from_file(env_path)
+        for key in file_keys:
+            add_key(key)
+
+    return keys
+
+
+def _load_all_api_keys_from_file(env_path: Path) -> List[str]:
+    """
+    Load all GEMINI_API_KEY* variables from an .env file.
+
+    Args:
+        env_path: Path to .env file
+
+    Returns:
+        List of API keys found in the file
+    """
+    keys: List[str] = []
+    pattern = re.compile(r'^GEMINI_API_KEY(_\d+)?=(.+)$')
+
+    try:
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('#') or not line:
+                    continue
+
+                match = pattern.match(line)
+                if match:
+                    value = match.group(2).strip()
+                    # Remove quotes if present
+                    value = value.strip('"').strip("'")
+                    if value and value != 'your_api_key_here':
+                        keys.append(value)
+    except Exception as e:
+        print(f"Warning: Error reading {env_path}: {e}", file=sys.stderr)
+
+    return keys
+
+
+def get_key_rotator(skill_dir: Optional[Path] = None, verbose: bool = False):
+    """
+    Get a KeyRotator instance with all available API keys.
+
+    Args:
+        skill_dir: Path to skill directory (optional)
+        verbose: Whether to enable verbose logging
+
+    Returns:
+        KeyRotator instance or None if no keys found
+    """
+    # Import here to avoid circular dependency
+    from api_key_rotator import KeyRotator
+
+    keys = find_all_api_keys(skill_dir)
+    if not keys:
+        return None
+
+    return KeyRotator(keys=keys, verbose=verbose)
 
 
 def get_vertex_config(skill_dir: Optional[Path] = None) -> Dict[str, Any]:

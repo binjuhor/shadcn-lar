@@ -19,7 +19,7 @@ async function click() {
 
   try {
     const browser = await getBrowser({
-      headless: args.headless !== 'false'
+      headless: args.headless
     });
 
     const page = await getPage(browser);
@@ -72,6 +72,7 @@ async function click() {
     } else {
       await disconnectBrowser();
     }
+    process.exit(0);
   } catch (error) {
     // Enhance error message with troubleshooting tips
     const enhanced = enhanceError(error, args.selector);

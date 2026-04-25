@@ -12,7 +12,9 @@ param(
     [switch]$Y = $false,           # Skip all prompts and auto-confirm
     [switch]$WithAdmin = $false,   # Use admin-requiring package managers (choco)
     [switch]$Resume = $false,      # Resume from previous interrupted installation
-    [switch]$RetryFailed = $false  # Retry previously failed packages
+    [switch]$RetryFailed = $false, # Retry previously failed packages
+    [ValidateSet("auto", "winget", "scoop", "choco")]
+    [string]$PreferPackageManager = "auto"  # Preferred package manager (soft fallback to auto if unavailable)
 )
 
 # Configuration
@@ -81,6 +83,15 @@ function Track-Skipped {
 function Initialize-State {
     if ($Resume -and (Test-Path $StateFile)) {
         Write-Info "Resuming from previous installation..."
+        # Load state and validate preference consistency
+        $state = Get-Content $StateFile -Raw | ConvertFrom-Json
+        if ($state.PSObject.Properties['prefer_package_manager']) {
+            if ($state.prefer_package_manager -ne $Script:PreferPackageManager) {
+                Write-Warning "Preference changed from '$($state.prefer_package_manager)' to '$($Script:PreferPackageManager)'"
+                Write-Warning "Using original preference: $($state.prefer_package_manager)"
+                $Script:PreferPackageManager = $state.prefer_package_manager
+            }
+        }
         return
     }
 
@@ -89,6 +100,7 @@ function Initialize-State {
         version = 1
         started_at = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
         last_updated = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+        prefer_package_manager = $Script:PreferPackageManager
         phases = @{
             chocolatey = "pending"
             system_deps = "pending"
@@ -173,16 +185,89 @@ function Test-Administrator {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-# Check if command exists
+# Check if command exists and is functional (not just in PATH)
+# Validates: command exists, is not a broken alias, and responds to --version
 function Test-Command {
     param([string]$Command)
     try {
-        if (Get-Command $Command -ErrorAction SilentlyContinue) {
-            return $true
+        $cmd = Get-Command $Command -ErrorAction SilentlyContinue
+        if (-not $cmd) {
+            return $false
         }
+
+        # Skip aliases that don't resolve to applications
+        if ($cmd.CommandType -eq 'Alias') {
+            $resolved = Get-Command $cmd.Definition -ErrorAction SilentlyContinue
+            if (-not $resolved -or $resolved.CommandType -ne 'Application') {
+                return $false
+            }
+        }
+
+        # For package managers, verify they actually respond
+        if ($Command -in @('winget', 'scoop', 'choco')) {
+            $null = & $Command --version 2>$null
+            return ($LASTEXITCODE -eq 0)
+        }
+
+        return $true
     } catch {
         return $false
     }
+}
+
+# Check if Visual Studio Build Tools are installed (not just in PATH)
+# Returns $true if VS Build Tools are available for compilation
+function Test-VSBuildTools {
+    # Quick check: if cl.exe or gcc is in PATH, we're good
+    if ((Test-Command "cl") -or (Test-Command "gcc")) {
+        return $true
+    }
+
+    # Check via vswhere.exe (most reliable method for VS detection)
+    $vswherePaths = @(
+        "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe",
+        "${env:ProgramFiles}\Microsoft Visual Studio\Installer\vswhere.exe"
+    )
+
+    foreach ($vswhere in $vswherePaths) {
+        if (Test-Path $vswhere) {
+            try {
+                # Check for any VS installation with C++ build tools
+                $vsPath = & $vswhere -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2>$null
+                if ($vsPath -and (Test-Path $vsPath)) {
+                    return $true
+                }
+                # Fallback: check for any VS installation
+                $vsPath = & $vswhere -latest -property installationPath 2>$null
+                if ($vsPath -and (Test-Path $vsPath)) {
+                    return $true
+                }
+            } catch {
+                # vswhere failed, continue to fallback checks
+            }
+        }
+    }
+
+    # Fallback: check common VS Build Tools installation paths
+    $commonPaths = @(
+        "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools",
+        "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\Community",
+        "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\Professional",
+        "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\Enterprise",
+        "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\BuildTools",
+        "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\Community"
+    )
+
+    foreach ($vsPath in $commonPaths) {
+        if (Test-Path $vsPath) {
+            # Check if VC tools exist in this installation
+            $vcToolsPath = Join-Path $vsPath "VC\Tools\MSVC"
+            if (Test-Path $vcToolsPath) {
+                return $true
+            }
+        }
+    }
+
     return $false
 }
 
@@ -260,8 +345,32 @@ function Find-Python {
     return $null
 }
 
-# Get available package manager (priority: winget > scoop > choco)
+# Get available package manager with preference support (soft fallback to auto-detection)
+# Priority for auto: winget > scoop > choco
 function Get-PackageManager {
+    param([string]$Preference = "auto")
+
+    # If preference specified, try it first
+    if ($Preference -ne "auto") {
+        if (Test-Command $Preference) {
+            return $Preference
+        }
+        # Auto-detect for better warning message
+        $autoDetected = $null
+        if (Test-Command "winget") { $autoDetected = "winget" }
+        elseif (Test-Command "scoop") { $autoDetected = "scoop" }
+        elseif (Test-Command "choco") { $autoDetected = "choco" }
+
+        if ($autoDetected) {
+            Write-Warning "Preferred '$Preference' not found, using auto-detected: $autoDetected"
+            return $autoDetected
+        } else {
+            Write-Warning "Preferred '$Preference' not found, no package manager available"
+            return $null
+        }
+    }
+
+    # Auto-detection (priority: winget > scoop > choco)
     if (Test-Command "winget") { return "winget" }
     if (Test-Command "scoop") { return "scoop" }
     if (Test-Command "choco") { return "choco" }
@@ -281,9 +390,16 @@ function Install-WithPackageManager {
         [string]$Category = "optional"  # "critical" or "optional"
     )
 
-    $pm = Get-PackageManager
+    $pm = Get-PackageManager -Preference $Script:PreferPackageManager
 
     switch ($pm) {
+        $null {
+            # No package manager available - provide manual install guidance
+            Write-Warning "$DisplayName not installed. No package manager available."
+            Write-Info "Install manually from: $ManualUrl"
+            Track-Failure -Category $Category -Name $DisplayName -Reason "no package manager"
+            return $false
+        }
         "winget" {
             Write-Info "Installing $DisplayName via winget..."
             # Try user scope first, fallback to machine scope
@@ -386,7 +502,7 @@ function Install-Chocolatey {
 
     # Check if we have winget/scoop - no need for choco then
     if ((Test-Command "winget") -or (Test-Command "scoop")) {
-        $pm = Get-PackageManager
+        $pm = Get-PackageManager -Preference $Script:PreferPackageManager
         Write-Info "Using $pm as package manager (Chocolatey not needed)"
         return $false
     }
@@ -425,7 +541,7 @@ function Install-Chocolatey {
 function Install-SystemDeps {
     Write-Header "Installing System Dependencies"
 
-    $pm = Get-PackageManager
+    $pm = Get-PackageManager -Preference $Script:PreferPackageManager
     if ($pm) {
         Write-Info "Using package manager: $pm"
     } else {
@@ -561,6 +677,28 @@ function Install-NodeDeps {
         Write-Success "mcp-management dependencies installed"
     }
 
+    # markdown-novel-viewer (marked, highlight.js, gray-matter)
+    $novelViewerPath = Join-Path $ScriptDir "markdown-novel-viewer"
+    $novelViewerPackageJson = Join-Path $novelViewerPath "package.json"
+    if ((Test-Path $novelViewerPath) -and (Test-Path $novelViewerPackageJson)) {
+        Write-Info "Installing markdown-novel-viewer dependencies..."
+        Push-Location $novelViewerPath
+        npm install --quiet
+        Pop-Location
+        Write-Success "markdown-novel-viewer dependencies installed"
+    }
+
+    # plans-kanban (gray-matter)
+    $plansKanbanPath = Join-Path $ScriptDir "plans-kanban"
+    $plansKanbanPackageJson = Join-Path $plansKanbanPath "package.json"
+    if ((Test-Path $plansKanbanPath) -and (Test-Path $plansKanbanPackageJson)) {
+        Write-Info "Installing plans-kanban dependencies..."
+        Push-Location $plansKanbanPath
+        npm install --quiet
+        Pop-Location
+        Write-Success "plans-kanban dependencies installed"
+    }
+
     # Optional: Shopify CLI (ask user unless auto-confirming)
     $shopifyPath = Join-Path $ScriptDir "shopify"
     if (Test-Path $shopifyPath) {
@@ -594,10 +732,9 @@ function Try-PipInstall {
         return $true
     }
 
-    # Phase 2: Check if we can build from source
-    $hasBuildTools = (Test-Command "cl") -or (Test-Command "gcc")
-    if (-not $hasBuildTools) {
-        Write-Warning "${packageName}: No wheel available, no build tools"
+    # Phase 2: Check if we can build from source (uses vswhere for proper VS detection)
+    if (-not (Test-VSBuildTools)) {
+        Write-Warning "${packageName}: No wheel available, no build tools detected"
         Write-Info "Install Visual Studio Build Tools from: https://visualstudio.microsoft.com/visual-cpp-build-tools/"
         return $false
     }
@@ -619,6 +756,10 @@ function Try-PipInstall {
 function Setup-PythonEnv {
     Write-Header "Setting Up Python Environment"
 
+    # Suppress pip version check notices that trigger PowerShell NativeCommandError
+    # Set early to affect all pip operations in this function
+    $env:PIP_DISABLE_PIP_VERSION_CHECK = "1"
+
     # Track successful and failed installations
     $successfulSkills = [System.Collections.ArrayList]::new()
     $failedSkills = [System.Collections.ArrayList]::new()
@@ -637,7 +778,32 @@ function Setup-PythonEnv {
         return  # Don't exit, return and let final report show
     }
 
-    # Create virtual environment
+    # Create virtual environment with uv fallback
+    function New-Venv {
+        param([string]$TargetDir)
+        # Try standard venv first
+        & $pythonCmd -m venv $TargetDir 2>$null
+        if ($LASTEXITCODE -eq 0) { return $true }
+
+        # Try uv venv if available (handles uv-managed Python)
+        if (Get-Command uv -ErrorAction SilentlyContinue) {
+            Write-Warning "Standard venv creation failed, trying uv venv..."
+            & uv venv $TargetDir 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                # Bootstrap pip in uv venv
+                $venvPy = Join-Path $TargetDir "Scripts\python.exe"
+                $getPip = Join-Path $env:TEMP "get-pip.py"
+                Invoke-WebRequest -Uri "https://bootstrap.pypa.io/get-pip.py" -OutFile $getPip -ErrorAction SilentlyContinue
+                if (Test-Path $getPip) {
+                    & $venvPy $getPip 2>$null
+                    Remove-Item $getPip -ErrorAction SilentlyContinue
+                }
+                return $true
+            }
+        }
+        return $false
+    }
+
     if (Test-Path $VenvDir) {
         # Verify venv is valid
         $activateScript = Join-Path $VenvDir "Scripts\Activate.ps1"
@@ -647,13 +813,17 @@ function Setup-PythonEnv {
         } else {
             Write-Warning "Virtual environment is corrupted. Recreating..."
             Remove-Item -Recurse -Force $VenvDir
-            & $pythonCmd -m venv $VenvDir
-            Write-Success "Virtual environment recreated"
+            if (New-Venv -TargetDir $VenvDir) {
+                Write-Success "Virtual environment recreated"
+            } else {
+                Write-Error "Failed to create virtual environment"
+                Track-Failure -Category "critical" -Name "Python venv" -Reason "venv creation failed"
+                return
+            }
         }
     } else {
         Write-Info "Creating virtual environment at $VenvDir..."
-        & $pythonCmd -m venv $VenvDir
-        if ($LASTEXITCODE -eq 0) {
+        if (New-Venv -TargetDir $VenvDir) {
             Write-Success "Virtual environment created"
         } else {
             Write-Error "Failed to create virtual environment"
@@ -682,7 +852,8 @@ function Setup-PythonEnv {
     # Upgrade pip with prefer-binary
     Write-Info "Upgrading pip..."
     $pipLogFile = Join-Path $LogDir "pip-upgrade.log"
-    pip install --upgrade pip --prefer-binary 2>&1 | Tee-Object -FilePath $pipLogFile
+    $venvPython = Join-Path $VenvDir "Scripts\python.exe"
+    & $venvPython -m pip install --upgrade pip --prefer-binary 2>&1 | Tee-Object -FilePath $pipLogFile
     if ($LASTEXITCODE -eq 0) {
         Write-Success "pip upgraded successfully"
     } else {
@@ -718,6 +889,12 @@ function Setup-PythonEnv {
                     return
                 }
 
+                # Strip inline comments (e.g., "package>=1.0  # comment" -> "package>=1.0")
+                $line = ($line -split '#')[0].Trim()
+                if ([string]::IsNullOrWhiteSpace($line)) {
+                    return
+                }
+
                 if (Try-PipInstall -PackageSpec $line -LogFile $skillLogFile) {
                     $pkgSuccess++
                 } else {
@@ -749,6 +926,40 @@ function Setup-PythonEnv {
             } else {
                 Write-Warning "$skillName test dependencies failed to install"
             }
+        }
+    }
+
+    # Install .claude/scripts requirements (contains pyyaml for scan_skills.py)
+    $scriptsReqPath = Join-Path $ScriptDir "..\scripts\requirements.txt"
+    if (Test-Path $scriptsReqPath) {
+        $scriptsLogFile = Join-Path $LogDir "install-scripts.log"
+        Write-Info "Installing .claude/scripts dependencies..."
+
+        $pkgSuccess = 0
+        $pkgFail = 0
+        Get-Content $scriptsReqPath | ForEach-Object {
+            $line = $_.Trim()
+            if ($line -match '^#' -or [string]::IsNullOrWhiteSpace($line)) {
+                return
+            }
+            $line = ($line -split '#')[0].Trim()
+            if ([string]::IsNullOrWhiteSpace($line)) {
+                return
+            }
+
+            if (Try-PipInstall -PackageSpec $line -LogFile $scriptsLogFile) {
+                $pkgSuccess++
+            } else {
+                $pkgFail++
+                Track-Failure -Category "optional" -Name "scripts:${line}" -Reason "Package install failed"
+            }
+        }
+
+        if ($pkgFail -eq 0) {
+            Write-Success ".claude/scripts: all $pkgSuccess packages installed"
+            Track-Success -Category "optional" -Name "scripts"
+        } else {
+            Write-Warning ".claude/scripts: $pkgSuccess installed, $pkgFail failed"
         }
     }
 
@@ -971,12 +1182,14 @@ function Show-Help {
     Write-Host "  .\install.ps1 [Options]"
     Write-Host ""
     Write-Host "Options:"
-    Write-Host "  -Y                 Skip all prompts and auto-confirm installation"
-    Write-Host "  -WithAdmin         Use admin-requiring package managers (chocolatey)"
-    Write-Host "  -Resume            Resume from previous interrupted installation"
-    Write-Host "  -RetryFailed       Retry previously failed packages"
-    Write-Host "  -SkipChocolatey    Skip Chocolatey installation (uses winget/scoop instead)"
-    Write-Host "  -Help              Show this help message"
+    Write-Host "  -Y                            Skip all prompts and auto-confirm installation"
+    Write-Host "  -WithAdmin                    Use admin-requiring package managers (chocolatey)"
+    Write-Host "  -Resume                       Resume from previous interrupted installation"
+    Write-Host "  -RetryFailed                  Retry previously failed packages"
+    Write-Host "  -SkipChocolatey               Skip Chocolatey installation (uses winget/scoop instead)"
+    Write-Host "  -PreferPackageManager <PM>    Prefer specific package manager (auto|winget|scoop|choco)"
+    Write-Host "                                Falls back to auto-detection if preferred PM unavailable"
+    Write-Host "  -Help                         Show this help message"
     Write-Host ""
     Write-Host "Exit Codes:"
     Write-Host "  0  Success (all dependencies installed)"
@@ -984,10 +1197,12 @@ function Show-Help {
     Write-Host "  2  Partial success (some optional deps failed)"
     Write-Host ""
     Write-Host "Examples:"
-    Write-Host "  .\install.ps1                  # Normal install"
-    Write-Host "  .\install.ps1 -Y               # Non-interactive"
-    Write-Host "  .\install.ps1 -WithAdmin       # Use chocolatey if admin"
-    Write-Host "  .\install.ps1 -Resume          # Resume interrupted install"
+    Write-Host "  .\install.ps1                              # Normal install (auto-detect PM)"
+    Write-Host "  .\install.ps1 -PreferPackageManager scoop  # Prefer scoop, fallback to auto"
+    Write-Host "  .\install.ps1 -PreferPackageManager winget # Use winget explicitly"
+    Write-Host "  .\install.ps1 -Y                           # Non-interactive"
+    Write-Host "  .\install.ps1 -WithAdmin                   # Use chocolatey if admin"
+    Write-Host "  .\install.ps1 -Resume                      # Resume interrupted install"
     Write-Host ""
     Write-Host "Package Manager Priority:"
     Write-Host "  1. winget (recommended, no admin required)"
@@ -1011,8 +1226,11 @@ function Main {
     Write-Header "Claude Code Skills Installation (Windows)"
     Write-Info "Script directory: $ScriptDir"
 
+    # Store preference in script scope for functions to access
+    $Script:PreferPackageManager = $PreferPackageManager
+
     # Show detected package manager
-    $pm = Get-PackageManager
+    $pm = Get-PackageManager -Preference $PreferPackageManager
     if ($pm) {
         Write-Success "Detected package manager: $pm"
     } else {
@@ -1021,6 +1239,9 @@ function Main {
     }
 
     # Show mode info
+    if ($PreferPackageManager -ne "auto") {
+        Write-Info "Mode: prefer $PreferPackageManager (soft fallback to auto if unavailable)"
+    }
     if ($WithAdmin) {
         Write-Info "Mode: with admin (chocolatey enabled)"
     } else {

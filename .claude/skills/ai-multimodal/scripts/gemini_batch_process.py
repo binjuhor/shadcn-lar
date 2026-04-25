@@ -7,7 +7,10 @@ Supports all Gemini modalities:
 - Image: Captioning, detection, OCR, analysis
 - Video: Summarization, Q&A, scene detection
 - Document: PDF extraction, structured output
-- Generation: Image creation from text prompts
+- Generation: Image creation via Imagen 4 or Nano Banana (Gemini native)
+  - Nano Banana 2 (gemini-3.1-flash-image-preview): Fastest, 95% Pro quality (default)
+  - Nano Banana Pro (gemini-3-pro-image-preview): Quality/4K text/reasoning
+  - Imagen 4 (imagen-4.0-*): Production-grade generation
 """
 
 import argparse
@@ -20,8 +23,9 @@ from typing import List, Dict, Any, Optional
 import csv
 import shutil
 
-# Import centralized environment resolver
-sys.path.insert(0, str(Path.home() / '.claude' / 'scripts'))
+# Import centralized environment resolver (works for both local and global installs)
+CLAUDE_ROOT = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(CLAUDE_ROOT / 'scripts'))
 try:
     from resolve_env import resolve_env
     CENTRALIZED_RESOLVER_AVAILABLE = True
@@ -33,6 +37,19 @@ except ImportError:
     except ImportError:
         load_dotenv = None
 
+# Import key rotation support
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'common'))
+try:
+    from api_key_rotator import KeyRotator, is_rate_limit_error, is_server_error
+    from api_key_helper import find_all_api_keys
+    KEY_ROTATION_AVAILABLE = True
+except ImportError:
+    KEY_ROTATION_AVAILABLE = False
+    KeyRotator = None
+    is_rate_limit_error = None
+    is_server_error = None
+    find_all_api_keys = None
+
 try:
     from google import genai
     from google.genai import types
@@ -42,10 +59,12 @@ except ImportError:
     sys.exit(1)
 
 
-# Image generation model fallback chain (highest quality -> lowest cost)
+# Image generation model configuration
+# Default: gemini-3.1-flash-image-preview (Nano Banana 2 - 3-5x faster, 95% Pro quality)
+# Alternative: imagen-4.0-generate-001 (production quality)
 # All image generation requires billing - no completely free option exists
-# Fallback order: Imagen 4 -> Gemini 2.5 Flash Image (cheaper, still requires billing)
-IMAGE_MODEL_FALLBACK = 'gemini-2.5-flash-image'  # Cheaper fallback (~$0.039/image vs ~$0.02-0.04)
+IMAGE_MODEL_DEFAULT = 'gemini-3.1-flash-image-preview'  # Nano Banana 2 (fastest, near-Pro quality)
+IMAGE_MODEL_FALLBACK = 'gemini-2.5-flash-image'  # Fallback if Nano Banana 2 fails
 IMAGEN_MODELS = {
     'imagen-4.0-generate-001',
     'imagen-4.0-ultra-generate-001',
@@ -117,8 +136,9 @@ def get_default_model(task: str) -> str:
         model = os.getenv('GEMINI_IMAGE_GEN_MODEL')
         if model:
             return model
-        # Default to best quality (Imagen 4), with auto-fallback on billing error
-        return 'imagen-4.0-generate-001'
+        # Default to Nano Banana 2 (fastest, near-Pro quality)
+        # Alternative: imagen-4.0-generate-001 for production quality
+        return 'gemini-3.1-flash-image-preview'
 
     elif task == 'generate-video':
         model = os.getenv('VIDEO_GEN_MODEL')
@@ -160,6 +180,7 @@ def validate_model_task_combination(model: str, task: str) -> None:
             'imagen-4.0-generate-001',
             'imagen-4.0-ultra-generate-001',
             'imagen-4.0-fast-generate-001',
+            'gemini-3.1-flash-image-preview',
             'gemini-3-pro-image-preview',
             'gemini-2.5-flash-image',
             'gemini-2.5-flash-image-preview',
@@ -543,10 +564,16 @@ def process_file(
     task: str,
     format_output: str,
     aspect_ratio: Optional[str] = None,
+    image_size: Optional[str] = None,
     verbose: bool = False,
     max_retries: int = 3
 ) -> Dict[str, Any]:
-    """Process a single file with retry logic."""
+    """Process a single file with retry logic.
+
+    Args:
+        image_size: Image size for Nano Banana models (1K, 2K, 4K). Must be uppercase K.
+                    Note: Not all models support image_size - only pass when explicitly needed.
+    """
 
     for attempt in range(max_retries):
         try:
@@ -578,12 +605,17 @@ def process_file(
             # Configure request
             config_args = {}
             if task == 'generate':
-                config_args['response_modalities'] = ['Image']  # Capital I per API spec
+                # Nano Banana requires fully uppercase 'IMAGE' per API spec
+                config_args['response_modalities'] = ['IMAGE']
+                # Build image_config with aspect_ratio and/or image_size
+                image_config_args = {}
                 if aspect_ratio:
-                    # Nest aspect_ratio in image_config per API spec
-                    config_args['image_config'] = types.ImageConfig(
-                        aspect_ratio=aspect_ratio
-                    )
+                    image_config_args['aspect_ratio'] = aspect_ratio
+                if image_size:
+                    # image_size must be uppercase K (1K, 2K, 4K)
+                    image_config_args['image_size'] = image_size
+                if image_config_args:
+                    config_args['image_config'] = types.ImageConfig(**image_config_args)
 
             if format_output == 'json':
                 config_args['response_mime_type'] = 'application/json'
@@ -643,16 +675,39 @@ def process_file(
                     'error': str(e)
                 }
 
-            if attempt == max_retries - 1:
+            # Check if this is a rate limit error (candidate for key rotation)
+            is_rate_limited = (
+                KEY_ROTATION_AVAILABLE and
+                is_rate_limit_error and
+                is_rate_limit_error(e)
+            )
+
+            # Check if this is a transient server error (503, 500, etc.)
+            is_5xx = (
+                KEY_ROTATION_AVAILABLE and
+                is_server_error and
+                is_server_error(e)
+            )
+
+            # Use more retries for transient 5xx errors (up to 5 attempts)
+            effective_max = max(max_retries, 5) if is_5xx else max_retries
+
+            if attempt == effective_max - 1:
                 return {
                     'file': str(file_path) if file_path else 'generated',
                     'status': 'error',
-                    'error': str(e)
+                    'error': str(e),
+                    'rate_limited': is_rate_limited  # Flag for caller to handle rotation
                 }
 
-            wait_time = 2 ** attempt
+            # Longer backoff for 5xx (4s, 8s, 16s, 32s) vs default (1s, 2s, 4s)
+            if is_5xx:
+                wait_time = 4 * (2 ** attempt)  # 4, 8, 16, 32, 64
+            else:
+                wait_time = 2 ** attempt  # 1, 2, 4
             if verbose:
-                print(f"  Retry {attempt + 1} after {wait_time}s: {e}")
+                error_type = "5xx server error" if is_5xx else "error"
+                print(f"  Retry {attempt + 1}/{effective_max - 1} after {wait_time}s ({error_type}): {e}")
             time.sleep(wait_time)
 
 
@@ -671,15 +726,49 @@ def batch_process(
     verbose: bool = False,
     dry_run: bool = False
 ) -> List[Dict[str, Any]]:
-    """Batch process multiple files."""
-    api_key = find_api_key()
+    """Batch process multiple files with automatic key rotation."""
+
+    # Initialize key rotator or fall back to single key
+    rotator = None
+    api_key = None
+
+    if KEY_ROTATION_AVAILABLE and find_all_api_keys:
+        all_keys = find_all_api_keys()
+        if all_keys:
+            if len(all_keys) > 1:
+                rotator = KeyRotator(keys=all_keys, verbose=verbose)
+                api_key = rotator.get_key()
+                if verbose:
+                    print(f"✓ Key rotation enabled with {len(all_keys)} keys", file=sys.stderr)
+            else:
+                api_key = all_keys[0]
+                if verbose:
+                    print(f"✓ Using single API key: {api_key[:8]}...", file=sys.stderr)
+
+    # Fallback to original single-key lookup
     if not api_key:
-        print("Error: GEMINI_API_KEY not found")
-        print("\nSetup options:")
-        print("1. Run setup checker: python scripts/check_setup.py")
-        print("2. Show hierarchy: python ~/.claude/scripts/resolve_env.py --show-hierarchy --skill ai-multimodal")
-        print("3. Quick setup: export GEMINI_API_KEY='your-key'")
-        print("4. Create .env: cd ~/.claude/skills/ai-multimodal && cp .env.example .env")
+        api_key = find_api_key()
+
+    if not api_key:
+        print("Error: GEMINI_API_KEY not found in any location")
+        print("\nSearched locations (highest to lowest priority):")
+        print("  1. OS environment (process.env)")
+        if CENTRALIZED_RESOLVER_AVAILABLE:
+            from resolve_env import get_env_file_paths
+            for i, (desc, path) in enumerate(get_env_file_paths('ai-multimodal'), 2):
+                exists = "[OK]" if path.exists() else "[  ]"
+                print(f"  {i}. {exists} {path}")
+        else:
+            print("  2-7. .env files (centralized resolver unavailable)")
+        print("\nQuick fix — add your key to any .env file above:")
+        print("  echo 'GEMINI_API_KEY=your-key' >> ~/.claude/.env")
+        print("\nOther options:")
+        print("  - Run setup checker: python scripts/check_setup.py")
+        print("  - Show full hierarchy: python ~/.claude/scripts/resolve_env.py --show-hierarchy --skill ai-multimodal -v")
+        print("\nFor key rotation, add multiple keys to any .env:")
+        print("   GEMINI_API_KEY=key1")
+        print("   GEMINI_API_KEY_2=key2")
+        print("   GEMINI_API_KEY_3=key3")
         sys.exit(1)
 
     if dry_run:
@@ -688,10 +777,29 @@ def batch_process(
         print(f"Model: {model}")
         print(f"Task: {task}")
         print(f"Prompt: {prompt}")
+        if rotator:
+            print(f"API keys available: {rotator.key_count}")
         return []
 
+    # Create client with current key
     client = genai.Client(api_key=api_key)
     results = []
+
+    def get_client_with_rotation(error: Optional[Exception] = None) -> Optional[genai.Client]:
+        """Get client, rotating key if rate limited."""
+        nonlocal client, api_key
+
+        if error and rotator and is_rate_limit_error and is_rate_limit_error(error):
+            # Try to rotate to next key
+            if rotator.mark_rate_limited(str(error)):
+                new_key = rotator.get_key()
+                if new_key:
+                    api_key = new_key
+                    client = genai.Client(api_key=api_key)
+                    return client
+            # All keys exhausted
+            return None
+        return client
 
     # For generation tasks without input files, process once
     if task == 'generate' and not files:
@@ -706,7 +814,7 @@ def batch_process(
                 model=model,
                 num_images=num_images,
                 aspect_ratio=aspect_ratio or '1:1',
-                size=size,
+                size=size or '1K',  # Default to 1K for Imagen models
                 verbose=verbose
             )
 
@@ -722,6 +830,7 @@ def batch_process(
                     task=task,
                     format_output=format_output,
                     aspect_ratio=aspect_ratio,
+                    image_size=size,
                     verbose=verbose
                 )
                 # Check if free tier (zero quota) - stop immediately with clear message
@@ -735,7 +844,7 @@ def batch_process(
                             "https://aistudio.google.com/apikey or use Google Cloud credits."
                         )
         else:
-            # Legacy Flash Image or other models via generate_content API
+            # Nano Banana (Flash/Pro) or other models via generate_content API
             result = process_file(
                 client=client,
                 file_path=None,
@@ -744,6 +853,7 @@ def batch_process(
                 task=task,
                 format_output=format_output,
                 aspect_ratio=aspect_ratio,
+                image_size=size,
                 verbose=verbose
             )
             # Check for free tier error
@@ -784,21 +894,43 @@ def batch_process(
             status = result.get('status', 'unknown')
             print(f"  Status: {status}")
     else:
-        # Process input files
+        # Process input files with key rotation support
         for i, file_path in enumerate(files, 1):
             if verbose:
                 print(f"\n[{i}/{len(files)}] Processing: {file_path}")
 
-            result = process_file(
-                client=client,
-                file_path=file_path,
-                prompt=prompt,
-                model=model,
-                task=task,
-                format_output=format_output,
-                aspect_ratio=aspect_ratio,
-                verbose=verbose
-            )
+            # Try processing with key rotation on rate limit
+            max_rotation_attempts = rotator.key_count if rotator else 1
+            result = None
+
+            for rotation_attempt in range(max_rotation_attempts):
+                result = process_file(
+                    client=client,
+                    file_path=file_path,
+                    prompt=prompt,
+                    model=model,
+                    task=task,
+                    format_output=format_output,
+                    aspect_ratio=aspect_ratio,
+                    image_size=size,
+                    verbose=verbose
+                )
+
+                # Check if rate limited and can rotate
+                if (result.get('rate_limited') and rotator and
+                    rotation_attempt < max_rotation_attempts - 1):
+                    new_client = get_client_with_rotation(Exception(result.get('error', '')))
+                    if new_client:
+                        client = new_client
+                        if verbose:
+                            print(f"  Retrying with rotated key...")
+                        continue
+                    else:
+                        # All keys exhausted - mark result with clear error
+                        if verbose:
+                            print(f"  ⚠ All API keys exhausted (on cooldown)", file=sys.stderr)
+                        result['error'] = "All API keys exhausted (rate limited). Try again later."
+                break
 
             results.append(result)
 
@@ -955,9 +1087,17 @@ Examples:
   %(prog)s --files *.pdf --task extract --prompt "Extract data as JSON" \\
     --format json --output results.json
 
-  # Generate images
-  %(prog)s --task generate --prompt "A mountain landscape" \\
-    --model gemini-2.5-flash-image --aspect-ratio 16:9
+  # Generate images with Nano Banana Flash (fast)
+  %(prog)s --task generate --prompt "A mountain landscape at sunset" \\
+    --model gemini-2.5-flash-image --aspect-ratio 16:9 --size 2K
+
+  # Generate images with Nano Banana Pro (4K text, reasoning)
+  %(prog)s --task generate --prompt "Travel poster with text 'EXPLORE'" \\
+    --model gemini-3-pro-image-preview --aspect-ratio 3:4 --size 4K
+
+  # Generate images with Imagen 4 (production quality)
+  %(prog)s --task generate --prompt "Product photo of coffee mug" \\
+    --model imagen-4.0-ultra-generate-001 --aspect-ratio 1:1 --size 2K
         """
     )
 
@@ -973,12 +1113,16 @@ Examples:
                        help='Output format (default: text)')
 
     # Image generation options
-    parser.add_argument('--aspect-ratio', choices=['1:1', '16:9', '9:16', '4:3', '3:4'],
+    # All 10 aspect ratios supported by Nano Banana / Imagen 4
+    parser.add_argument('--aspect-ratio',
+                       choices=['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'],
                        help='Aspect ratio for image/video generation')
     parser.add_argument('--num-images', type=int, default=1,
                        help='Number of images to generate (1-4, default: 1)')
-    parser.add_argument('--size', choices=['1K', '2K'], default='1K',
-                       help='Image size for Imagen 4 (default: 1K)')
+    # 4K available for Nano Banana Pro (gemini-3-pro-image-preview)
+    # Note: Not all models support --size, only use when needed
+    parser.add_argument('--size', choices=['1K', '2K', '4K'], default=None,
+                       help='Image size - 1K/2K for Imagen 4, 1K/2K/4K for Nano Banana (optional)')
 
     # Video generation options
     parser.add_argument('--resolution', choices=['720p', '1080p'], default='1080p',

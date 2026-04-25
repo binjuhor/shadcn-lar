@@ -8,7 +8,7 @@
     "test": "node --loader ts-node/esm test.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.25.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

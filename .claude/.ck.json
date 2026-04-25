@@ -5,7 +5,10 @@
     "issuePrefix": "GH-",
     "reportsDir": "reports",
     "resolution": {
-      "order": ["session", "branch"],
+      "order": [
+        "session",
+        "branch"
+      ],
       "branchPattern": "(?:feat|fix|chore|refactor|docs)/(?:[^/]+/)?(.+)"
     }
   },
@@ -25,5 +28,24 @@
     "packageManager": "auto",
     "framework": "auto"
   },
-  "assertions": []
+  "assertions": [],
+  "kits": {
+    "ClaudeKit Engineer": {
+      "installedSettings": {
+        "hooks": [
+          "node $HOME/.claude/hooks/usage-quota-cache-refresh.cjs",
+          "node $HOME/.claude/hooks/team-context-inject.cjs",
+          "node $HOME/.claude/hooks/cook-after-plan-reminder.cjs",
+          "node $HOME/.claude/hooks/session-state.cjs",
+          "node $HOME/.claude/hooks/descriptive-name.cjs",
+          "node $HOME/.claude/hooks/privacy-block.cjs",
+          "node $HOME/.claude/hooks/post-edit-simplify-reminder.cjs",
+          "node $HOME/.claude/hooks/plan-format-kanban.cjs",
+          "node $HOME/.claude/hooks/task-completed-handler.cjs",
+          "node $HOME/.claude/hooks/teammate-idle-handler.cjs"
+        ],
+        "mcpServers": []
+      }
+    }
+  }
 }

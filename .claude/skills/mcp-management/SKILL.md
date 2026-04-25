@@ -1,6 +1,10 @@
 ---
-name: mcp-management
-description: Manage Model Context Protocol (MCP) servers - discover, analyze, and execute tools/prompts/resources from configured MCP servers. Use when working with MCP integrations, need to discover available MCP capabilities, filter MCP tools for specific tasks, execute MCP tools programmatically, access MCP prompts/resources, or implement MCP client functionality. Supports intelligent tool selection, multi-server management, and context-efficient capability discovery.
+name: ck:mcp-management
+description: Manage MCP servers - discover, analyze, execute tools/prompts/resources. Use for MCP integrations, intelligent tool selection, multi-server management, context-efficient capability discovery.
+argument-hint: "[task or server-name]"
+metadata:
+  author: claudekit
+  version: "1.0.0"
 ---
 
 # MCP Management
@@ -72,7 +76,7 @@ LLM analyzes `assets/tools.json` directly - better than keyword matching algorit
 **Primary: Gemini CLI** (if available)
 ```bash
 # IMPORTANT: Use stdin piping, NOT -p flag (deprecated, skips MCP init)
-echo "Take a screenshot of https://example.com" | gemini -y -m gemini-2.5-flash
+echo "Take a screenshot of https://example.com" | gemini -y -m <gemini.model>
 ```
 
 **Secondary: Direct Scripts**
@@ -94,7 +98,7 @@ Use Gemini CLI for automatic tool discovery and execution. Gemini CLI auto-loads
 ```bash
 # IMPORTANT: Use stdin piping, NOT -p flag (deprecated, skips MCP init)
 # Add "Return JSON only per GEMINI.md instructions" to enforce structured output
-echo "Take a screenshot of https://example.com. Return JSON only per GEMINI.md instructions." | gemini -y -m gemini-2.5-flash
+echo "Take a screenshot of https://example.com. Return JSON only per GEMINI.md instructions." | gemini -y -m <gemini.model>
 ```
 
 **Expected Output**:
@@ -154,7 +158,7 @@ npm install -g gemini-cli
 mkdir -p .gemini && ln -sf .claude/.mcp.json .gemini/settings.json
 # IMPORTANT: Use stdin piping, NOT -p flag (deprecated, skips MCP init)
 # GEMINI.md auto-loads to enforce JSON responses
-echo "Take a screenshot of https://example.com. Return JSON only per GEMINI.md instructions." | gemini -y -m gemini-2.5-flash
+echo "Take a screenshot of https://example.com. Return JSON only per GEMINI.md instructions." | gemini -y -m <gemini.model>
 ```
 
 Returns structured JSON: `{"server":"puppeteer","tool":"screenshot","success":true,"result":"screenshot.png","error":null}`
@@ -185,7 +189,7 @@ See [references/mcp-protocol.md](references/mcp-protocol.md) for:
 
 1. **Gemini CLI** (Primary): Fast, automatic, intelligent tool selection
    - Check: `command -v gemini`
-   - Execute: `echo "<task>" | gemini -y -m gemini-2.5-flash`
+   - Execute: `echo "<task>" | gemini -y -m <gemini.model>`
    - **IMPORTANT**: Use stdin piping, NOT `-p` flag (deprecated, skips MCP init)
    - Best for: All tasks when available
 

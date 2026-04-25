@@ -7,7 +7,7 @@ description: Use when completing tasks, implementing major features, or before m
 
 Dispatch code-reviewer subagent to catch issues before they cascade.
 
-**Core principle:** Review early, review often.
+**Core principle:** Scout first, review often.
 
 ## When to Request Review
 
@@ -22,6 +22,17 @@ Dispatch code-reviewer subagent to catch issues before they cascade.
 - After fixing complex bug
 
 ## How to Request
+
+**0. Scout edge cases first (NEW):**
+```
+Before dispatching code-reviewer, invoke /ck:scout to find:
+- Files affected by changes (not just modified files)
+- Data flow paths that could break
+- Edge cases and boundary conditions
+- Potential side effects
+
+See: references/edge-case-scouting.md
+```
 
 **1. Get git SHAs:**
 ```bash

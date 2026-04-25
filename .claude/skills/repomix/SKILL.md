@@ -1,6 +1,10 @@
 ---
-name: repomix
-description: Package entire code repositories into single AI-friendly files using Repomix. Capabilities include pack codebases with customizable include/exclude patterns, generate multiple output formats (XML, Markdown, plain text), preserve file structure and context, optimize for AI consumption with token counting, filter by file types and directories, add custom headers and summaries. Use when packaging codebases for AI analysis, creating repository snapshots for LLM context, analyzing third-party libraries, preparing for security audits, generating documentation context, or evaluating unfamiliar codebases.
+name: ck:repomix
+description: Pack repositories into AI-friendly files with Repomix (XML, Markdown, plain text). Use for codebase snapshots, LLM context preparation, security audits, third-party library analysis.
+argument-hint: "[path] [--style xml|markdown|plain|json]"
+metadata:
+  author: claudekit
+  version: "1.0.0"
 ---
 
 # Repomix Skill

@@ -1,7 +1,10 @@
 ---
-name: pdf
-description: Comprehensive PDF manipulation toolkit for extracting text and tables, creating new PDFs, merging/splitting documents, and handling forms. When Claude needs to fill in a PDF form or programmatically process, generate, or analyze PDF documents at scale.
+name: ck:pdf
+description: Extract text/tables, create, merge, split PDFs. Fill PDF forms programmatically. Use for PDF processing, generation, form filling, document analysis, batch operations.
 license: Proprietary. LICENSE.txt has complete terms
+metadata:
+  author: claudekit
+  version: "1.0.0"
 ---
 
 # PDF Processing Guide

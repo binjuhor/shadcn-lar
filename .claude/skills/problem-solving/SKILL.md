@@ -1,7 +1,10 @@
 ---
-name: Problem-Solving Techniques
-description: Apply systematic problem-solving techniques for complexity spirals (simplification cascades), innovation blocks (collision-zone thinking), recurring patterns (meta-pattern recognition), assumption constraints (inversion exercise), scale uncertainty (scale game), and dispatch when stuck. Techniques derived from Microsoft Amplifier project patterns adapted for immediate application.
-version: 2.0.0
+name: ck:problem-solving
+description: Apply systematic problem-solving techniques when stuck. Use for complexity spirals, innovation blocks, recurring patterns, assumption constraints, simplification cascades, scale uncertainty.
+argument-hint: "[problem description]"
+metadata:
+  author: claudekit
+  version: "2.0.0"
 ---
 
 # Problem-Solving Techniques

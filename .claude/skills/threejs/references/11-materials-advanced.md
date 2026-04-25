@@ -1,4 +1,4 @@
-# Advanced Materials
+# Three.js - Advanced Materials
 
 PBR materials and custom shaders.
 

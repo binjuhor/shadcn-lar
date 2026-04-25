@@ -1,89 +1,144 @@
 ---
-name: threejs
-description: Build immersive 3D web experiences with Three.js - WebGL/WebGPU library for scenes, cameras, geometries, materials, lights, animations, loaders, post-processing, shaders (including node-based TSL), compute, physics, VR/XR, and advanced rendering. Use when creating 3D visualizations, games, interactive graphics, data viz, product configurators, architectural walkthroughs, or WebGL/WebGPU applications. Covers OrbitControls, GLTF/FBX loading, PBR materials, shadow mapping, post-processing effects (bloom, SSAO, SSR), custom shaders, instancing, LOD, animation systems, and WebXR.
+name: ck:threejs
+description: "Build 3D web apps with Three.js (WebGL/WebGPU). 556 searchable examples, 60 API classes, 20 use cases. Actions: create 3D scene, load model, add animation, implement physics, build VR/XR. Topics: GLTF loader, PBR materials, particle effects, shadows, post-processing, compute shaders, TSL. Integrations: WebGPU, physics engines, spatial audio."
 license: MIT
-version: 1.0.0
+argument-hint: "[3D scene or feature]"
+metadata:
+  author: claudekit
+  version: "3.0.0"
 ---
 
 # Three.js Development
 
-Build high-performance 3D web applications using Three.js - a cross-browser WebGL/WebGPU library.
+Build high-performance 3D web applications using Three.js. Contains 556 searchable examples across 13 categories, 60 API classes, and 20 use-case templates.
 
-## When to Use This Skill
+## When to Use
 
-Use when working with:
-- 3D scenes, models, animations, or visualizations
-- WebGL/WebGPU rendering and graphics programming
-- Interactive 3D experiences (games, configurators, data viz)
-- Camera controls, lighting, materials, or shaders
-- Loading 3D assets (GLTF, FBX, OBJ) or textures
-- Post-processing effects (bloom, depth of field, SSAO)
-- Physics simulations, VR/XR experiences, or spatial audio
-- Performance optimization (instancing, LOD, frustum culling)
+- Building 3D scenes, games, or visualizations
+- Loading 3D models (GLTF, FBX, OBJ)
+- Implementing animations, physics, or VR/XR
+- Creating particle effects or custom shaders
+- Optimizing rendering performance
 
-## Progressive Learning Path
+## Search Examples & API
 
-### Level 1: Getting Started
-Load `references/01-getting-started.md` - Scene setup, basic geometries, materials, lights, rendering loop
+Use the search CLI to find relevant examples and API references:
 
-### Level 2: Common Tasks
-- **Asset Loading**: `references/02-loaders.md` - GLTF, FBX, OBJ, texture loaders
-- **Textures**: `references/03-textures.md` - Types, mapping, wrapping, filtering
-- **Cameras**: `references/04-cameras.md` - Perspective, orthographic, controls
-- **Lights**: `references/05-lights.md` - Types, shadows, helpers
-- **Animations**: `references/06-animations.md` - Clips, mixer, keyframes
-- **Math**: `references/07-math.md` - Vectors, matrices, quaternions, curves
+```bash
+python3 .claude/skills/threejs/scripts/search.py "<query>" [--domain <domain>] [-n <max_results>]
+```
 
-### Level 3: Interactive & Effects
-- **Interaction**: `references/08-interaction.md` - Raycasting, picking, transforms
-- **Post-Processing**: `references/09-postprocessing.md` - Passes, bloom, SSAO, SSR
-- **Controls (Addons)**: `references/10-controls.md` - Orbit, transform, first-person
+### Search Domains
 
-### Level 4: Advanced Rendering
-- **Materials Advanced**: `references/11-materials-advanced.md` - PBR, custom shaders
-- **Performance**: `references/12-performance.md` - Instancing, LOD, batching, culling
-- **Node Materials (TSL)**: `references/13-node-materials.md` - Shader graphs, compute
+| Domain | Use For | Example Query |
+|--------|---------|---------------|
+| `examples` | Find code examples | `"particle effects gpu"` |
+| `api` | Class/method reference | `"PerspectiveCamera"` |
+| `use-cases` | Project recommendations | `"product configurator"` |
+| `categories` | Browse categories | `"webgpu"` |
 
-### Level 5: Specialized
-- **Physics**: `references/14-physics-vr.md` - Ammo, Rapier, Jolt, VR/XR
-- **Advanced Loaders**: `references/15-specialized-loaders.md` - SVG, VRML, domain-specific
-- **WebGPU**: `references/16-webgpu.md` - Modern backend, compute shaders
+### Quick Examples
 
-## Quick Start Pattern
+```bash
+# Find particle/compute examples
+python3 .claude/skills/threejs/scripts/search.py "particle compute webgpu"
+
+# Search API for camera classes
+python3 .claude/skills/threejs/scripts/search.py "camera" --domain api
+
+# Get examples for a use case
+python3 .claude/skills/threejs/scripts/search.py "product configurator" --use-case
+
+# Filter by category
+python3 .claude/skills/threejs/scripts/search.py --category webgpu -n 10
+
+# Filter by complexity
+python3 .claude/skills/threejs/scripts/search.py --complexity high -n 5
+```
+
+## Example Categories
+
+| Category | Count | Description |
+|----------|-------|-------------|
+| `webgl` | 216 | Standard WebGL rendering |
+| `webgpu (wip)` | 190 | Modern WebGPU + compute shaders |
+| `webgl / advanced` | 48 | Low-level GPU, custom shaders |
+| `webgl / postprocessing` | 27 | Bloom, SSAO, SSR, DOF |
+| `webxr` | 26 | VR/AR experiences |
+| `physics` | 13 | Physics simulation |
+
+## Common Use Cases
+
+| Use Case | Recommended | Complexity |
+|----------|-------------|------------|
+| Product Configurator | GLTF, PBR, EnvMaps | Medium |
+| Game Development | Animation, Physics, Controls | High |
+| Data Visualization | BufferGeometry, Points | Medium |
+| 360 Panorama | Equirectangular, WebXR | Low |
+| Architectural Viz | GLTF, HDR, CSM Shadows | High |
+
+## Quick Start
 
 ```javascript
 // 1. Scene, Camera, Renderer
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer();
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-// 2. Add Objects
-const geometry = new THREE.BoxGeometry();
-const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
-const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
-
-// 3. Add Lights
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(5, 5, 5);
-scene.add(light);
+// 2. Lighting
 scene.add(new THREE.AmbientLight(0x404040));
+const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+dirLight.position.set(5, 5, 5);
+scene.add(dirLight);
+
+// 3. Load GLTF Model
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const loader = new GLTFLoader();
+loader.load('model.glb', (gltf) => scene.add(gltf.scene));
 
 // 4. Animation Loop
 function animate() {
   requestAnimationFrame(animate);
-  cube.rotation.x += 0.01;
-  cube.rotation.y += 0.01;
   renderer.render(scene, camera);
 }
 animate();
 ```
 
+## Progressive Reference Files
+
+### Level 1: Fundamentals
+- `references/00-fundamentals.md` - Core concepts, scene graph
+- `references/01-getting-started.md` - Setup, basic rendering
+
+### Level 2: Common Tasks
+- `references/02-loaders.md` - GLTF, FBX, OBJ loaders
+- `references/03-textures.md` - Texture types, mapping
+- `references/04-cameras.md` - Camera types, controls
+- `references/05-lights.md` - Light types, shadows
+- `references/06-animations.md` - AnimationMixer, clips
+- `references/11-materials.md` - PBR, standard materials
+- `references/18-geometry.md` - BufferGeometry, primitives
+
+### Level 3: Interactive
+- `references/08-interaction.md` - Raycasting, picking
+- `references/09-postprocessing.md` - Bloom, SSAO, SSR
+- `references/10-controls.md` - OrbitControls, etc.
+
+### Level 4: Advanced
+- `references/12-performance.md` - Instancing, LOD, batching
+- `references/13-node-materials.md` - TSL shader graphs
+- `references/17-shader.md` - Custom GLSL shaders
+
+### Level 5: Specialized
+- `references/14-physics-vr.md` - Physics, WebXR
+- `references/16-webgpu.md` - WebGPU, compute shaders
+
 ## External Resources
 
-- Official Docs: https://threejs.org/docs/
+- Docs: https://threejs.org/docs/
 - Examples: https://threejs.org/examples/
 - Editor: https://threejs.org/editor/
 - Discord: https://discord.gg/56GBJwAnUS

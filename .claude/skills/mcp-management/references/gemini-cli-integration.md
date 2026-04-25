@@ -1,15 +1,21 @@
 # Gemini CLI Integration Guide
 
+## Model Configuration
+
+Read model from `.claude/.ck.json`: `gemini.model` (default: `gemini-3-flash-preview`)
+
 ## ⚠️ CRITICAL: Use Stdin Piping, NOT -p Flag
 
 The `-p` flag is **deprecated** and skips MCP server initialization, causing tools to be unavailable:
 
 ```bash
-# ❌ WRONG - This skips MCP connections!
-gemini -y -m gemini-2.5-flash -p "Take a screenshot"
+# ❌ WRONG - Deprecated -p flag skips MCP connections!
+gemini -y -m <gemini.model> -p "Take a screenshot"
+# Also wrong: Using --model instead of -m
+gemini -y -p "Take a screenshot" --model gemini-3-flash-preview
 
 # ✅ CORRECT - This initializes MCP servers
-echo "Take a screenshot" | gemini -y -m gemini-2.5-flash
+echo "Take a screenshot" | gemini -y -m <gemini.model>
 ```
 
 **Why**: The `-p` flag runs in "quick mode" and bypasses MCP server connection initialization. Always use stdin piping (echo + pipe) to ensure MCP tools are available.
@@ -68,35 +74,35 @@ echo "<prompt>" | gemini [flags]
 
 - `-y`: Skip confirmation prompts (auto-approve tool execution)
 - `-m <model>`: Model selection
-  - `gemini-2.5-flash` (fast, recommended for MCP)
-  - `gemini-2.5-flash` (balanced)
+  - `gemini-3-flash-preview` (fast, recommended for MCP)
+  - `gemini-3-pro-preview` (balanced)
   - `gemini-pro` (high quality)
 
 ### Examples
 
 **Screenshot Capture**:
 ```bash
-echo "Take a screenshot of https://www.google.com.vn" | gemini -y -m gemini-2.5-flash
+echo "Take a screenshot of https://www.google.com.vn" | gemini -y -m <gemini.model>
 ```
 
 **Memory Operations**:
 ```bash
-echo "Remember that Alice is a React developer working on e-commerce projects" | gemini -y -m gemini-2.5-flash
+echo "Remember that Alice is a React developer working on e-commerce projects" | gemini -y -m <gemini.model>
 ```
 
 **Web Research**:
 ```bash
-echo "Search for latest Next.js 15 features and summarize the top 3" | gemini -y -m gemini-2.5-flash
+echo "Search for latest Next.js 15 features and summarize the top 3" | gemini -y -m <gemini.model>
 ```
 
 **Multi-Tool Orchestration**:
 ```bash
-echo "Search for Claude AI documentation, take a screenshot of the homepage, and save both to memory" | gemini -y -m gemini-2.5-flash
+echo "Search for Claude AI documentation, take a screenshot of the homepage, and save both to memory" | gemini -y -m <gemini.model>
 ```
 
 **Browser Automation**:
 ```bash
-echo "Navigate to https://example.com, click the signup button, and take a screenshot" | gemini -y -m gemini-2.5-flash
+echo "Navigate to https://example.com, click the signup button, and take a screenshot" | gemini -y -m <gemini.model>
 ```
 
 ## How It Works

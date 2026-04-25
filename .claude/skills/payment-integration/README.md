@@ -1,6 +1,6 @@
 # Payment Integration Skill
 
-Comprehensive payment integration skill for SePay (Vietnamese payment gateway) and Polar (global SaaS monetization platform).
+Comprehensive payment integration skill for SePay (Vietnamese payment gateway), Polar (global SaaS monetization platform), and Stripe (global payment infrastructure).
 
 ## Features
 
@@ -22,6 +22,15 @@ Comprehensive payment integration skill for SePay (Vietnamese payment gateway) a
 - Multi-language SDKs (TypeScript, Python, PHP, Go)
 - Framework adapters (Next.js, Laravel, Remix, etc.)
 
+### Stripe Integration
+- Global payment infrastructure
+- CheckoutSessions, PaymentIntents, SetupIntents APIs
+- Billing and subscriptions at scale
+- Connect for marketplaces and platforms
+- Payment Element for custom checkout experiences
+- Multi-language SDKs (Node.js, Python, Ruby, PHP, Java, Go, .NET)
+- Best practices for integration design and API version upgrades
+
 ## Structure
 
 ```
@@ -36,15 +45,18 @@ payment-integration/
 │   │   ├── sdk.md               # SDK usage (Node.js, PHP, Laravel)
 │   │   ├── qr-codes.md          # VietQR generation
 │   │   └── best-practices.md    # Security, patterns, monitoring
-│   └── polar/                   # Polar integration guides
-│       ├── overview.md          # Auth, MoR concept, environments
-│       ├── products.md          # Products, pricing, usage-based billing
-│       ├── checkouts.md         # Checkout flows and embedded checkout
-│       ├── subscriptions.md     # Lifecycle, upgrades, trials
-│       ├── webhooks.md          # Event handling and verification
-│       ├── benefits.md          # Automated benefit delivery
-│       ├── sdk.md               # Multi-language SDK usage
-│       └── best-practices.md    # Security, patterns, monitoring
+│   ├── polar/                   # Polar integration guides
+│   │   ├── overview.md          # Auth, MoR concept, environments
+│   │   ├── products.md          # Products, pricing, usage-based billing
+│   │   ├── checkouts.md         # Checkout flows and embedded checkout
+│   │   ├── subscriptions.md     # Lifecycle, upgrades, trials
+│   │   ├── webhooks.md          # Event handling and verification
+│   │   ├── benefits.md          # Automated benefit delivery
+│   │   ├── sdk.md               # Multi-language SDK usage
+│   │   └── best-practices.md    # Security, patterns, monitoring
+│   └── stripe/                  # Stripe integration guides
+│       ├── stripe-best-practices.md  # Integration design, API selection
+│       └── stripe-upgrade.md         # API versions, SDK upgrades
 └── scripts/                      # Integration helper scripts
     ├── sepay-webhook-verify.js   # SePay webhook verification
     ├── polar-webhook-verify.js   # Polar webhook verification
@@ -71,7 +83,7 @@ In conversations, simply reference the platforms:
 
 **SePay Webhook Verification:**
 ```bash
-cd .claude/skills/payment-integration/scripts
+cd $HOME/.claude/skills/payment-integration/scripts
 node sepay-webhook-verify.js '{"id":12345,"gateway":"Vietcombank",...}'
 ```
 
@@ -137,6 +149,14 @@ Load only the references you need for your current task.
 - Tax compliance (Merchant of Record)
 - Customer self-service
 
+**Choose Stripe for:**
+- Global payment infrastructure
+- Enterprise-grade payment processing
+- Connect platforms (marketplaces)
+- Billing/subscriptions at scale
+- Custom checkout experiences (Payment Element)
+- Maximum payment method coverage
+
 ## Examples
 
 ### SePay Payment Flow
@@ -153,6 +173,12 @@ Load only the references you need for your current task.
 4. Load `references/polar/subscriptions.md` for lifecycle
 5. Load `references/polar/webhooks.md` for events
 6. Load `references/polar/benefits.md` for automation
+
+### Stripe Integration Flow
+1. Load `references/stripe/stripe-best-practices.md` for integration design
+2. Choose: Checkout (hosted/embedded) or Payment Element
+3. Use CheckoutSessions API for most use cases
+4. Load `references/stripe/stripe-upgrade.md` when upgrading API versions
 
 ## Testing
 
@@ -176,10 +202,16 @@ Run `npm test` in the scripts directory to verify functionality.
 - API Reference: https://polar.sh/docs/api-reference
 - GitHub: https://github.com/polarsource/polar
 
+### Stripe
+- Docs: https://docs.stripe.com
+- API Reference: https://docs.stripe.com/api
+- Changelog: https://docs.stripe.com/changelog
+- Go Live Checklist: https://docs.stripe.com/get-started/checklist/go-live
+
 ## License
 
 MIT
 
 ## Version
 
-1.0.0
+1.1.0

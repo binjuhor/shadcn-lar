@@ -103,7 +103,7 @@ class BetterAuthInit:
         """
         env_vars = {}
         try:
-            with open(path, "r") as f:
+            with open(path, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith("#") and "=" in line:
@@ -478,7 +478,7 @@ export const auth = betterAuth({{
             auth_path = auth_locations[idx]
 
         auth_path.parent.mkdir(parents=True, exist_ok=True)
-        auth_path.write_text(auth_config)
+        auth_path.write_text(auth_config, encoding="utf-8")
         print(f"Saved: {auth_path}")
 
         # Save .env
@@ -488,7 +488,7 @@ export const auth = betterAuth({{
             env_path.rename(backup)
             print(f"Backed up existing .env to {backup}")
 
-        env_path.write_text(env_content)
+        env_path.write_text(env_content, encoding="utf-8")
         print(f"Saved: {env_path}")
 
         print("\nNext steps:")

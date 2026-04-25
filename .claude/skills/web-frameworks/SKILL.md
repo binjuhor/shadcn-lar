@@ -1,8 +1,11 @@
 ---
-name: web-frameworks
-description: Build modern full-stack web applications with Next.js (App Router, Server Components, RSC, PPR, SSR, SSG, ISR), Turborepo (monorepo management, task pipelines, remote caching, parallel execution), and RemixIcon (3100+ SVG icons in outlined/filled styles). Use when creating React applications, implementing server-side rendering, setting up monorepos with multiple packages, optimizing build performance and caching strategies, adding icon libraries, managing shared dependencies, or working with TypeScript full-stack projects.
+name: ck:web-frameworks
+description: Build with Next.js (App Router, RSC, SSR, ISR), Turborepo monorepos. Use for React apps, server rendering, build optimization, caching strategies, shared dependencies.
 license: MIT
-version: 1.0.0
+argument-hint: "[framework] [feature]"
+metadata:
+  author: claudekit
+  version: "1.0.0"
 ---
 
 # Web Frameworks Skill Group
@@ -236,7 +239,7 @@ export default async function Post({ params }: { params: { slug: string } }) {
 
 ```yaml
 # .github/workflows/ci.yml
-name: CI
+name: ck:CI
 on: [push, pull_request]
 
 jobs:
