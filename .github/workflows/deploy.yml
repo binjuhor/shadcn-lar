@@ -69,4 +69,6 @@ jobs:
         run: |
           echo "Clearing and optimizing application cache..."
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker exec -i ${{secrets.DOCKER_NAME}} php artisan optimize:clear"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker exec -i ${{secrets.DOCKER_NAME}} php artisan config:clear"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker exec -i ${{secrets.DOCKER_NAME}} php artisan view:clear"
           echo "Application optimized."
