@@ -3,12 +3,26 @@ import './bootstrap';
 
 import React, { StrictMode } from 'react';
 import { createInertiaApp } from '@inertiajs/react';
+import type { Page } from '@inertiajs/core';
 import { createRoot } from 'react-dom/client';
 import { AppLayout } from './layouts';
 import { Providers } from './providers';
 import { initI18n } from './lib/i18n';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Shadcn Laravel Admin';
+
+// Inertia PHP v3 changed @inertia to render page data in a <script> tag rather
+// than a data-page attribute on the root div. Read from either format.
+function resolveInitialPage(id = 'app'): Page | undefined {
+  const script = document.querySelector<HTMLScriptElement>(
+    `script[data-page="${id}"][type="application/json"]`
+  );
+  if (script?.textContent) {
+    return JSON.parse(script.textContent) as Page;
+  }
+  const el = document.getElementById(id);
+  return el?.dataset?.page ? JSON.parse(el.dataset.page) as Page : undefined;
+}
 
 // Glob patterns for page discovery
 const mainPages = import.meta.glob('./pages/**/*.tsx');
@@ -20,10 +34,6 @@ const modulePages2 = import.meta.glob('/Modules/*/resources/js/pages/**/*.tsx');
 // Merge all module pages
 const modulePages = { ...modulePages1, ...modulePages2 };
 
-// Debug: Log available module pages on startup
-console.log('[DEBUG] modulePages1 keys:', Object.keys(modulePages1));
-console.log('[DEBUG] modulePages2 keys:', Object.keys(modulePages2));
-console.log('[DEBUG] Total module pages found:', Object.keys(modulePages).length);
 
 /**
  * Resolve Inertia page component with namespace support
@@ -60,9 +70,6 @@ async function resolvePageComponent(name: string): Promise<React.ComponentType> 
     }
 
     if (!page) {
-      // Debug: log available keys
-      console.error('[DEBUG] Available module pages:', Object.keys(modulePages));
-      console.error('[DEBUG] Tried paths:', pathFormats);
       throw new Error(
         `Module page not found: ${name}\n` +
         `Expected path: Modules/${moduleName}/resources/js/pages/${pagePath}.tsx\n` +
@@ -70,7 +77,6 @@ async function resolvePageComponent(name: string): Promise<React.ComponentType> 
       );
     }
 
-    console.log(`[DEBUG] Resolved ${name} using path: ${usedPath}`);
     const module = await page();
     return (module as { default: React.ComponentType }).default;
   }
@@ -93,6 +99,7 @@ async function resolvePageComponent(name: string): Promise<React.ComponentType> 
 createInertiaApp({
   title: (title) => `${title} - ${appName}`,
   resolve: resolvePageComponent,
+  page: resolveInitialPage(),
   setup({ el, App, props }) {
     const initialPage = props.initialPage;
     const locale = initialPage.props.locale as string || 'en';

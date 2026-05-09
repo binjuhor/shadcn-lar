@@ -34,8 +34,16 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            // Only chunk by modules - let Vite handle vendor chunking automatically
-            // Manual vendor chunking causes cross-chunk dependency issues
+            // Keep runtime-critical libraries in a shared chunk so they are never
+            // embedded inside a lazy module chunk (which would produce misleading
+            // stack traces and unnecessary code duplication).
+            if (id.includes('node_modules/@inertiajs') ||
+                id.includes('node_modules/react/') ||
+                id.includes('node_modules/react-dom/') ||
+                id.includes('node_modules/react-router')) {
+              return 'vendor';
+            }
+
             if (id.includes('/Modules/')) {
               const match = id.match(/\/Modules\/(\w+)\//);
               if (match) {
