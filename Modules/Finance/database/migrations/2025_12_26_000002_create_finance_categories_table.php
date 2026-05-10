@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('parent_id')->nullable()->constrained('finance_categories')->cascadeOnDelete();
             $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
             $table->string('name');
+            $table->string('name_key', 100)->nullable();
             $table->enum('type', ['income', 'expense', 'both'])->default('both');
             $table->string('icon', 50)->nullable();
             $table->string('color', 7)->nullable();
@@ -25,6 +26,7 @@ return new class extends Migration
 
             $table->index(['user_id', 'type']);
             $table->index(['_lft', '_rgt']);
+            $table->index('name_key');
         });
     }
 };

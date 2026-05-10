@@ -232,4 +232,93 @@ class TransactionApiTest extends TestCase
 
         $response->assertUnauthorized();
     }
+
+    public function test_user_can_search_transactions_by_description(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->createTransaction(['description' => 'Grocery shopping']);
+        $this->createTransaction(['description' => 'Electricity bill']);
+        $this->createTransaction(['description' => 'Grocery delivery']);
+
+        $response = $this->getJson('/api/v1/finance/transactions?search=Grocery');
+
+        $response->assertOk();
+        $this->assertCount(2, $response->json('data'));
+    }
+
+    public function test_user_can_search_transactions_by_notes(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->createTransaction(['description' => 'Payment', 'notes' => 'Monthly subscription']);
+        $this->createTransaction(['description' => 'Transfer', 'notes' => 'Rent payment']);
+        $this->createTransaction(['description' => 'Misc']);
+
+        $response = $this->getJson('/api/v1/finance/transactions?search=payment');
+
+        $response->assertOk();
+        $this->assertCount(2, $response->json('data'));
+    }
+
+    public function test_user_can_search_transactions_by_amount(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->createTransaction(['amount' => 250, 'description' => 'Lunch']);
+        $this->createTransaction(['amount' => 500, 'description' => 'Dinner']);
+        $this->createTransaction(['amount' => 250, 'description' => 'Coffee']);
+
+        $response = $this->getJson('/api/v1/finance/transactions?search=250');
+
+        $response->assertOk();
+        $this->assertCount(2, $response->json('data'));
+    }
+
+    public function test_search_by_amount_does_not_match_partial_amounts(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->createTransaction(['amount' => 2500, 'description' => 'Rent']);
+        $this->createTransaction(['amount' => 250, 'description' => 'Groceries']);
+        $this->createTransaction(['amount' => 25, 'description' => 'Snack']);
+
+        $response = $this->getJson('/api/v1/finance/transactions?search=250');
+
+        $response->assertOk();
+        // Only exact amount match (250), but description/notes containing "250" also match
+        $data = $response->json('data');
+        $amounts = collect($data)->pluck('amount')->map(fn ($a) => (float) $a);
+        $this->assertTrue($amounts->contains(250));
+    }
+
+    public function test_search_with_non_numeric_term_does_not_search_amount(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->createTransaction(['amount' => 100, 'description' => 'Coffee']);
+        $this->createTransaction(['amount' => 200, 'description' => 'Tea']);
+
+        $response = $this->getJson('/api/v1/finance/transactions?search=Coffee');
+
+        $response->assertOk();
+        $this->assertCount(1, $response->json('data'));
+        $this->assertEquals('Coffee', $response->json('data.0.description'));
+    }
+
+    public function test_search_combines_description_notes_and_amount(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->createTransaction(['amount' => 150, 'description' => 'Taxi ride']);
+        $this->createTransaction(['amount' => 300, 'description' => 'Paid 150 for service', 'notes' => null]);
+        $this->createTransaction(['amount' => 400, 'description' => 'Other', 'notes' => '150 refund']);
+        $this->createTransaction(['amount' => 500, 'description' => 'Unrelated']);
+
+        $response = $this->getJson('/api/v1/finance/transactions?search=150');
+
+        $response->assertOk();
+        // Matches: amount=150, description contains "150", notes contains "150"
+        $this->assertCount(3, $response->json('data'));
+    }
 }

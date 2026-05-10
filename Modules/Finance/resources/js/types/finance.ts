@@ -63,6 +63,14 @@ export interface Category {
   updated_at: string;
 }
 
+export interface TransactionBill {
+  id: number;
+  url: string;
+  name: string;
+  mime_type?: string | null;
+  size: number;
+}
+
 export interface Transaction {
   id: number;
   user_id: number;
@@ -81,6 +89,7 @@ export interface Transaction {
   transfer_account_id?: number;
   transfer_account?: Account;
   transfer_transaction_id?: number;
+  bills?: TransactionBill[];
   created_at: string;
   updated_at: string;
 }
@@ -367,10 +376,16 @@ export interface ParsedTransaction {
     id: number;
     name: string;
   };
+  suggested_transfer_account?: {
+    id: number;
+    name: string;
+  };
   transaction_date: string;
   confidence: number;
   raw_text?: string;
   notes?: string;
+  // Set only after a transaction is saved — pinned currency from the linked Transaction.
+  currency_code?: string;
 }
 
 export interface SmartInputFormData {
@@ -379,6 +394,7 @@ export interface SmartInputFormData {
   description: string;
   account_id: number;
   category_id?: number;
+  transfer_account_id?: number;
   transaction_date: string;
   notes?: string;
 }
@@ -401,7 +417,9 @@ export interface ChatMessage {
   inputType: ChatInputType
   attachment?: ChatAttachment
   parsedTransaction?: ParsedTransaction
+  parsedTransactions?: ParsedTransaction[]
   transactionSaved?: boolean
+  transactionsSaved?: Record<number, boolean>
   isProcessing?: boolean
   error?: string
   timestamp: Date
@@ -424,6 +442,7 @@ export interface SmartInputHistory {
     description?: string
     amount: number
     transaction_type: string
+    currency_code?: string
   }
   created_at: string
   updated_at: string

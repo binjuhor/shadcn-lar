@@ -11,14 +11,36 @@ class GeminiTransactionParser implements TransactionParserInterface
 {
     protected string $apiKey;
 
-    protected string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+    protected string $aiStudioBaseUrl = 'https://generativelanguage.googleapis.com/v1beta';
 
     protected string $model;
+
+    /** @var "ai_studio"|"vertex" */
+    protected string $backend;
+
+    protected ?string $vertexProject;
+
+    protected string $vertexRegion;
 
     public function __construct()
     {
         $this->apiKey = config('services.gemini.api_key');
         $this->model = config('services.gemini.model', 'gemini-2.0-flash');
+        $this->backend = config('services.gemini.backend', 'ai_studio');
+        $this->vertexProject = config('services.gemini.vertex.project_id');
+        $this->vertexRegion = config('services.gemini.vertex.region', 'asia-southeast1');
+
+        // google/auth reads GOOGLE_APPLICATION_CREDENTIALS from the process env, not Laravel's env().
+        // Resolve relative paths against base_path() and export it for ADC.
+        if ($this->backend === 'vertex') {
+            $credentialsPath = config('services.gemini.vertex.credentials_path');
+            if ($credentialsPath && ! str_starts_with($credentialsPath, '/')) {
+                $credentialsPath = base_path($credentialsPath);
+            }
+            if ($credentialsPath) {
+                putenv("GOOGLE_APPLICATION_CREDENTIALS={$credentialsPath}");
+            }
+        }
     }
 
     /**
@@ -50,6 +72,8 @@ class GeminiTransactionParser implements TransactionParserInterface
             $response = $this->callGeminiApi([
                 'contents' => [
                     [
+                        // Vertex AI requires explicit role; AI Studio accepts it too.
+                        'role' => 'user',
                         'parts' => [
                             ['text' => $prompt],
                             [
@@ -133,6 +157,7 @@ class GeminiTransactionParser implements TransactionParserInterface
         $response = $this->callGeminiApi([
             'contents' => [
                 [
+                    'role' => 'user',
                     'parts' => [
                         ['text' => $prompt],
                         [
@@ -164,6 +189,7 @@ class GeminiTransactionParser implements TransactionParserInterface
         $response = $this->callGeminiApi([
             'contents' => [
                 [
+                    'role' => 'user',
                     'parts' => [
                         ['text' => $prompt],
                     ],
@@ -186,6 +212,7 @@ class GeminiTransactionParser implements TransactionParserInterface
         $response = $this->callGeminiApi([
             'contents' => [
                 [
+                    'role' => 'user',
                     'parts' => [
                         ['text' => $prompt],
                         [
@@ -312,39 +339,119 @@ class GeminiTransactionParser implements TransactionParserInterface
 
     protected function callGeminiApi(array $payload): array
     {
-        $url = "{$this->baseUrl}/models/{$this->model}:generateContent?key={$this->apiKey}";
+        // Vertex uses the official SDK which sends canonical Google client headers
+        // (x-goog-api-client, gccl/gax/gapic identifiers) so calls authenticate
+        // properly against the paid Vertex quota.
+        if ($this->backend === 'vertex') {
+            if (! $this->vertexProject) {
+                return [
+                    'error' => 'GOOGLE_CLOUD_PROJECT not set; required for Vertex AI.',
+                    'status' => 500,
+                ];
+            }
 
+            $vertexClient = new VertexGeminiClient($this->vertexProject, $this->vertexRegion, $this->model);
+
+            return $vertexClient->generateContent($payload);
+        }
+
+        $result = $this->executeRequest('ai_studio', $this->buildAiStudioUrl(), $this->buildAiStudioHeaders(), $payload);
+        unset($result['_abuse_filter']);
+
+        return $result;
+    }
+
+    /**
+     * Execute a single Gemini API request. Returns the decoded JSON on success,
+     * or ['error' => message, 'status' => code, '_abuse_filter' => bool] on failure.
+     * The internal `_abuse_filter` flag lets the caller decide whether to fall back.
+     */
+    protected function executeRequest(string $backend, string $url, array $headers, array $payload): array
+    {
         try {
-            $response = Http::timeout(30)
+            $response = Http::timeout(60)
+                ->withHeaders($headers)
+                // Retry transient failures (5xx, 429, 417 abuse filter, network errors)
+                // with exponential backoff. throw:false keeps the response object on failure
+                // so we can inspect status and surface a useful error.
+                ->retry(2, 1000, function (\Throwable $exception, $request) {
+                    if ($exception instanceof \Illuminate\Http\Client\ConnectionException) {
+                        return true;
+                    }
+
+                    if ($exception instanceof \Illuminate\Http\Client\RequestException) {
+                        $status = $exception->response->status();
+
+                        return in_array($status, [417, 429, 500, 502, 503, 504], true);
+                    }
+
+                    return false;
+                }, throw: false)
                 ->post($url, $payload);
 
             if ($response->failed()) {
+                $body = $response->body();
                 $errorBody = $response->json('error') ?? [];
+
+                // Detect Google's edge anti-abuse "Sorry..." HTML interstitial.
+                // It returns status 417 with HTML body, NOT a Gemini API error.
+                $isAbuseFilter = $response->status() === 417
+                    && str_contains($body, '<html')
+                    && str_contains($body, 'automated queries');
+
                 Log::error('Gemini API error', [
+                    'backend' => $backend,
+                    'model' => $this->model,
+                    'url' => $url,
                     'status' => $response->status(),
                     'error_code' => $errorBody['code'] ?? null,
                     'error_message' => $errorBody['message'] ?? null,
                     'error_status' => $errorBody['status'] ?? null,
-                    'full_body' => $response->body(),
+                    'is_abuse_filter' => $isAbuseFilter,
+                    // Truncate HTML interstitial to first 800 chars so we can identify what Google
+                    // is actually serving (real abuse page vs region-unavailable vs billing alert).
+                    'full_body' => $isAbuseFilter ? mb_substr($body, 0, 800) : $body,
                 ]);
 
-                $errorMessage = match ($response->status()) {
-                    429 => 'AI service quota exceeded. Please try again later or check your API plan.',
-                    401, 403 => 'AI service authentication failed. Please check your API key.',
-                    400 => 'Invalid audio format. '.($errorBody['message'] ?? 'Please try again.'),
-                    500, 502, 503 => 'AI service temporarily unavailable. Please try again.',
-                    default => 'AI service error. Please try again.',
+                $errorMessage = match (true) {
+                    $isAbuseFilter => 'Google temporarily blocked this request from our server. Please retry in a moment, or use a different AI provider.',
+                    $response->status() === 429 => 'AI service quota exceeded. Please try again later or check your API plan.',
+                    in_array($response->status(), [401, 403], true) => 'AI service authentication failed. Please check your API key.',
+                    $response->status() === 404 => "AI model '{$this->model}' not available on {$backend}. Check GEMINI_MODEL or GOOGLE_CLOUD_REGION.",
+                    $response->status() === 400 => 'Invalid request. '.($errorBody['message'] ?? 'Please try again.'),
+                    $response->status() >= 500 => 'AI service temporarily unavailable. Please try again.',
+                    default => 'AI service error ('.$response->status().'). Please try again.',
                 };
 
-                return ['error' => $errorMessage, 'status' => $response->status()];
+                return [
+                    'error' => $errorMessage,
+                    'status' => $response->status(),
+                    '_abuse_filter' => $isAbuseFilter,
+                ];
             }
 
             return $response->json();
         } catch (\Exception $e) {
-            Log::error('Gemini API exception', ['message' => $e->getMessage()]);
+            Log::error('Gemini API exception', ['backend' => $backend, 'message' => $e->getMessage()]);
 
-            return ['error' => $e->getMessage()];
+            return ['error' => 'Could not reach AI service: '.$e->getMessage(), '_abuse_filter' => false];
         }
+    }
+
+    protected function buildAiStudioUrl(): string
+    {
+        return "{$this->aiStudioBaseUrl}/models/{$this->model}:generateContent";
+    }
+
+    protected function buildAiStudioHeaders(): array
+    {
+        return [
+            'x-goog-api-key' => $this->apiKey,
+            'Content-Type' => 'application/json',
+            // Identifying User-Agent prevents Google's edge anti-abuse filter
+            // from returning the 417 "Sorry..." HTML page on datacenter IPs.
+            'User-Agent' => 'mokey-finance/1.0 (+laravel-http-client)',
+        ];
     }
 
     protected function parseResponse(array $response): array
@@ -378,6 +485,7 @@ class GeminiTransactionParser implements TransactionParserInterface
             'description' => $json['description'] ?? '',
             'category_hint' => $json['category_hint'] ?? null,
             'account_hint' => $json['account_hint'] ?? null,
+            'transfer_account_hint' => $json['transfer_account_hint'] ?? null,
             'transaction_date' => $this->normalizeDate($json['date_hint'] ?? null),
             'confidence' => $json['confidence'] ?? 0.8,
             'raw_text' => $json['raw_text'] ?? $text,
@@ -467,11 +575,12 @@ You are a financial transaction parser. Extract transaction details from voice/t
 {$langInstructions}
 
 Extract:
-- type: "income" or "expense" (default: expense)
+- type: "income", "expense", or "transfer" (default: expense). Use "transfer" when money moves between accounts (chuyển khoản, chuyển tiền, transfer, gửi tiền, nạp tiền vào tài khoản)
 - amount: number in VND (convert shortcuts to full numbers)
 - description: brief description of transaction
-- category_hint: suggested category (food, transport, utilities, salary, shopping, entertainment, etc.)
-- account_hint: payment method if mentioned (cash, card, bank)
+- category_hint: suggested category (food, transport, utilities, salary, shopping, entertainment, etc.) — omit for transfers
+- account_hint: source payment method if mentioned (cash, card, bank)
+- transfer_account_hint: destination account/bank if mentioned for transfers (e.g. "Vietcombank", "MoMo", "tiết kiệm", "savings")
 - date_hint: relative date if mentioned (hôm nay, hôm qua, today, yesterday)
 - confidence: 0.0 to 1.0 based on clarity of input
 
@@ -480,6 +589,8 @@ Vietnamese examples:
 - "Lương tháng 15 triệu" → income, 15000000, monthly salary, salary
 - "Đổ xăng 200k hôm qua" → expense, 200000, gas, transport, yesterday
 - "Cafe 50k" → expense, 50000, coffee, food
+- "Chuyển 5tr sang Vietcombank" → transfer, 5000000, transfer to Vietcombank, transfer_account_hint: "Vietcombank"
+- "Chuyển khoản 2tr MoMo" → transfer, 2000000, transfer to MoMo, transfer_account_hint: "MoMo"
 
 Return ONLY valid JSON, no explanation:
 {"type":"expense","amount":50000,"description":"Coffee","category_hint":"food","date_hint":"today","confidence":0.95}

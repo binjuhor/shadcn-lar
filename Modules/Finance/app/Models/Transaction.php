@@ -11,10 +11,13 @@ use Illuminate\Database\Eloquent\{
 };
 use Modules\Finance\ValueObjects\Money;
 use OwenIt\Auditing\Contracts\Auditable;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Transaction extends Model implements Auditable
+class Transaction extends Model implements Auditable, HasMedia
 {
     use HasFactory;
+    use InteractsWithMedia;
     use \OwenIt\Auditing\Auditable;
     use SoftDeletes;
 
@@ -35,7 +38,10 @@ class Transaction extends Model implements Auditable
         'transfer_transaction_id',
     ];
 
-    protected $appends = ['type'];
+    // Eager-load media so the `bills` accessor doesn't trigger N+1 in list views.
+    protected $with = ['media'];
+
+    protected $appends = ['type', 'bills'];
 
     protected function casts(): array
     {
@@ -49,6 +55,31 @@ class Transaction extends Model implements Auditable
     public function getTypeAttribute(): string
     {
         return $this->transaction_type;
+    }
+
+    /**
+     * Flat list of attached bill/receipt files for the JSON payload.
+     * Each entry exposes only the fields the UI needs (id, url, name, mime, size).
+     *
+     * @return array<int, array{id:int,url:string,name:string,mime_type:?string,size:int}>
+     */
+    public function getBillsAttribute(): array
+    {
+        return $this->getMedia('bills')->map(fn ($m) => [
+            'id' => $m->id,
+            'url' => $m->getFullUrl(),
+            'name' => $m->file_name,
+            'mime_type' => $m->mime_type,
+            'size' => $m->size,
+        ])->all();
+    }
+
+    public function registerMediaCollections(): void
+    {
+        // Stores receipts/bills/screenshots attached to a transaction.
+        // Multiple files allowed. Disk follows the project-wide media-library config (R2).
+        $this->addMediaCollection('bills')
+            ->useDisk(config('media-library.disk_name'));
     }
 
     public function user(): BelongsTo

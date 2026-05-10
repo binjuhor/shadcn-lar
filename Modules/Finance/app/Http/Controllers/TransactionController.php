@@ -18,8 +18,9 @@ use Modules\Finance\Http\Requests\Transaction\{
     UpdateTransactionRequest
 };
 use Modules\Finance\Models\{Account, Category, Transaction};
-use Modules\Finance\Services\{GenericCsvImportService, PayoneerImportService, TechcombankImportService, TechcombankPdfImportService};
+use Modules\Finance\Services\{BillAttachmentService, GenericCsvImportService, PayoneerImportService, TechcombankImportService, TechcombankPdfImportService};
 use Modules\Finance\Services\TransactionService;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TransactionController extends Controller
@@ -27,7 +28,8 @@ class TransactionController extends Controller
     use AuthorizesRequests;
 
     public function __construct(
-        private TransactionService $transactionService
+        private TransactionService $transactionService,
+        private BillAttachmentService $billAttachmentService,
     ) {}
 
     public function index(IndexTransactionRequest $request): Response
@@ -139,11 +141,17 @@ class TransactionController extends Controller
         if ($validated['type'] === 'transfer') {
             $validated['from_account_id'] = $validated['account_id'];
             $validated['to_account_id'] = $validated['transfer_account_id'];
-            $this->transactionService->recordTransfer($validated);
+            $result = $this->transactionService->recordTransfer($validated);
+            // Attach bills to the debit transaction (the originating side of the transfer).
+            $createdTransaction = $result['debit'] ?? null;
         } elseif ($validated['type'] === 'income') {
-            $this->transactionService->recordIncome($validated);
+            $createdTransaction = $this->transactionService->recordIncome($validated);
         } else {
-            $this->transactionService->recordExpense($validated);
+            $createdTransaction = $this->transactionService->recordExpense($validated);
+        }
+
+        if ($createdTransaction && $request->hasFile('bills')) {
+            $this->billAttachmentService->attach($createdTransaction, 'bills', $request->file('bills'));
         }
 
         return Redirect::back()->with('success', 'Transaction recorded successfully');
@@ -202,6 +210,22 @@ class TransactionController extends Controller
 
             $transaction->update($updateData);
         });
+
+        // Bill attachments live outside the DB transaction — uploads to remote storage
+        // (R2) shouldn't roll back on a transient network blip after the txn already saved.
+        if (! empty($validated['removed_bill_ids'])) {
+            // Only delete media that actually belongs to this transaction's collection.
+            // Stops a malicious request from passing arbitrary media IDs.
+            $allowedIds = $transaction->getMedia('bills')->pluck('id')->all();
+            $toRemove = array_intersect($validated['removed_bill_ids'], $allowedIds);
+            if (! empty($toRemove)) {
+                Media::whereIn('id', $toRemove)->each(fn (Media $m) => $m->delete());
+            }
+        }
+
+        if ($request->hasFile('bills')) {
+            $this->billAttachmentService->attach($transaction->fresh(), 'bills', $request->file('bills'));
+        }
 
         return Redirect::back()->with('success', 'Transaction updated successfully');
     }
@@ -439,6 +463,39 @@ class TransactionController extends Controller
             $year = $validated['year'];
             $query->whereYear('transaction_date', $year);
             $filename .= "_{$year}";
+        }
+
+        // Apply page filters
+        if (! empty($validated['account_ids'])) {
+            $query->whereIn('account_id', $validated['account_ids']);
+        }
+
+        if (! empty($validated['category_ids'])) {
+            $query->whereIn('category_id', $validated['category_ids']);
+        }
+
+        if (! empty($validated['type'])) {
+            $query->where('transaction_type', $validated['type']);
+        }
+
+        if (! empty($validated['search'])) {
+            $search = $validated['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('description', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%");
+
+                if (is_numeric($search)) {
+                    $q->orWhere('amount', $search);
+                }
+            });
+        }
+
+        if (! empty($validated['amount_from'])) {
+            $query->where('amount', '>=', $validated['amount_from']);
+        }
+
+        if (! empty($validated['amount_to'])) {
+            $query->where('amount', '<=', $validated['amount_to']);
         }
 
         $transactions = $query->orderBy('transaction_date', 'desc')

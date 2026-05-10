@@ -23,6 +23,16 @@ import { Download, FileSpreadsheet, FileText } from 'lucide-react'
 interface ExportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  filters?: {
+    account_ids?: string[]
+    category_ids?: string[]
+    type?: string
+    search?: string
+    date_from?: string
+    date_to?: string
+    amount_from?: string
+    amount_to?: string
+  }
 }
 
 type PeriodType = 'custom' | 'month' | 'year'
@@ -45,7 +55,7 @@ const months = [
   { value: '12', label: 'December' },
 ]
 
-export function ExportDialog({ open, onOpenChange }: ExportDialogProps) {
+export function ExportDialog({ open, onOpenChange, filters }: ExportDialogProps) {
   const [period, setPeriod] = useState<PeriodType>('month')
   const [exportFormat, setExportFormat] = useState<FormatType>('csv')
   const [dateFrom, setDateFrom] = useState('')
@@ -69,6 +79,28 @@ export function ExportDialog({ open, onOpenChange }: ExportDialogProps) {
       params.append('month', `${selectedYear}-${selectedMonth}`)
     } else if (period === 'year') {
       params.append('year', selectedYear)
+    }
+
+    // Forward current page filters
+    if (filters) {
+      if (filters.account_ids?.length) {
+        filters.account_ids.forEach((id) => params.append('account_ids[]', id))
+      }
+      if (filters.category_ids?.length) {
+        filters.category_ids.forEach((id) => params.append('category_ids[]', id))
+      }
+      if (filters.type) {
+        params.append('type', filters.type)
+      }
+      if (filters.search) {
+        params.append('search', filters.search)
+      }
+      if (filters.amount_from) {
+        params.append('amount_from', filters.amount_from)
+      }
+      if (filters.amount_to) {
+        params.append('amount_to', filters.amount_to)
+      }
     }
 
     try {

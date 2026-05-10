@@ -29,6 +29,10 @@ class StoreTransactionRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:1000'],
             'transaction_date' => ['required', 'date'],
             'transfer_account_id' => ['nullable', 'exists:finance_accounts,id', 'different:account_id'],
+            'bills' => ['nullable', 'array', 'max:10'],
+            // extensions: rule checks the user-supplied extension and is more reliable than mimes:
+            // for HEIC, where the server may report image/heic as application/octet-stream.
+            'bills.*' => ['file', 'extensions:jpg,jpeg,png,webp,heic,heif,pdf', 'max:10240'],
         ];
     }
 

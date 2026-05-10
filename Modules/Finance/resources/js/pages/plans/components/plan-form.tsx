@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { router } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,18 +45,8 @@ interface Props {
   currentYear: number
 }
 
-const recurrenceOptions: { value: PlanItemRecurrence; label: string }[] = [
-  { value: 'one_time', label: 'One Time' },
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'quarterly', label: 'Quarterly' },
-  { value: 'yearly', label: 'Yearly' },
-]
-
-const statusOptions: { value: PlanStatus; label: string }[] = [
-  { value: 'draft', label: 'Draft' },
-  { value: 'active', label: 'Active' },
-  { value: 'archived', label: 'Archived' },
-]
+const recurrenceValues: PlanItemRecurrence[] = ['one_time', 'monthly', 'quarterly', 'yearly']
+const statusValues: PlanStatus[] = ['draft', 'active', 'archived']
 
 function formatMoney(amount: number, currencyCode = 'VND'): string {
   if (isNaN(amount) || !isFinite(amount)) {
@@ -95,8 +86,19 @@ function generatePeriods(startYear: number, endYear: number): PlanFormPeriod[] {
 }
 
 export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
+  const { t } = useTranslation()
   const isEditing = !!plan
   const defaultCurrency = currencies.find((c) => c.is_default)?.code || 'VND'
+
+  const recurrenceOptions = recurrenceValues.map(value => ({
+    value,
+    label: t(`recurrence.${value}`)
+  }))
+
+  const statusOptions = statusValues.map(value => ({
+    value,
+    label: t(`status.${value}`)
+  }))
 
   const [processing, setProcessing] = useState(false)
   const [name, setName] = useState(plan?.name || '')
@@ -237,23 +239,23 @@ export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
       {/* Plan Details */}
       <Card>
         <CardHeader>
-          <CardTitle>Plan Details</CardTitle>
-          <CardDescription>Basic information about your financial plan</CardDescription>
+          <CardTitle>{t('form.plan.details')}</CardTitle>
+          <CardDescription>{t('form.plan.details_description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">Plan Name</Label>
+              <Label htmlFor="name">{t('form.plan_name')}</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., 2025 Budget Plan"
+                placeholder={t('form.plan_name_placeholder')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">{t('form.status')}</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as PlanStatus)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -270,19 +272,19 @@ export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t('form.description')}</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Optional description..."
+              placeholder={t('form.description_placeholder')}
               rows={2}
             />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="start_year">Start Year</Label>
+              <Label htmlFor="start_year">{t('form.start_year')}</Label>
               <Input
                 id="start_year"
                 type="number"
@@ -295,7 +297,7 @@ export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="end_year">End Year</Label>
+              <Label htmlFor="end_year">{t('form.end_year')}</Label>
               <Input
                 id="end_year"
                 type="number"
@@ -308,7 +310,7 @@ export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
+              <Label htmlFor="currency">{t('form.currency')}</Label>
               <Select
                 value={currencyCode}
                 onValueChange={setCurrencyCode}
@@ -333,24 +335,24 @@ export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
       {/* Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>Plan Summary</CardTitle>
+          <CardTitle>{t('form.plan.summary')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4">
             <div className="rounded-lg border bg-green-50 dark:bg-green-950/20 p-4">
-              <p className="text-sm text-muted-foreground">Total Planned Income</p>
+              <p className="text-sm text-muted-foreground">{t('form.total_planned_income')}</p>
               <p className="text-2xl font-bold text-green-600">
                 {formatMoney(grandTotals.income, currencyCode)}
               </p>
             </div>
             <div className="rounded-lg border bg-red-50 dark:bg-red-950/20 p-4">
-              <p className="text-sm text-muted-foreground">Total Planned Expense</p>
+              <p className="text-sm text-muted-foreground">{t('form.total_planned_expense')}</p>
               <p className="text-2xl font-bold text-red-600">
                 {formatMoney(grandTotals.expense, currencyCode)}
               </p>
             </div>
             <div className="rounded-lg border p-4">
-              <p className="text-sm text-muted-foreground">Net Savings</p>
+              <p className="text-sm text-muted-foreground">{t('form.net_savings')}</p>
               <p
                 className={`text-2xl font-bold ${
                   grandTotals.net >= 0 ? 'text-green-600' : 'text-red-600'
@@ -366,8 +368,8 @@ export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
       {/* Yearly Periods */}
       <Card>
         <CardHeader>
-          <CardTitle>Yearly Breakdown</CardTitle>
-          <CardDescription>Add income and expense items for each year</CardDescription>
+          <CardTitle>{t('form.yearly_breakdown')}</CardTitle>
+          <CardDescription>{t('form.yearly_breakdown_description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Accordion
@@ -408,11 +410,11 @@ export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
                       <TabsList className="w-full grid grid-cols-2 mb-4">
                         <TabsTrigger value="income" className="flex items-center gap-2">
                           <TrendingUp className="h-4 w-4 text-green-600" />
-                          Income ({incomeItems.length})
+                          {t('transaction.income')} ({incomeItems.length})
                         </TabsTrigger>
                         <TabsTrigger value="expense" className="flex items-center gap-2">
                           <TrendingDown className="h-4 w-4 text-red-600" />
-                          Expense ({expenseItems.length})
+                          {t('transaction.expense')} ({expenseItems.length})
                         </TabsTrigger>
                       </TabsList>
 
@@ -431,6 +433,7 @@ export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
                                 updateItem(periodIndex, itemIndex, field, value)
                               }
                               onRemove={() => removeItem(periodIndex, itemIndex)}
+                              t={t}
                             />
                           )
                         })}
@@ -442,7 +445,7 @@ export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
                           className="w-full"
                         >
                           <Plus className="mr-2 h-4 w-4" />
-                          Add Income
+                          {t('action.add_income')}
                         </Button>
                       </TabsContent>
 
@@ -461,6 +464,7 @@ export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
                                 updateItem(periodIndex, itemIndex, field, value)
                               }
                               onRemove={() => removeItem(periodIndex, itemIndex)}
+                              t={t}
                             />
                           )
                         })}
@@ -472,7 +476,7 @@ export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
                           className="w-full"
                         >
                           <Plus className="mr-2 h-4 w-4" />
-                          Add Expense
+                          {t('action.add_expense')}
                         </Button>
                       </TabsContent>
                     </Tabs>
@@ -491,11 +495,11 @@ export function PlanForm({ plan, currencies, categories, currentYear }: Props) {
           variant="outline"
           onClick={() => router.visit(route('dashboard.finance.plans.index'))}
         >
-          Cancel
+          {t('action.cancel')}
         </Button>
         <Button type="submit" disabled={processing}>
           <Save className="mr-2 h-4 w-4" />
-          {isEditing ? 'Update Plan' : 'Create Plan'}
+          {isEditing ? t('form.update_plan_button') : t('form.create_plan_button')}
         </Button>
       </div>
     </form>
@@ -508,27 +512,34 @@ function ItemRow({
   currencyCode,
   onUpdate,
   onRemove,
+  t,
 }: {
   item: PlanFormItem
   categories: Category[]
   currencyCode: string
   onUpdate: (field: keyof PlanFormItem, value: string | number | undefined) => void
   onRemove: () => void
+  t: (key: string) => string
 }) {
+  const recurrenceOptions = recurrenceValues.map(value => ({
+    value,
+    label: t(`recurrence.${value}`)
+  }))
+
   return (
     <div className="flex items-start gap-3 rounded-lg border p-3">
       <div className="flex-1 grid grid-cols-1 gap-3 md:grid-cols-4">
         <div>
-          <Label className="text-xs">Name</Label>
+          <Label className="text-xs">{t('form.name')}</Label>
           <Input
             value={item.name}
             onChange={(e) => onUpdate('name', e.target.value)}
-            placeholder="Item name"
+            placeholder={t('form.item_name_placeholder')}
           />
         </div>
 
         <div>
-          <Label className="text-xs">Amount ({currencyCode})</Label>
+          <Label className="text-xs">{t('form.amount')} ({currencyCode})</Label>
           <Input
             type="number"
             min={0}
@@ -539,7 +550,7 @@ function ItemRow({
         </div>
 
         <div>
-          <Label className="text-xs">Recurrence</Label>
+          <Label className="text-xs">{t('form.recurrence')}</Label>
           <Select
             value={item.recurrence}
             onValueChange={(value) => onUpdate('recurrence', value)}
@@ -558,13 +569,13 @@ function ItemRow({
         </div>
 
         <div>
-          <Label className="text-xs">Category</Label>
+          <Label className="text-xs">{t('form.category')}</Label>
           <Select
             value={item.category_id ? String(item.category_id) : ''}
             onValueChange={(value) => onUpdate('category_id', value || undefined)}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Optional" />
+              <SelectValue placeholder={t('common.optional')} />
             </SelectTrigger>
             <SelectContent>
               {categories.map((cat) => (

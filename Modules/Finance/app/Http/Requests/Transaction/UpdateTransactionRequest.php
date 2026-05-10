@@ -23,6 +23,12 @@ class UpdateTransactionRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'transaction_date' => ['sometimes', 'date'],
+            'bills' => ['nullable', 'array', 'max:10'],
+            // extensions: rule checks the user-supplied extension and is more reliable than mimes:
+            // for HEIC, where the server may report image/heic as application/octet-stream.
+            'bills.*' => ['file', 'extensions:jpg,jpeg,png,webp,heic,heif,pdf', 'max:10240'],
+            'removed_bill_ids' => ['nullable', 'array'],
+            'removed_bill_ids.*' => ['integer'],
         ];
     }
 

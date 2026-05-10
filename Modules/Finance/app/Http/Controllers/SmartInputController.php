@@ -5,26 +5,25 @@ namespace Modules\Finance\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Str;
 use Inertia\{Inertia, Response};
 use Modules\Finance\Contracts\TransactionParserInterface;
 use Modules\Finance\Models\{Account, Category, SmartInputHistory, Transaction};
 use Modules\Finance\Services\{
+    BillAttachmentService,
     ClaudeTransactionParser,
     DeepSeekTransactionParser,
     GeminiTransactionParser,
     TransactionParserFactory,
     TransactionService
 };
-use Spatie\Image\Enums\ImageDriver;
-use Spatie\Image\Image;
 
 class SmartInputController extends Controller
 {
     protected TransactionParserInterface $parser;
 
     public function __construct(
-        protected TransactionService $transactionService
+        protected TransactionService $transactionService,
+        protected BillAttachmentService $billAttachmentService,
     ) {
         $this->parser = TransactionParserFactory::make();
     }
@@ -81,17 +80,12 @@ class SmartInputController extends Controller
     }
 
     /**
-     * Get parser for receipt/image input — prefers Gemini for speed,
-     * falls back to current provider's vision capability
+     * Get parser for receipt/image input — uses current provider's vision capability,
+     * falls back to Claude for providers that don't support vision (e.g. DeepSeek)
      */
     protected function getReceiptParser(): ?TransactionParserInterface
     {
         $provider = config('services.smart_input.provider', 'deepseek');
-
-        // Gemini is fastest for image parsing, use it when available
-        if ($provider !== 'gemini' && config('services.gemini.api_key')) {
-            return TransactionParserFactory::make('gemini');
-        }
 
         if (in_array($provider, self::NO_VISION_PROVIDERS) && config('services.claude.api_key')) {
             return TransactionParserFactory::make('claude');
@@ -113,6 +107,7 @@ class SmartInputController extends Controller
 
         $accounts = Account::where('user_id', $userId)
             ->where('is_active', true)
+            ->orderByRaw("CASE WHEN currency_code = 'VND' THEN 0 ELSE 1 END")
             ->orderBy('name')
             ->get(['id', 'name', 'account_type', 'currency_code']);
 
@@ -123,9 +118,11 @@ class SmartInputController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'type', 'icon', 'color']);
 
-        // Load recent chat history for continuity
+        // Load recent chat history for continuity. Eager-load the saved transaction so
+        // the chat card can show the currency that was actually used (parsed_result alone
+        // has no currency — that's only set when the user picks an account on save).
         $recentHistory = SmartInputHistory::forUser($userId)
-            ->with('media')
+            ->with(['media', 'transaction:id,currency_code'])
             ->latest()
             ->take(20)
             ->get()
@@ -140,6 +137,7 @@ class SmartInputController extends Controller
                 'transaction_saved' => $h->transaction_saved,
                 'created_at' => $h->created_at->toISOString(),
                 'media_url' => $h->getFirstMediaUrl('input_attachments') ?: null,
+                'currency_code' => $h->transaction?->currency_code,
             ]);
 
         return Inertia::render('Finance::smart-input/index', [
@@ -214,7 +212,7 @@ class SmartInputController extends Controller
 
             return response()->json([
                 'success' => false,
-                'error' => "Image parsing is not supported by {$provider}. Please configure GEMINI_API_KEY or CLAUDE_API_KEY in your .env file to enable image parsing.",
+                'error' => "Image parsing is not supported by {$provider}. Switch to a provider with vision support (ollama, gemini, claude, openai) in your .env file.",
             ], 422);
         }
 
@@ -254,6 +252,11 @@ class SmartInputController extends Controller
 
         $text = trim($request->input('text'));
         $language = $request->input('language', 'vi');
+
+        // Handle multiple numeric values separated by spaces/commas (e.g. "50k 30k 100k")
+        if ($this->isMultipleNumericInput($text)) {
+            return $this->handleMultipleNumericInput($text, $language);
+        }
 
         // Handle simple numeric inputs (just a number like "210.55" or "50000")
         if ($this->isSimpleNumericInput($text)) {
@@ -302,7 +305,7 @@ class SmartInputController extends Controller
 
             return response()->json([
                 'success' => false,
-                'error' => "Image parsing is not supported by {$provider}. Please configure GEMINI_API_KEY or CLAUDE_API_KEY in your .env file to enable image parsing.",
+                'error' => "Image parsing is not supported by {$provider}. Switch to a provider with vision support (ollama, gemini, claude, openai) in your .env file.",
             ], 422);
         }
 
@@ -378,6 +381,111 @@ class SmartInputController extends Controller
     }
 
     /**
+     * Check if input contains multiple numeric values separated by spaces, commas, or newlines.
+     * Each value can use Vietnamese shortcuts (k, tr, tỷ).
+     * Must contain at least 2 values.
+     */
+    protected function isMultipleNumericInput(string $text): bool
+    {
+        $tokens = preg_split('/[\s,;]+/', trim($text), -1, PREG_SPLIT_NO_EMPTY);
+
+        if (count($tokens) < 2) {
+            return false;
+        }
+
+        foreach ($tokens as $token) {
+            if (! $this->isSingleNumericToken($token)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if a single token is a numeric value (plain number or with k/tr/tỷ suffix)
+     */
+    protected function isSingleNumericToken(string $token): bool
+    {
+        $normalized = str_replace([',', '.'], '', mb_strtolower(trim($token)));
+
+        // Plain number: 50000, 210
+        if (preg_match('/^\d+$/', $normalized)) {
+            return true;
+        }
+
+        // With Vietnamese shortcut: 50k, 5tr, 1tỷ
+        return preg_match('/^\d+(k|nghìn|nghin|tr|triệu|trieu|tỷ|ty)$/u', $normalized) === 1;
+    }
+
+    /**
+     * Parse a single numeric token into its amount value
+     */
+    protected function parseNumericToken(string $token): float
+    {
+        $normalized = str_replace([',', ' '], '', mb_strtolower(trim($token)));
+
+        if (preg_match('/^(\d+)\s*(k|nghìn|nghin)$/u', $normalized, $m)) {
+            return (float) $m[1] * 1000;
+        }
+
+        if (preg_match('/^(\d+)\s*(tr|triệu|trieu)$/u', $normalized, $m)) {
+            return (float) $m[1] * 1000000;
+        }
+
+        if (preg_match('/^(\d+)\s*(tỷ|ty)$/u', $normalized, $m)) {
+            return (float) $m[1] * 1000000000;
+        }
+
+        // Remove dots used as thousand separators (Vietnamese style: 50.000)
+        $normalized = str_replace('.', '', $normalized);
+
+        return (float) $normalized;
+    }
+
+    /**
+     * Handle multiple numeric values — returns an array of transactions
+     */
+    protected function handleMultipleNumericInput(string $text, string $language = 'vi')
+    {
+        $userId = auth()->id();
+        $tokens = preg_split('/[\s,;]+/', trim($text), -1, PREG_SPLIT_NO_EMPTY);
+        $suggestedAccount = $this->getDefaultSmartInputAccount($userId);
+
+        $items = [];
+
+        foreach ($tokens as $token) {
+            $amount = $this->parseNumericToken($token);
+
+            $items[] = [
+                'type' => 'expense',
+                'amount' => $amount,
+                'description' => '',
+                'suggested_category' => null,
+                'suggested_account' => $suggestedAccount,
+                'transaction_date' => now()->format('Y-m-d'),
+                'confidence' => 0.5,
+                'raw_text' => $token,
+            ];
+        }
+
+        $history = $this->recordHistory('text', $text, [
+            'type' => 'expense',
+            'amount' => array_sum(array_column($items, 'amount')),
+            'description' => 'Multiple transactions',
+            'confidence' => 0.5,
+            'raw_text' => $text,
+        ], null, $language);
+
+        return response()->json([
+            'success' => true,
+            'multiple' => true,
+            'items' => $items,
+            'history_id' => $history->id,
+        ]);
+    }
+
+    /**
      * Store transaction from smart input
      */
     public function store(Request $request)
@@ -388,6 +496,7 @@ class SmartInputController extends Controller
             'description' => ['required', 'string', 'max:255'],
             'account_id' => ['required', 'exists:finance_accounts,id'],
             'category_id' => ['nullable', 'exists:finance_categories,id'],
+            'transfer_account_id' => ['nullable', 'exists:finance_accounts,id'],
             'transaction_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
             'history_id' => ['nullable', 'integer', 'exists:finance_smart_input_histories,id'],
@@ -398,28 +507,76 @@ class SmartInputController extends Controller
             ->where('user_id', auth()->id())
             ->firstOrFail();
 
-        $data = [
-            'account_id' => $validated['account_id'],
-            'amount' => $validated['amount'],
-            'description' => $validated['description'],
-            'category_id' => $validated['category_id'] ?? null,
-            'transaction_date' => $validated['transaction_date'],
-            'notes' => $validated['notes'] ?? null,
-        ];
+        // For transfers, verify destination account belongs to user and differs from source
+        if ($validated['type'] === 'transfer') {
+            if (empty($validated['transfer_account_id'])) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Destination account is required for transfers.',
+                ], 422);
+            }
 
-        // Use TransactionService to properly update account balance
-        $transaction = $validated['type'] === 'income'
-            ? $this->transactionService->recordIncome($data)
-            : $this->transactionService->recordExpense($data);
+            if ($validated['transfer_account_id'] == $validated['account_id']) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Source and destination accounts must be different.',
+                ], 422);
+            }
 
-        // Link history record to saved transaction
-        if (! empty($validated['history_id'])) {
-            SmartInputHistory::where('id', $validated['history_id'])
+            Account::where('id', $validated['transfer_account_id'])
                 ->where('user_id', auth()->id())
-                ->update([
+                ->firstOrFail();
+        }
+
+        if ($validated['type'] === 'transfer') {
+            $result = $this->transactionService->recordTransfer([
+                'from_account_id' => $validated['account_id'],
+                'to_account_id' => $validated['transfer_account_id'],
+                'amount' => $validated['amount'],
+                'description' => $validated['description'],
+                'transaction_date' => $validated['transaction_date'],
+            ]);
+
+            $transaction = $result['debit'];
+        } else {
+            $data = [
+                'account_id' => $validated['account_id'],
+                'amount' => $validated['amount'],
+                'description' => $validated['description'],
+                'category_id' => $validated['category_id'] ?? null,
+                'transaction_date' => $validated['transaction_date'],
+                'notes' => $validated['notes'] ?? null,
+            ];
+
+            $transaction = $validated['type'] === 'income'
+                ? $this->transactionService->recordIncome($data)
+                : $this->transactionService->recordExpense($data);
+        }
+
+        // Link history record to saved transaction and persist user corrections
+        if (! empty($validated['history_id'])) {
+            $history = SmartInputHistory::where('id', $validated['history_id'])
+                ->where('user_id', auth()->id())
+                ->first();
+
+            if ($history) {
+                $updatedResult = array_merge($history->parsed_result ?? [], [
+                    'type' => $validated['type'],
+                    'amount' => $validated['amount'],
+                    'description' => $validated['description'],
+                    'transaction_date' => $validated['transaction_date'],
+                ]);
+
+                $history->update([
                     'transaction_id' => $transaction->id,
                     'transaction_saved' => true,
+                    'parsed_result' => $updatedResult,
                 ]);
+
+                // Copy any receipt/bill attached during smart-input onto the transaction
+                // so users can find the bill from the transaction list later.
+                $this->billAttachmentService->copyCollection($history, 'input_attachments', $transaction, 'bills');
+            }
         }
 
         if ($request->wantsJson()) {
@@ -457,6 +614,12 @@ class SmartInputController extends Controller
             $suggestedAccount = $this->getDefaultSmartInputAccount($userId);
         }
 
+        // Match transfer destination account hint
+        $suggestedTransferAccount = null;
+        if (! empty($result['transfer_account_hint']) && ($result['type'] ?? 'expense') === 'transfer') {
+            $suggestedTransferAccount = $parser->matchAccount($result['transfer_account_hint'], $userId);
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -465,6 +628,7 @@ class SmartInputController extends Controller
                 'description' => $result['description'] ?? '',
                 'suggested_category' => $suggestedCategory,
                 'suggested_account' => $suggestedAccount,
+                'suggested_transfer_account' => $suggestedTransferAccount,
                 'transaction_date' => $result['transaction_date'] ?? now()->format('Y-m-d'),
                 'confidence' => $result['confidence'] ?? 0.8,
                 'raw_text' => $result['raw_text'] ?? null,
@@ -501,9 +665,10 @@ class SmartInputController extends Controller
             return ['id' => $defaultPayment->id, 'name' => $defaultPayment->name];
         }
 
-        // Fall back to first active account
+        // Fall back to first active VND account, then any active account
         $firstAccount = Account::where('user_id', $userId)
             ->where('is_active', true)
+            ->orderByRaw("CASE WHEN currency_code = 'VND' THEN 0 ELSE 1 END")
             ->first();
 
         if ($firstAccount) {
@@ -532,63 +697,10 @@ class SmartInputController extends Controller
         ]);
 
         if ($attachment) {
-            $webpPath = null;
-
-            try {
-                $webpPath = $this->convertToWebp($attachment);
-            } catch (\Throwable $e) {
-                report($e);
-            }
-
-            try {
-                if ($webpPath && file_exists($webpPath) && filesize($webpPath) > 0) {
-                    $originalName = pathinfo($attachment->getClientOriginalName(), PATHINFO_FILENAME) . '.webp';
-
-                    $history->addMedia($webpPath)
-                        ->usingFileName($originalName)
-                        ->toMediaCollection('input_attachments');
-                } else {
-                    $history->addMedia($attachment)
-                        ->preservingOriginal()
-                        ->toMediaCollection('input_attachments');
-                }
-            } catch (\Throwable $e) {
-                report($e);
-            } finally {
-                if ($webpPath && file_exists($webpPath)) {
-                    @unlink($webpPath);
-                }
-            }
+            $this->billAttachmentService->attach($history, 'input_attachments', $attachment);
         }
 
         return $history;
-    }
-
-    /**
-     * Convert an uploaded image to WebP format for smaller file size.
-     * Returns the temp file path on success, null if conversion not needed/possible.
-     */
-    protected function convertToWebp(UploadedFile $file): ?string
-    {
-        $mime = $file->getMimeType();
-
-        if (! str_starts_with($mime, 'image/')) {
-            return null;
-        }
-
-        if ($mime === 'image/webp') {
-            return null;
-        }
-
-        $tempPath = sys_get_temp_dir() . '/' . Str::uuid() . '.webp';
-
-        Image::useImageDriver(ImageDriver::Gd)
-            ->loadFile($file->getPathname())
-            ->format('webp')
-            ->quality(85)
-            ->save($tempPath);
-
-        return $tempPath;
     }
 
     protected function getProviderName(TransactionParserInterface $parser): string

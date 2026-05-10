@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { router, Link } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -71,17 +72,18 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
   }).format(amount)
 }
 
-function getStatusBadge(status: string) {
+function getStatusBadge(status: string, t: (key: string, options?: Record<string, unknown>) => string) {
   const variants: Record<string, { variant: 'default' | 'secondary' | 'outline'; label: string }> = {
-    draft: { variant: 'secondary', label: 'Draft' },
-    active: { variant: 'default', label: 'Active' },
-    archived: { variant: 'outline', label: 'Archived' },
+    draft: { variant: 'secondary', label: t('status.draft') },
+    active: { variant: 'default', label: t('status.active') },
+    archived: { variant: 'outline', label: t('status.archived') },
   }
   const config = variants[status] || variants.draft
   return <Badge variant={config.variant}>{config.label}</Badge>
 }
 
 export default function PlansIndex({ plans, recurringProjection, upcomingRecurrings }: Props) {
+  const { t } = useTranslation()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<FinancialPlan | null>(null)
 
@@ -106,19 +108,19 @@ export default function PlansIndex({ plans, recurringProjection, upcomingRecurri
   const archivedPlans = plans.filter((p) => p.status === 'archived')
 
   return (
-    <AuthenticatedLayout title="Financial Plans">
+    <AuthenticatedLayout title={t('page.plans.title')}>
       <Main>
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Financial Plans</h1>
+        <div className="mb-4 md:flex items-center justify-between">
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold tracking-tight">{t('page.plans.title')}</h1>
             <p className="text-muted-foreground">
-              Plan your income and expenses for 1-5 years ahead
+              {t('page.plans.description')}
             </p>
           </div>
           <Button asChild>
             <Link href={route('dashboard.finance.plans.create')}>
               <Plus className="mr-2 h-4 w-4" />
-              New Plan
+              {t('page.plans.new')}
             </Link>
           </Button>
         </div>
@@ -129,42 +131,42 @@ export default function PlansIndex({ plans, recurringProjection, upcomingRecurri
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <RefreshCw className="h-5 w-5 text-muted-foreground" />
-                <CardTitle className="text-lg">Recurring Overview</CardTitle>
+                <CardTitle className="text-lg">{t('page.plans.recurring_overview')}</CardTitle>
               </div>
               <Button variant="ghost" size="sm" asChild>
                 <Link href={route('dashboard.finance.recurring-transactions.index')}>
-                  Manage
+                  {t('action.manage')}
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
             </div>
             <CardDescription>
-              Monthly projection from active recurring transactions
+              {t('page.plans.monthly_projection')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Monthly Income</p>
+                <p className="text-xs text-muted-foreground">{t('page.plans.monthly_income')}</p>
                 <p className="text-lg font-semibold text-green-600">
                   {formatMoney(recurringProjection.monthly_income, recurringProjection.currency_code)}
                 </p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Monthly Expense</p>
+                <p className="text-xs text-muted-foreground">{t('page.plans.monthly_expense')}</p>
                 <p className="text-lg font-semibold text-red-600">
                   {formatMoney(recurringProjection.monthly_expense, recurringProjection.currency_code)}
                 </p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Net Monthly</p>
+                <p className="text-xs text-muted-foreground">{t('page.plans.net_monthly')}</p>
                 <p className={`text-lg font-semibold ${recurringProjection.monthly_net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {recurringProjection.monthly_net >= 0 ? '+' : ''}{formatMoney(recurringProjection.monthly_net, recurringProjection.currency_code)}
                 </p>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Wallet className="h-3 w-3" /> Passive Income
+                  <Wallet className="h-3 w-3" /> {t('page.plans.passive_income')}
                 </p>
                 <p className="text-lg font-semibold text-blue-600">
                   {formatMoney(recurringProjection.monthly_passive_income, recurringProjection.currency_code)}
@@ -172,7 +174,7 @@ export default function PlansIndex({ plans, recurringProjection, upcomingRecurri
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Target className="h-3 w-3" /> Passive Coverage
+                  <Target className="h-3 w-3" /> {t('page.plans.passive_coverage')}
                 </p>
                 <p className="text-lg font-semibold text-purple-600">
                   {recurringProjection.passive_coverage}%
@@ -183,7 +185,7 @@ export default function PlansIndex({ plans, recurringProjection, upcomingRecurri
             {/* Upcoming Recurrings */}
             {upcomingRecurrings.length > 0 && (
               <div className="mt-4 pt-4 border-t">
-                <p className="text-xs text-muted-foreground mb-2">Upcoming (Next 7 days)</p>
+                <p className="text-xs text-muted-foreground mb-2">{t('page.plans.upcoming_7_days')}</p>
                 <div className="flex flex-wrap gap-2">
                   {upcomingRecurrings.map((r) => (
                     <Badge
@@ -203,14 +205,14 @@ export default function PlansIndex({ plans, recurringProjection, upcomingRecurri
         {plans.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Calendar className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No financial plans yet</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('page.plans.no_plans')}</h3>
             <p className="text-muted-foreground mb-4">
-              Create a plan to forecast your income and expenses
+              {t('page.plans.get_started')}
             </p>
             <Button asChild>
               <Link href={route('dashboard.finance.plans.create')}>
                 <Plus className="mr-2 h-4 w-4" />
-                Create Plan
+                {t('page.plans.create_plan')}
               </Link>
             </Button>
           </div>
@@ -219,10 +221,10 @@ export default function PlansIndex({ plans, recurringProjection, upcomingRecurri
             {/* Active Plans */}
             {activePlans.length > 0 && (
               <div>
-                <h3 className="text-lg font-medium mb-4">Active Plans</h3>
+                <h3 className="text-lg font-medium mb-4">{t('page.plans.active_plans')}</h3>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   {activePlans.map((plan) => (
-                    <PlanCard key={plan.id} plan={plan} onDelete={handleDelete} />
+                    <PlanCard key={plan.id} plan={plan} onDelete={handleDelete} t={t} />
                   ))}
                 </div>
               </div>
@@ -232,11 +234,11 @@ export default function PlansIndex({ plans, recurringProjection, upcomingRecurri
             {draftPlans.length > 0 && (
               <div>
                 <h3 className="text-lg font-medium text-muted-foreground mb-4">
-                  Drafts
+                  {t('page.plans.drafts')}
                 </h3>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   {draftPlans.map((plan) => (
-                    <PlanCard key={plan.id} plan={plan} onDelete={handleDelete} />
+                    <PlanCard key={plan.id} plan={plan} onDelete={handleDelete} t={t} />
                   ))}
                 </div>
               </div>
@@ -246,11 +248,11 @@ export default function PlansIndex({ plans, recurringProjection, upcomingRecurri
             {archivedPlans.length > 0 && (
               <div>
                 <h3 className="text-lg font-medium text-muted-foreground mb-4">
-                  Archived
+                  {t('page.plans.archived')}
                 </h3>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 opacity-60">
                   {archivedPlans.map((plan) => (
-                    <PlanCard key={plan.id} plan={plan} onDelete={handleDelete} />
+                    <PlanCard key={plan.id} plan={plan} onDelete={handleDelete} t={t} />
                   ))}
                 </div>
               </div>
@@ -262,19 +264,18 @@ export default function PlansIndex({ plans, recurringProjection, upcomingRecurri
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Financial Plan</AlertDialogTitle>
+              <AlertDialogTitle>{t('page.plans.delete_plan')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete "{selectedPlan?.name}"? This
-                action cannot be undone.
+                {t('page.plans.delete_confirmation', { name: selectedPlan?.name })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('action.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDelete}
                 className="bg-red-600 hover:bg-red-700"
               >
-                Delete
+                {t('action.delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -287,9 +288,11 @@ export default function PlansIndex({ plans, recurringProjection, upcomingRecurri
 function PlanCard({
   plan,
   onDelete,
+  t,
 }: {
   plan: FinancialPlan
   onDelete: (plan: FinancialPlan) => void
+  t: (key: string, options?: Record<string, unknown>) => string
 }) {
   return (
     <Card>
@@ -298,12 +301,11 @@ function PlanCard({
           <div className="space-y-1">
             <CardTitle className="text-lg">{plan.name}</CardTitle>
             <CardDescription>
-              {plan.start_year} - {plan.end_year} ({plan.year_span} year
-              {plan.year_span > 1 ? 's' : ''})
+              {plan.start_year} - {plan.end_year} ({plan.year_span} {t('page.plans.year', { count: plan.year_span })})
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            {getStatusBadge(plan.status)}
+            {getStatusBadge(plan.status, t)}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -314,13 +316,13 @@ function PlanCard({
                 <DropdownMenuItem asChild>
                   <Link href={route('dashboard.finance.plans.show', plan.id)}>
                     <Eye className="mr-2 h-4 w-4" />
-                    View & Edit
+                    {t('action.view_edit')}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href={route('dashboard.finance.plans.compare', plan.id)}>
                     <BarChart3 className="mr-2 h-4 w-4" />
-                    Compare
+                    {t('action.compare')}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -328,7 +330,7 @@ function PlanCard({
                   className="text-red-600"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
+                  {t('action.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -343,21 +345,21 @@ function PlanCard({
         )}
         <div className="grid grid-cols-3 gap-4 text-sm">
           <div>
-            <p className="text-muted-foreground">Income</p>
+            <p className="text-muted-foreground">{t('page.plans.income')}</p>
             <p className="font-medium text-green-600 flex items-center gap-1">
               <TrendingUp className="h-3 w-3" />
               {formatMoney(plan.total_planned_income, plan.currency_code)}
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground">Expense</p>
+            <p className="text-muted-foreground">{t('page.plans.expense')}</p>
             <p className="font-medium text-red-600 flex items-center gap-1">
               <TrendingDown className="h-3 w-3" />
               {formatMoney(plan.total_planned_expense, plan.currency_code)}
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground">Net</p>
+            <p className="text-muted-foreground">{t('page.plans.net')}</p>
             <p
               className={`font-medium ${
                 plan.net_planned >= 0 ? 'text-green-600' : 'text-red-600'

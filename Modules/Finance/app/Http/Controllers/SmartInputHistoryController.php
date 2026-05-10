@@ -12,7 +12,7 @@ class SmartInputHistoryController extends Controller
     public function index(Request $request): Response
     {
         $query = SmartInputHistory::forUser(auth()->id())
-            ->with('transaction:id,description,amount,transaction_type')
+            ->with('transaction:id,description,amount,transaction_type,currency_code')
             ->latest();
 
         if ($request->filled('input_type')) {

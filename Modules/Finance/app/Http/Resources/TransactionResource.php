@@ -25,6 +25,7 @@ class TransactionResource extends JsonResource
             'account_id' => $this->account_id,
             'category_id' => $this->category_id,
             'transfer_account_id' => $this->transfer_account_id,
+            'bills' => $this->bills,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

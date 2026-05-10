@@ -5,6 +5,7 @@ namespace Modules\Finance\Providers;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\{Facades\Blade, Facades\Gate, ServiceProvider};
 use Modules\Finance\Console\Commands\{
+    BackfillTransactionBillsCommand,
     ConvertTechcombankPdfCommand,
     FetchExchangeRatesCommand,
     ImportTransactionsCommand,
@@ -63,6 +64,7 @@ class FinanceServiceProvider extends ServiceProvider
     protected function registerCommands(): void
     {
         $this->commands([
+            BackfillTransactionBillsCommand::class,
             ConvertTechcombankPdfCommand::class,
             FetchExchangeRatesCommand::class,
             ImportTransactionsCommand::class,

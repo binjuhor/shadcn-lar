@@ -54,7 +54,7 @@ class PurgeSoftDeletedRecordsCommand extends Command
 
         if ($type && ! isset($this->models[$type])) {
             $this->error("Unknown type: {$type}");
-            $this->info('Available types: ' . implode(', ', array_keys($this->models)));
+            $this->info('Available types: '.implode(', ', array_keys($this->models)));
 
             return self::FAILURE;
         }
@@ -74,6 +74,7 @@ class PurgeSoftDeletedRecordsCommand extends Command
 
             if ($count === 0) {
                 $this->line("  {$key}: no records to purge");
+
                 continue;
             }
 

@@ -11,7 +11,7 @@ interface ChatMessageListProps {
   messages: ChatMessage[]
   accounts: Account[]
   categories: Category[]
-  onSaveTransaction: (messageId: string, data: Record<string, unknown>) => void
+  onSaveTransaction: (messageId: string, data: Record<string, unknown>, index?: number) => void
 }
 
 export function ChatMessageList({

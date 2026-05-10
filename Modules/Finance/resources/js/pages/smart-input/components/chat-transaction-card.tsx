@@ -74,8 +74,16 @@ export function ChatTransactionCard({
     parsed.transaction_date || format(new Date(), 'yyyy-MM-dd')
   )
   const [notes, setNotes] = useState(parsed.notes || '')
+  const [transferAccountId, setTransferAccountId] = useState(
+    parsed.suggested_transfer_account?.id?.toString() || ''
+  )
 
   const selectedAccount = accounts.find((a) => a.id.toString() === accountId)
+  // For already-saved entries the currency is pinned (from the linked transaction).
+  // While editing/unsaved, follow the currently-picked account.
+  const displayCurrency = isSaved && parsed.currency_code
+    ? parsed.currency_code
+    : selectedAccount?.currency_code
   const incomeCategories = categories.filter((c) => c.type === 'income' || c.type === 'both')
   const expenseCategories = categories.filter((c) => c.type === 'expense' || c.type === 'both')
   const currentCategories = type === 'income' ? incomeCategories : expenseCategories
@@ -93,7 +101,8 @@ export function ChatTransactionCard({
       amount,
       description,
       account_id: parseInt(accountId),
-      category_id: categoryId ? parseInt(categoryId) : null,
+      category_id: type !== 'transfer' && categoryId ? parseInt(categoryId) : null,
+      transfer_account_id: type === 'transfer' && transferAccountId ? parseInt(transferAccountId) : null,
       transaction_date: transactionDate,
       notes: notes || null,
     })
@@ -116,7 +125,7 @@ export function ChatTransactionCard({
             </div>
             <div className="min-w-0">
               <p className="font-semibold text-sm truncate">
-                {formatMoney(amount, selectedAccount?.currency_code)}
+                {formatMoney(amount, displayCurrency)}
               </p>
               <p className="text-xs text-muted-foreground truncate">
                 {description || t('page.smart_input.transaction_description')}
@@ -144,7 +153,7 @@ export function ChatTransactionCard({
                   size="sm"
                   className="h-7 px-3 text-xs"
                   onClick={handleSave}
-                  disabled={isSaving || !accountId || !description}
+                  disabled={isSaving || !accountId || !description || (type === 'transfer' && !transferAccountId)}
                 >
                   <Save className="h-3.5 w-3.5 mr-1" />
                   {isSaving ? '...' : t('page.smart_input.chat_quick_save')}
@@ -210,9 +219,11 @@ export function ChatTransactionCard({
             />
           </div>
 
-          {/* Account */}
+          {/* Account (source) */}
           <div className="space-y-1">
-            <Label className="text-xs">{t('form.account')}</Label>
+            <Label className="text-xs">
+              {type === 'transfer' ? t('page.smart_input.from_account') : t('form.account')}
+            </Label>
             <Select value={accountId} onValueChange={setAccountId}>
               <SelectTrigger className="h-8 text-sm">
                 <SelectValue placeholder={t('page.smart_input.select_account')} />
@@ -226,6 +237,27 @@ export function ChatTransactionCard({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Destination account (transfer only) */}
+          {type === 'transfer' && (
+            <div className="space-y-1">
+              <Label className="text-xs">{t('page.smart_input.to_account')}</Label>
+              <Select value={transferAccountId} onValueChange={setTransferAccountId}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder={t('page.smart_input.select_account')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts
+                    .filter((account) => account.id.toString() !== accountId)
+                    .map((account) => (
+                      <SelectItem key={account.id} value={account.id.toString()}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Category */}
           {type !== 'transfer' && (

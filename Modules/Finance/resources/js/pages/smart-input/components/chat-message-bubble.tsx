@@ -21,7 +21,7 @@ interface ChatMessageBubbleProps {
   message: ChatMessage
   accounts: Account[]
   categories: Category[]
-  onSaveTransaction: (messageId: string, data: Record<string, unknown>) => void
+  onSaveTransaction: (messageId: string, data: Record<string, unknown>, index?: number) => void
 }
 
 export function ChatMessageBubble({
@@ -86,7 +86,7 @@ export function ChatMessageBubble({
               <div className="px-3.5 py-2 bg-destructive/10 rounded-2xl">
                 <p className="text-sm text-destructive">{message.error}</p>
               </div>
-            ) : message.parsedTransaction ? (
+            ) : (message.parsedTransaction || message.parsedTransactions?.length) ? (
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 px-1">
                   <p className="text-sm text-muted-foreground">
@@ -135,19 +135,44 @@ export function ChatMessageBubble({
                     )
                   })()}
                 </div>
-                <ChatTransactionCard
-                  messageId={message.id}
-                  parsed={message.parsedTransaction}
-                  accounts={accounts}
-                  categories={categories}
-                  isSaved={message.transactionSaved || false}
-                  onSave={onSaveTransaction}
-                />
-                {message.transactionSaved && (
-                  <p className="text-xs text-green-600 dark:text-green-400 px-1">
-                    {t('page.smart_input.chat_saved')}
-                  </p>
-                )}
+                {message.parsedTransactions?.length ? (
+                  // Multiple transaction cards
+                  <div className="space-y-2">
+                    {message.parsedTransactions.map((parsed, index) => (
+                      <ChatTransactionCard
+                        key={`${message.id}-${index}`}
+                        messageId={message.id}
+                        parsed={parsed}
+                        accounts={accounts}
+                        categories={categories}
+                        isSaved={message.transactionsSaved?.[index] || false}
+                        onSave={(msgId, data) => onSaveTransaction(msgId, data, index)}
+                      />
+                    ))}
+                    {message.transactionSaved && (
+                      <p className="text-xs text-green-600 dark:text-green-400 px-1">
+                        {t('page.smart_input.chat_saved')}
+                      </p>
+                    )}
+                  </div>
+                ) : message.parsedTransaction ? (
+                  // Single transaction card
+                  <>
+                    <ChatTransactionCard
+                      messageId={message.id}
+                      parsed={message.parsedTransaction}
+                      accounts={accounts}
+                      categories={categories}
+                      isSaved={message.transactionSaved || false}
+                      onSave={onSaveTransaction}
+                    />
+                    {message.transactionSaved && (
+                      <p className="text-xs text-green-600 dark:text-green-400 px-1">
+                        {t('page.smart_input.chat_saved')}
+                      </p>
+                    )}
+                  </>
+                ) : null}
               </div>
             ) : (
               <div className="px-3.5 py-2 bg-muted rounded-2xl">

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Mic, MicOff, Loader2, AlertCircle } from 'lucide-react'
@@ -15,12 +16,14 @@ export function VoiceRecorder({
   isProcessing = false,
   disabled = false,
 }: VoiceRecorderProps) {
+  const { t } = useTranslation()
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const [isSupported, setIsSupported] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const mimeTypeRef = useRef<string>('audio/webm')
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -42,13 +45,20 @@ export function VoiceRecorder({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
-      // Check for supported mime types
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-          ? 'audio/webm'
-          : 'audio/mp4'
+      // Check for supported mime types - prefer formats Gemini API supports
+      // Gemini supports: WAV, MP3, AIFF, AAC, OGG Vorbis, FLAC (NOT WebM directly)
+      // Prefer OGG which is supported by both browsers and Gemini
+      const mimeType = MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+        ? 'audio/ogg;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/ogg')
+          ? 'audio/ogg'
+          : MediaRecorder.isTypeSupported('audio/mp4')
+            ? 'audio/mp4'
+            : MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+              ? 'audio/webm;codecs=opus'
+              : 'audio/webm'
 
+      mimeTypeRef.current = mimeType
       const mediaRecorder = new MediaRecorder(stream, { mimeType })
 
       chunksRef.current = []
@@ -60,7 +70,8 @@ export function VoiceRecorder({
       }
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        // Use the actual MIME type that was used for recording
+        const audioBlob = new Blob(chunksRef.current, { type: mimeTypeRef.current })
         onRecordingComplete(audioBlob)
         stream.getTracks().forEach((track) => track.stop())
       }
@@ -151,20 +162,20 @@ export function VoiceRecorder({
       <div className="text-center">
         {!isSupported ? (
           <p className="text-sm text-muted-foreground">
-            Voice recording unavailable
+            {t('page.smart_input.voice_unavailable')}
           </p>
         ) : isRecording ? (
           <div className="space-y-1">
             <p className="text-lg font-medium text-destructive">
-              Recording... {formatTime(recordingTime)}
+              {t('page.smart_input.recording')} {formatTime(recordingTime)}
             </p>
-            <p className="text-sm text-muted-foreground">Release to stop</p>
+            <p className="text-sm text-muted-foreground">{t('page.smart_input.release_to_stop')}</p>
           </div>
         ) : isProcessing ? (
-          <p className="text-sm text-muted-foreground">Processing audio...</p>
+          <p className="text-sm text-muted-foreground">{t('page.smart_input.processing_audio')}</p>
         ) : (
           <div className="space-y-1">
-            <p className="text-sm font-medium">Hold to speak</p>
+            <p className="text-sm font-medium">{t('page.smart_input.hold_to_speak')}</p>
             <p className="text-xs text-muted-foreground">
               "Cafe 50k hôm nay"
             </p>

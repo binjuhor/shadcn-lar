@@ -206,11 +206,26 @@ class DeepSeekTransactionParser implements TransactionParserInterface
         $url = "{$this->baseUrl}/chat/completions";
 
         try {
-            $response = Http::timeout(30)
+            $response = Http::timeout(60)
                 ->withHeaders([
                     'Authorization' => "Bearer {$this->apiKey}",
                     'Content-Type' => 'application/json',
+                    'User-Agent' => 'mokey-finance/1.0 (+laravel-http-client)',
                 ])
+                // Retry transient failures with exponential-ish backoff.
+                ->retry(2, 1000, function (\Throwable $exception, $request) {
+                    if ($exception instanceof \Illuminate\Http\Client\ConnectionException) {
+                        return true;
+                    }
+
+                    if ($exception instanceof \Illuminate\Http\Client\RequestException) {
+                        $status = $exception->response->status();
+
+                        return in_array($status, [429, 500, 502, 503, 504], true);
+                    }
+
+                    return false;
+                }, throw: false)
                 ->post($url, $payload);
 
             if ($response->failed()) {
@@ -224,10 +239,10 @@ class DeepSeekTransactionParser implements TransactionParserInterface
 
                 $errorMessage = match (true) {
                     str_contains($apiErrorMessage ?? '', 'insufficient') => 'DeepSeek API balance insufficient. Please add credits.',
-                    $response->status() === 429 => 'AI service rate limited. Please try again later.',
-                    $response->status() === 401 || $response->status() === 403 => 'AI service authentication failed. Please check your API key.',
-                    $response->status() >= 500 => 'AI service temporarily unavailable. Please try again.',
-                    default => $apiErrorMessage ?? 'AI service error. Please try again.',
+                    $response->status() === 429 => 'DeepSeek rate limited. Please try again in a moment.',
+                    in_array($response->status(), [401, 403], true) => 'DeepSeek authentication failed. Please check your API key.',
+                    $response->status() >= 500 => 'DeepSeek temporarily unavailable. Please try again.',
+                    default => ($apiErrorMessage ?? 'DeepSeek error').' (HTTP '.$response->status().')',
                 };
 
                 return ['error' => $errorMessage, 'status' => $response->status()];
@@ -237,7 +252,7 @@ class DeepSeekTransactionParser implements TransactionParserInterface
         } catch (\Exception $e) {
             Log::error('DeepSeek API exception', ['message' => $e->getMessage()]);
 
-            return ['error' => $e->getMessage()];
+            return ['error' => 'Could not reach DeepSeek: '.$e->getMessage()];
         }
     }
 
@@ -271,6 +286,7 @@ class DeepSeekTransactionParser implements TransactionParserInterface
             'description' => $json['description'] ?? '',
             'category_hint' => $json['category_hint'] ?? null,
             'account_hint' => $json['account_hint'] ?? null,
+            'transfer_account_hint' => $json['transfer_account_hint'] ?? null,
             'transaction_date' => $this->normalizeDate($json['date_hint'] ?? null),
             'confidence' => $json['confidence'] ?? 0.8,
             'raw_text' => $json['raw_text'] ?? $text,
@@ -356,11 +372,12 @@ You are a financial transaction parser. Extract transaction details from text in
 {$langInstructions}
 
 Extract:
-- type: "income" or "expense" (default: expense)
+- type: "income", "expense", or "transfer" (default: expense). Use "transfer" when money moves between accounts (chuyển khoản, chuyển tiền, transfer, gửi tiền, nạp tiền vào tài khoản)
 - amount: number in VND (convert shortcuts to full numbers)
 - description: brief description of transaction
-- category_hint: suggested category (food, transport, utilities, salary, shopping, entertainment, etc.)
-- account_hint: payment method if mentioned (cash, card, bank)
+- category_hint: suggested category (food, transport, utilities, salary, shopping, entertainment, etc.) — omit for transfers
+- account_hint: source payment method if mentioned (cash, card, bank)
+- transfer_account_hint: destination account/bank if mentioned for transfers (e.g. "Vietcombank", "MoMo", "tiết kiệm", "savings")
 - date_hint: relative date if mentioned (hôm nay, hôm qua, today, yesterday)
 - confidence: 0.0 to 1.0 based on clarity of input
 
@@ -369,6 +386,8 @@ Vietnamese examples:
 - "Lương tháng 15 triệu" → income, 15000000, monthly salary, salary
 - "Đổ xăng 200k hôm qua" → expense, 200000, gas, transport, yesterday
 - "Cafe 50k" → expense, 50000, coffee, food
+- "Chuyển 5tr sang Vietcombank" → transfer, 5000000, transfer to Vietcombank, transfer_account_hint: "Vietcombank"
+- "Chuyển khoản 2tr MoMo" → transfer, 2000000, transfer to MoMo, transfer_account_hint: "MoMo"
 
 Return ONLY valid JSON, no explanation:
 {"type":"expense","amount":50000,"description":"Coffee","category_hint":"food","date_hint":"today","confidence":0.95}

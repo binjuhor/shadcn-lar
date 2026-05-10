@@ -263,6 +263,18 @@ export default function TransactionsIndex({
     }
   }
 
+  // Pick the dominant currency among visible rows for the totals cards.
+  // Multi-currency totals are numerically meaningless anyway; this picks the most common
+  // currency so the totals display in something familiar instead of always falling back to VND.
+  const totalsCurrency = (() => {
+    const counts: Record<string, number> = {}
+    for (const tx of transactions.data) {
+      if (tx.currency_code) counts[tx.currency_code] = (counts[tx.currency_code] ?? 0) + 1
+    }
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
+    return sorted[0]?.[0] ?? 'VND'
+  })()
+
   // Selection helpers - allow selecting all except linked transfers
   const selectableTransactions = transactions.data.filter(
     (t) => !t.transfer_transaction_id
@@ -499,16 +511,16 @@ export default function TransactionsIndex({
             </div>
             <div className="p-4 border rounded-lg bg-background">
               <p className="text-sm text-muted-foreground">{t('page.transactions.total_income')}</p>
-              <p className="text-2xl font-bold text-green-600">{formatMoney(totals.income)}</p>
+              <p className="text-2xl font-bold text-green-600">{formatMoney(totals.income, totalsCurrency)}</p>
             </div>
             <div className="p-4 border rounded-lg bg-background">
               <p className="text-sm text-muted-foreground">{t('page.transactions.total_expense')}</p>
-              <p className="text-2xl font-bold text-red-600">{formatMoney(totals.expense)}</p>
+              <p className="text-2xl font-bold text-red-600">{formatMoney(totals.expense, totalsCurrency)}</p>
             </div>
             <div className="p-4 border rounded-lg bg-background">
               <p className="text-sm text-muted-foreground">{t('page.transactions.net')}</p>
               <p className={`text-2xl font-bold ${totals.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatMoney(totals.net)}
+                {formatMoney(totals.net, totalsCurrency)}
               </p>
             </div>
           </div>
@@ -888,6 +900,7 @@ export default function TransactionsIndex({
         <ExportDialog
           open={showExportDialog}
           onOpenChange={setShowExportDialog}
+          filters={filters}
         />
 
         {/* Bulk Edit Dialog */}

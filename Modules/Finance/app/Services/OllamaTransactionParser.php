@@ -16,7 +16,7 @@ class OllamaTransactionParser extends DeepSeekTransactionParser
         $this->baseUrl = rtrim(config('services.ollama.base_url', 'http://localhost:11434'), '/');
         $this->model = config('services.ollama.model', 'llama3.2');
         $this->visionModel = config('services.ollama.vision_model', 'llama3.2-vision');
-        $this->apiKey = 'ollama';
+        $this->apiKey = config('services.ollama.api_key', '');
     }
 
     public function parseVoice(UploadedFile $audioFile, string $language = 'vi'): array
@@ -90,12 +90,16 @@ class OllamaTransactionParser extends DeepSeekTransactionParser
     {
         $url = "{$this->baseUrl}/v1/chat/completions";
 
+        $headers = ['Content-Type' => 'application/json'];
+
+        if ($this->apiKey !== '') {
+            $headers['Authorization'] = "Bearer {$this->apiKey}";
+        }
+
         try {
             $response = Http::timeout(180)
                 ->withOptions(['allow_redirects' => ['strict' => true]])
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                ])
+                ->withHeaders($headers)
                 ->post($url, $payload);
 
             if ($response->failed()) {

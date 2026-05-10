@@ -24,6 +24,7 @@ interface HistoryItem {
   transaction_saved: boolean
   created_at: string
   media_url?: string | null
+  currency_code?: string | null
 }
 
 interface Props {
@@ -39,6 +40,35 @@ function generateId(): string {
 
 function getCsrfToken(): string {
   return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+}
+
+/**
+ * Safely parse a fetch Response as JSON. If the body isn't valid JSON
+ * (e.g. server returned HTML on error), surface a useful preview of the body
+ * instead of the opaque "Server error: 200" message.
+ */
+interface ParseResponse {
+  success: boolean
+  data?: ParsedTransaction
+  error?: string
+  history_id?: number
+  multiple?: boolean
+  items?: ParsedTransaction[]
+}
+
+async function parseJsonResponse(response: Response): Promise<ParseResponse> {
+  const text = await response.text()
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    const preview = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160)
+
+    return {
+      success: false,
+      error: `Server returned non-JSON (HTTP ${response.status}): ${preview || 'empty body'}`,
+    }
+  }
 }
 
 function buildHistoryMessages(history: HistoryItem[], t: (key: string) => string): ChatMessage[] {
@@ -85,6 +115,7 @@ function buildHistoryMessages(history: HistoryItem[], t: (key: string) => string
           transaction_date: (parsed.transaction_date as string) || '',
           confidence: (parsed.confidence as number) || 0,
           raw_text: (parsed.raw_text as string) || undefined,
+          currency_code: h.currency_code || undefined,
         },
         timestamp: ts,
       })
@@ -127,8 +158,15 @@ export default function SmartInputIndex({ accounts, categories, recentHistory, a
   }, [])
 
   const handleParseResult = useCallback(
-    (assistantId: string, data: { success: boolean; data?: ParsedTransaction; error?: string; history_id?: number }) => {
-      if (data.success && data.data) {
+    (assistantId: string, data: ParseResponse) => {
+      if (data.success && data.multiple && data.items?.length) {
+        updateMessage(assistantId, {
+          isProcessing: false,
+          parsedTransactions: data.items,
+          content: t('page.smart_input.chat_parsed'),
+          historyId: data.history_id,
+        })
+      } else if (data.success && data.data) {
         updateMessage(assistantId, {
           isProcessing: false,
           parsedTransaction: data.data,
@@ -178,7 +216,7 @@ export default function SmartInputIndex({ accounts, categories, recentHistory, a
           },
         })
 
-        const data = await response.json().catch(() => ({ success: false, error: `Server error: ${response.status}` }))
+        const data = await parseJsonResponse(response)
         handleParseResult(assistantId, data)
       } catch {
         updateMessage(assistantId, {
@@ -229,7 +267,7 @@ export default function SmartInputIndex({ accounts, categories, recentHistory, a
           },
         })
 
-        const data = await response.json().catch(() => ({ success: false, error: `Server error: ${response.status}` }))
+        const data = await parseJsonResponse(response)
         handleParseResult(assistantId, data)
       } catch {
         updateMessage(assistantId, {
@@ -281,7 +319,7 @@ export default function SmartInputIndex({ accounts, categories, recentHistory, a
           },
         })
 
-        const data = await response.json().catch(() => ({ success: false, error: `Server error: ${response.status}` }))
+        const data = await parseJsonResponse(response)
         handleParseResult(assistantId, data)
       } catch {
         updateMessage(assistantId, {
@@ -334,7 +372,7 @@ export default function SmartInputIndex({ accounts, categories, recentHistory, a
           },
         })
 
-        const data = await response.json().catch(() => ({ success: false, error: `Server error: ${response.status}` }))
+        const data = await parseJsonResponse(response)
         handleParseResult(assistantId, data)
       } catch {
         updateMessage(assistantId, {
@@ -349,7 +387,7 @@ export default function SmartInputIndex({ accounts, categories, recentHistory, a
   )
 
   const handleSaveTransaction = useCallback(
-    async (messageId: string, data: Record<string, unknown>) => {
+    async (messageId: string, data: Record<string, unknown>, index?: number) => {
       try {
         // Find the message to get its historyId
         const msg = messages.find((m) => m.id === messageId)
@@ -368,7 +406,18 @@ export default function SmartInputIndex({ accounts, categories, recentHistory, a
         const result = await response.json().catch(() => ({ success: false }))
 
         if (result.success) {
-          updateMessage(messageId, { transactionSaved: true })
+          if (index !== undefined && msg?.parsedTransactions) {
+            // Multi-transaction: mark individual item as saved
+            const saved = { ...(msg.transactionsSaved || {}) }
+            saved[index] = true
+            const allSaved = msg.parsedTransactions.every((_, i) => saved[i])
+            updateMessage(messageId, {
+              transactionsSaved: saved,
+              transactionSaved: allSaved,
+            })
+          } else {
+            updateMessage(messageId, { transactionSaved: true })
+          }
         }
       } catch {
         console.error('Failed to save transaction')

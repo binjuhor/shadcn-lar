@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react'
+import { useTranslation } from 'react-i18next'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -50,12 +51,14 @@ function formatPercent(value: number): string {
 }
 
 export default function PlansCompare({ plan, comparison }: Props) {
+  const { t } = useTranslation()
+
   const chartData = comparison.map((c) => ({
     year: String(c.year),
-    'Planned Income': c.planned_income,
-    'Actual Income': c.actual_income,
-    'Planned Expense': c.planned_expense,
-    'Actual Expense': c.actual_expense,
+    [t('page.plans.compare.planned_income')]: c.planned_income,
+    [t('page.plans.compare.actual_income')]: c.actual_income,
+    [t('page.plans.compare.planned_expense')]: c.planned_expense,
+    [t('page.plans.compare.actual_expense')]: c.actual_expense,
   }))
 
   const totals = comparison.reduce(
@@ -90,7 +93,7 @@ export default function PlansCompare({ plan, comparison }: Props) {
               </Badge>
             </div>
             <p className="text-muted-foreground">
-              Compare planned values against actual transactions
+              {t('page.plans.compare.description')}
             </p>
           </div>
         </div>
@@ -101,24 +104,24 @@ export default function PlansCompare({ plan, comparison }: Props) {
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-green-600" />
-                Total Income
+                {t('page.plans.compare.total_income')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">
-                  Planned: {formatMoney(totals.planned_income, plan.currency_code)}
+                  {t('page.plans.compare.planned')}: {formatMoney(totals.planned_income, plan.currency_code)}
                 </p>
                 <p className="text-xl font-bold text-green-600">
-                  Actual: {formatMoney(totals.actual_income, plan.currency_code)}
+                  {t('page.plans.compare.actual')}: {formatMoney(totals.actual_income, plan.currency_code)}
                 </p>
                 <p
                   className={`text-sm ${
                     incomeVariance >= 0 ? 'text-green-600' : 'text-red-600'
                   }`}
                 >
-                  {formatMoney(Math.abs(incomeVariance), plan.currency_code)}
-                  {incomeVariance >= 0 ? ' over' : ' under'} plan
+                  {formatMoney(Math.abs(incomeVariance), plan.currency_code)}{' '}
+                  {incomeVariance >= 0 ? t('page.plans.compare.over_plan') : t('page.plans.compare.under_plan')}
                 </p>
               </div>
             </CardContent>
@@ -128,24 +131,24 @@ export default function PlansCompare({ plan, comparison }: Props) {
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-2">
                 <TrendingDown className="h-4 w-4 text-red-600" />
-                Total Expense
+                {t('page.plans.compare.total_expense')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">
-                  Planned: {formatMoney(totals.planned_expense, plan.currency_code)}
+                  {t('page.plans.compare.planned')}: {formatMoney(totals.planned_expense, plan.currency_code)}
                 </p>
                 <p className="text-xl font-bold text-red-600">
-                  Actual: {formatMoney(totals.actual_expense, plan.currency_code)}
+                  {t('page.plans.compare.actual')}: {formatMoney(totals.actual_expense, plan.currency_code)}
                 </p>
                 <p
                   className={`text-sm ${
                     expenseVariance <= 0 ? 'text-green-600' : 'text-red-600'
                   }`}
                 >
-                  {formatMoney(Math.abs(expenseVariance), plan.currency_code)}
-                  {expenseVariance <= 0 ? ' under' : ' over'} plan
+                  {formatMoney(Math.abs(expenseVariance), plan.currency_code)}{' '}
+                  {expenseVariance <= 0 ? t('page.plans.compare.under_plan') : t('page.plans.compare.over_plan')}
                 </p>
               </div>
             </CardContent>
@@ -155,7 +158,7 @@ export default function PlansCompare({ plan, comparison }: Props) {
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-2">
                 <Target className="h-4 w-4" />
-                Net Savings (Planned)
+                {t('page.plans.compare.net_savings_planned')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -173,7 +176,7 @@ export default function PlansCompare({ plan, comparison }: Props) {
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-2">
                 <Target className="h-4 w-4" />
-                Net Savings (Actual)
+                {t('page.plans.compare.net_savings_actual')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -191,7 +194,7 @@ export default function PlansCompare({ plan, comparison }: Props) {
         {/* Chart */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Planned vs Actual by Year</CardTitle>
+            <CardTitle>{t('page.plans.compare.chart_title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[400px]">
@@ -225,22 +228,22 @@ export default function PlansCompare({ plan, comparison }: Props) {
                   />
                   <Legend />
                   <Bar
-                    dataKey="Planned Income"
+                    dataKey={t('page.plans.compare.planned_income')}
                     fill="#86efac"
                     radius={[4, 4, 0, 0]}
                   />
                   <Bar
-                    dataKey="Actual Income"
+                    dataKey={t('page.plans.compare.actual_income')}
                     fill="#22c55e"
                     radius={[4, 4, 0, 0]}
                   />
                   <Bar
-                    dataKey="Planned Expense"
+                    dataKey={t('page.plans.compare.planned_expense')}
                     fill="#fca5a5"
                     radius={[4, 4, 0, 0]}
                   />
                   <Bar
-                    dataKey="Actual Expense"
+                    dataKey={t('page.plans.compare.actual_expense')}
                     fill="#ef4444"
                     radius={[4, 4, 0, 0]}
                   />
@@ -253,19 +256,19 @@ export default function PlansCompare({ plan, comparison }: Props) {
         {/* Detailed Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Yearly Comparison Details</CardTitle>
+            <CardTitle>{t('page.plans.compare.table_title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Year</TableHead>
-                  <TableHead className="text-right">Planned Income</TableHead>
-                  <TableHead className="text-right">Actual Income</TableHead>
-                  <TableHead className="text-right">Variance</TableHead>
-                  <TableHead className="text-right">Planned Expense</TableHead>
-                  <TableHead className="text-right">Actual Expense</TableHead>
-                  <TableHead className="text-right">Variance</TableHead>
+                  <TableHead>{t('page.plans.compare.year')}</TableHead>
+                  <TableHead className="text-right">{t('page.plans.compare.planned_income')}</TableHead>
+                  <TableHead className="text-right">{t('page.plans.compare.actual_income')}</TableHead>
+                  <TableHead className="text-right">{t('page.plans.compare.variance')}</TableHead>
+                  <TableHead className="text-right">{t('page.plans.compare.planned_expense')}</TableHead>
+                  <TableHead className="text-right">{t('page.plans.compare.actual_expense')}</TableHead>
+                  <TableHead className="text-right">{t('page.plans.compare.variance')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

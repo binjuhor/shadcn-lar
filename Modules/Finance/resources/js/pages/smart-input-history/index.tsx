@@ -39,8 +39,11 @@ const INPUT_TYPE_ICONS: Record<string, typeof Type> = {
   text_image: MessageSquare,
 }
 
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
+function formatMoney(amount: number, currencyCode = 'VND'): string {
+  // VND-specific locale gives the right thousand separators ("." instead of ","); other
+  // currencies use en-US which is the lingua-franca for international currency formatting.
+  const locale = currencyCode === 'VND' ? 'vi-VN' : 'en-US'
+  return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(amount)
 }
 
 export default function SmartInputHistoryIndex({ histories, filters }: Props) {
@@ -152,6 +155,9 @@ export default function SmartInputHistoryIndex({ histories, filters }: Props) {
                     const Icon = INPUT_TYPE_ICONS[entry.input_type] || Type
                     const parsed = entry.parsed_result as Record<string, unknown> | null
                     const amount = parsed?.amount as number | undefined
+                    // Saved histories know their currency via the linked transaction.
+                    // Unsaved entries fall back to VND (matches what the form defaults to).
+                    const currencyCode = entry.transaction?.currency_code ?? 'VND'
 
                     return (
                       <TableRow key={entry.id}>
@@ -168,7 +174,7 @@ export default function SmartInputHistoryIndex({ histories, filters }: Props) {
                           {entry.raw_text || '-'}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
-                          {amount ? formatMoney(amount) : '-'}
+                          {amount ? formatMoney(amount, currencyCode) : '-'}
                         </TableCell>
                         <TableCell>
                           {entry.confidence != null ? (
