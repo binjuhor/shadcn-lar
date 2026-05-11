@@ -109,8 +109,9 @@ class OllamaTransactionParser extends DeepSeekTransactionParser
                 ]);
 
                 $errorMessage = match (true) {
-                    $response->status() >= 500 => 'Ollama service error. Is the server running?',
-                    $response->status() === 404 => 'Ollama model not found. Please pull the model first.',
+                    $response->status() >= 500 => 'Ollama service error. Please try again later.',
+                    $response->status() === 404 => 'Ollama model not found. Check OLLAMA_MODEL in your .env file.',
+                    $response->status() === 401 => 'Ollama authentication failed. Check OLLAMA_API_KEY in your .env file.',
                     default => 'Ollama service error. Please try again.',
                 };
 
@@ -121,7 +122,7 @@ class OllamaTransactionParser extends DeepSeekTransactionParser
         } catch (\Exception $e) {
             Log::error('Ollama API exception', ['message' => $e->getMessage()]);
 
-            return ['error' => "Cannot connect to Ollama at {$this->baseUrl}. Is the server running?"];
+            return ['error' => "Cannot connect to Ollama at {$this->baseUrl}. Check your OLLAMA_BASE_URL and network connection."];
         }
     }
 }
