@@ -84,6 +84,7 @@
         "date-fns": "^4.1.0",
         "dayjs": "^1.11.13",
         "embla-carousel-react": "^8.6.0",
+        "heic2any": "^0.0.4",
         "highlight.js": "^11.11.1",
         "i18next": "^25.7.3",
         "jotai": "^2.12.4",
