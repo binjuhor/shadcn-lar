@@ -33,7 +33,7 @@ jobs:
           echo "Starting rsync deployment..."
           rsync -rlptDzv --no-owner --no-group -e "ssh -o StrictHostKeyChecking=no" \
           --exclude .env --exclude .env.example --exclude .git --exclude .github --exclude .claude --exclude .editorconfig \
-          --exclude node_modules --exclude tests --exclude .gitattributes --exclude .gitignore \
+          --exclude node_modules --exclude tests --exclude docs --exclude .gitattributes --exclude .gitignore \
           --exclude README.md --exclude .env.testing --exclude .prettierrc --exclude components.json \
           --exclude package.json --exclude yarn.lock --exclude package-lock.json --exclude tsconfig.json \
           --exclude phpunit.xml --exclude *.js --exclude tailwind.config.js --exclude vite.config.js \
