@@ -20,7 +20,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ArrowLeft } from 'lucide-react'
+import { useCategoryName } from '@/hooks/use-category-name'
 import type { Category } from '@modules/Finance/types/finance'
+import { CategoryIconPicker, DEFAULT_CATEGORY_ICON, iconForParent } from '@modules/Finance/components/category-icon'
 
 interface Props {
   parentCategories: Category[]
@@ -32,10 +34,11 @@ const colors = [
 ]
 
 export default function CreateCategory({ parentCategories }: Props) {
+  const getCategoryName = useCategoryName()
   const { data, setData, post, processing, errors, transform, reset } = useForm({
     name: '',
     type: 'expense' as 'income' | 'expense',
-    icon: '',
+    icon: DEFAULT_CATEGORY_ICON,
     color: '#3b82f6',
     parent_id: '',
     is_active: true as boolean,
@@ -98,6 +101,7 @@ export default function CreateCategory({ parentCategories }: Props) {
                   onValueChange={(value) => {
                     setData('type', value as 'income' | 'expense')
                     setData('parent_id', '')
+                    setData((d) => ({ ...d, icon: iconForParent(d.icon, '') }))
                   }}
                 >
                   <SelectTrigger>
@@ -117,7 +121,10 @@ export default function CreateCategory({ parentCategories }: Props) {
                 <Label htmlFor="parent_id">Parent Category (Optional)</Label>
                 <Select
                   value={data.parent_id || '__none__'}
-                  onValueChange={(value) => setData('parent_id', value === '__none__' ? '' : value)}
+                  onValueChange={(value) => {
+                    const parentId = value === '__none__' ? '' : value
+                    setData((d) => ({ ...d, parent_id: parentId, icon: iconForParent(d.icon, parentId) }))
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="No parent (top-level)" />
@@ -126,7 +133,7 @@ export default function CreateCategory({ parentCategories }: Props) {
                     <SelectItem value="__none__">No parent (top-level)</SelectItem>
                     {filteredParentCategories.map((category) => (
                       <SelectItem key={category.id} value={String(category.id)}>
-                        {category.name}
+                        {getCategoryName(category)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -137,12 +144,13 @@ export default function CreateCategory({ parentCategories }: Props) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="icon">Icon (Optional)</Label>
-                <Input
-                  id="icon"
+                <Label>Icon</Label>
+                <CategoryIconPicker
                   value={data.icon}
-                  onChange={(e) => setData('icon', e.target.value)}
-                  placeholder="e.g., shopping-cart"
+                  color={data.color}
+                  onChange={(icon) => setData('icon', icon)}
+                  parentIcon={data.parent_id ? (parentCategories.find((c) => String(c.id) === data.parent_id)?.icon ?? null) : undefined}
+                  parentLabel="Same as parent category"
                 />
               </div>
 

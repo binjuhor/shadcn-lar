@@ -3,19 +3,21 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Finance\Http\Controllers\{
     AccountController,
+    AssistantController,
+    BorrowingController,
     BudgetController,
     CategoryController,
     ExchangeRateController,
     FinanceDashboardController,
     FinanceReportController,
-    FinancialAdvisorController,
     FinancialPlanController,
+    LoanController,
     RecurringTransactionController,
     SavingsGoalController,
-    SmartInputController,
     SmartInputHistoryController,
     TransactionController
 };
+use Modules\Finance\Http\Middleware\EnsureAssistantEnabled;
 
 Route::middleware(['auth', 'verified'])
     ->prefix('dashboard/finance')
@@ -26,6 +28,10 @@ Route::middleware(['auth', 'verified'])
         Route::get('/reports/category-trend', [FinanceReportController::class, 'categoryTrend'])->name('reports.category-trend');
 
         Route::resource('accounts', AccountController::class);
+        Route::delete('accounts/{account}/icon', [AccountController::class, 'destroyIcon'])
+            ->name('accounts.icon.destroy');
+        Route::get('account-icons/{file}', [AccountController::class, 'showIcon'])
+            ->name('account-icons.show');
 
         Route::resource('categories', CategoryController::class)->except(['show']);
 
@@ -99,28 +105,47 @@ Route::middleware(['auth', 'verified'])
         Route::get('plans/{plan}/compare', [FinancialPlanController::class, 'compare'])
             ->name('plans.compare');
 
-        // AI Advisor routes
-        Route::get('advisor', [FinancialAdvisorController::class, 'index'])
-            ->name('advisor');
-        Route::post('advisor/send', [FinancialAdvisorController::class, 'sendMessage'])
-            ->middleware('throttle:20,1')
-            ->name('advisor.send');
-        Route::delete('advisor/conversations/{conversationId}', [FinancialAdvisorController::class, 'destroyConversation'])
-            ->name('advisor.conversations.destroy');
+        Route::get('loans/search-expense-transactions', [LoanController::class, 'searchExpenseTransactions'])
+            ->name('loans.search-expense-transactions');
+        Route::resource('loans', LoanController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
+        Route::post('loans/{loan}/repayments', [LoanController::class, 'storeRepayment'])
+            ->name('loans.repayments.store');
+        Route::delete('loans/{loan}/repayments/{repayment}', [LoanController::class, 'destroyRepayment'])
+            ->name('loans.repayments.destroy');
+        Route::delete('loans/{loan}/proofs/{mediaId}', [LoanController::class, 'destroyProof'])
+            ->name('loans.proofs.destroy');
 
-        // Smart Input routes
-        Route::get('smart-input', [SmartInputController::class, 'index'])
-            ->name('smart-input');
-        Route::post('smart-input/parse-voice', [SmartInputController::class, 'parseVoice'])
-            ->name('smart-input.parse-voice');
-        Route::post('smart-input/parse-receipt', [SmartInputController::class, 'parseReceipt'])
-            ->name('smart-input.parse-receipt');
-        Route::post('smart-input/parse-text', [SmartInputController::class, 'parseText'])
-            ->name('smart-input.parse-text');
-        Route::post('smart-input/parse-text-image', [SmartInputController::class, 'parseTextWithImage'])
-            ->name('smart-input.parse-text-image');
-        Route::post('smart-input', [SmartInputController::class, 'store'])
-            ->name('smart-input.store');
+        Route::get('borrowings/search-income-transactions', [BorrowingController::class, 'searchIncomeTransactions'])
+            ->name('borrowings.search-income-transactions');
+        Route::resource('borrowings', BorrowingController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
+        Route::post('borrowings/{borrowing}/repayments', [BorrowingController::class, 'storeRepayment'])
+            ->name('borrowings.repayments.store');
+        Route::delete('borrowings/{borrowing}/repayments/{repayment}', [BorrowingController::class, 'destroyRepayment'])
+            ->name('borrowings.repayments.destroy');
+        Route::delete('borrowings/{borrowing}/proofs/{mediaId}', [BorrowingController::class, 'destroyProof'])
+            ->name('borrowings.proofs.destroy');
+
+        // AI Assistant: Smart Input tracking + AI Advisor in one chat
+        Route::middleware(EnsureAssistantEnabled::class)->prefix('assistant')->name('assistant.')->group(function () {
+            Route::get('/', [AssistantController::class, 'index'])->name('index');
+            Route::post('send', [AssistantController::class, 'send'])
+                ->middleware('throttle:20,1')
+                ->name('send');
+            Route::post('messages/{message}/drafts/{index}/save', [AssistantController::class, 'saveDraft'])
+                ->whereNumber(['message', 'index'])
+                ->name('drafts.save');
+            Route::post('confirm', [AssistantController::class, 'confirm'])->name('confirm');
+            Route::patch('conversations/{conversationId}', [AssistantController::class, 'renameConversation'])
+                ->name('conversations.rename');
+            Route::delete('conversations/{conversationId}', [AssistantController::class, 'destroyConversation'])
+                ->name('conversations.destroy');
+        });
+
+        // The Smart Input and AI Advisor pages were merged into the AI Assistant
+        Route::redirect('smart-input', '/dashboard/finance/assistant');
+        Route::redirect('advisor', '/dashboard/finance/assistant');
 
         // Smart Input History
         Route::get('smart-input-history', [SmartInputHistoryController::class, 'index'])

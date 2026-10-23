@@ -87,8 +87,9 @@ class RecurringTransaction extends Model
         return $query->where('is_active', true)
             ->where('next_run_date', '<=', now()->toDateString())
             ->where(function ($q) {
+                // Compare against next_run_date so occurrences missed before end_date still run
                 $q->whereNull('end_date')
-                    ->orWhere('end_date', '>=', now()->toDateString());
+                    ->orWhereColumn('end_date', '>=', 'next_run_date');
             });
     }
 

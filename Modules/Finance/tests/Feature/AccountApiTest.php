@@ -5,7 +5,7 @@ namespace Modules\Finance\Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
-use Modules\Finance\Models\{Account, Currency};
+use Modules\Finance\Models\{Account, Currency, Loan};
 use Tests\TestCase;
 
 class AccountApiTest extends TestCase
@@ -127,5 +127,17 @@ class AccountApiTest extends TestCase
         $response = $this->getJson('/api/v1/finance/accounts');
 
         $response->assertUnauthorized();
+    }
+
+    public function test_account_summary_includes_loan_receivables_as_assets(): void
+    {
+        Sanctum::actingAs($this->user);
+        $this->createAccount();
+        Loan::factory()->create(['user_id' => $this->user->id, 'amount' => 400, 'amount_repaid' => 100, 'status' => 'partially_repaid', 'currency_code' => 'USD']);
+
+        $this->getJson('/api/v1/finance/accounts-summary')->assertOk()
+            ->assertJsonPath('data.loan_receivables', 300)
+            ->assertJsonPath('data.total_assets', 1300)
+            ->assertJsonPath('data.net_worth', 1300);
     }
 }

@@ -12,6 +12,7 @@ import {
 import {ThemeSwitch} from "@/components/theme-switch"
 import {LanguageSwitcher} from "@/components/language-switcher"
 import {Head, usePage} from "@inertiajs/react";
+import {usePermission} from "@/hooks/use-permission";
 
 export function AuthenticatedLayout({
     children,
@@ -21,11 +22,12 @@ export function AuthenticatedLayout({
   }: any) {
   const { t } = useTranslation()
   const { url } = usePage()
+  const { isFeatureEnabled } = usePermission()
 
   const navItems = [
     { title: t('nav.accounts'), href: '/dashboard/finance/accounts' },
     { title: t('nav.transactions'), href: '/dashboard/finance/transactions' },
-    { title: t('nav.smart_input'), href: '/dashboard/finance/smart-input' },
+    ...(isFeatureEnabled('assistant') ? [{ title: t('nav.ai_assistant'), href: '/dashboard/finance/assistant' }] : []),
     { title: t('nav.settings'), href: '/dashboard/settings' },
   ]
 

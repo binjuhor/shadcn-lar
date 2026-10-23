@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { router } from '@inertiajs/react'
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
+import { usePermission } from '@/hooks/use-permission'
 import { useCategoryName } from '@/hooks/use-category-name'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -29,6 +29,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,12 +71,16 @@ import {
   ChevronsRight,
   Link2,
   Copy,
+  Paperclip,
+  Music,
 } from 'lucide-react'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { TransactionForm } from './components/transaction-form'
 import { ExportDialog } from './components/export-dialog'
 import { BulkEditDialog } from './components/bulk-edit-dialog'
 import { MultiSelect } from '@/components/ui/multi-select'
-import type { Transaction, Account, Category, PaginatedData } from '@modules/Finance/types/finance'
+import type { Transaction, Account, Category, PaginatedData, TransactionBill } from '@modules/Finance/types/finance'
+import { CategoryIcon } from '@modules/Finance/components/category-icon'
 
 interface Props {
   transactions: PaginatedData<Transaction>
@@ -86,11 +96,17 @@ interface Props {
     amount_from?: string
     amount_to?: string
   }
+  defaultCurrency: string
   totals: {
     income: number
     expense: number
     net: number
     count: number
+    currency_code: string
+    breakdown: {
+      income: Record<string, number>
+      expense: Record<string, number>
+    }
   }
 }
 
@@ -101,14 +117,161 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
   }).format(amount)
 }
 
+function CurrencyBreakdown({ breakdown }: { breakdown: Record<string, number> }) {
+  const entries = Object.entries(breakdown)
+  if (!entries.length) return null
+  return (
+    <div className="flex flex-wrap gap-x-2 mt-0.5">
+      {entries.map(([code, amount]) => (
+        <span key={code} className="text-xs text-muted-foreground">
+          {formatMoney(amount, code)}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+// PHP fileinfo reports WebM/MP4 audio blobs as video/* — check extension as fallback
+const AUDIO_EXTS = new Set(['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus', 'webm', 'weba'])
+
+function classifyBill(bill: TransactionBill) {
+  const mime = bill.mime_type ?? ''
+  const isImage = mime.startsWith('image/')
+  const fileExt = bill.name.split('.').pop()?.toLowerCase() ?? ''
+  const isAudio = mime.startsWith('audio/') || (!isImage && AUDIO_EXTS.has(fileExt))
+  // Normalize video/webm → audio/webm so <audio> decodes it correctly
+  const audioMime = isAudio && mime.startsWith('video/') ? mime.replace('video/', 'audio/') : mime || undefined
+  return { isImage, isAudio, audioMime }
+}
+
+function BillsPreviewButton({ bills }: { bills: TransactionBill[] }) {
+  const { t } = useTranslation()
+  const [galleryOpen, setGalleryOpen] = useState(false)
+  const [fullscreenBill, setFullscreenBill] = useState<TransactionBill | null>(null)
+  const [audioBill, setAudioBill] = useState<TransactionBill | null>(null)
+
+  if (!bills.length) return null
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          setGalleryOpen(true)
+        }}
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
+        title={t('transaction.attachments_count', { count: bills.length })}
+      >
+        <Paperclip className="h-3.5 w-3.5" />
+        <span>{bills.length}</span>
+      </button>
+
+      {/* Gallery dialog */}
+      <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t('transaction.attachments_title', { count: bills.length })}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-3 gap-3 mt-2">
+            {bills.map((bill) => {
+              const { isImage, isAudio } = classifyBill(bill)
+
+              if (isImage) {
+                return (
+                  <button
+                    key={bill.id}
+                    type="button"
+                    onClick={() => setFullscreenBill(bill)}
+                    className="relative aspect-square overflow-hidden rounded-md border bg-muted cursor-zoom-in hover:opacity-90 transition-opacity"
+                    title={bill.name}
+                  >
+                    <img src={bill.url} alt={bill.name} className="h-full w-full object-cover" />
+                  </button>
+                )
+              }
+
+              if (isAudio) {
+                return (
+                  <button
+                    key={bill.id}
+                    type="button"
+                    onClick={() => setAudioBill(bill)}
+                    className="flex aspect-square flex-col items-center justify-center gap-2 rounded-md border bg-muted p-2 text-center text-xs text-muted-foreground hover:bg-muted/80 transition-colors"
+                    title={bill.name}
+                  >
+                    <Music className="h-6 w-6" />
+                    <span className="line-clamp-2 break-all">{bill.name}</span>
+                  </button>
+                )
+              }
+
+              return (
+                <a
+                  key={bill.id}
+                  href={bill.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex aspect-square flex-col items-center justify-center gap-2 rounded-md border bg-muted p-2 text-center text-xs text-muted-foreground hover:bg-muted/80 transition-colors"
+                  title={bill.name}
+                >
+                  <Paperclip className="h-6 w-6" />
+                  <span className="line-clamp-2 break-all">{bill.name}</span>
+                </a>
+              )
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fullscreen image preview */}
+      <Dialog open={!!fullscreenBill} onOpenChange={(open) => { if (!open) setFullscreenBill(null) }}>
+        <DialogContent className="max-w-[90vw] max-h-[90vh] w-auto p-0 border-0 bg-transparent shadow-none [&>button]:text-white [&>button]:bg-black/50 [&>button]:rounded-full [&>button]:p-1.5 [&>button]:top-2 [&>button]:right-2">
+          <VisuallyHidden>
+            <DialogTitle>{fullscreenBill?.name}</DialogTitle>
+          </VisuallyHidden>
+          {fullscreenBill && (
+            <img
+              src={fullscreenBill.url}
+              alt={fullscreenBill.name}
+              className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Audio player popup */}
+      <Dialog open={!!audioBill} onOpenChange={(open) => { if (!open) setAudioBill(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm truncate">{audioBill?.name}</DialogTitle>
+          </DialogHeader>
+          {audioBill && (
+            <audio
+              key={audioBill.url}
+              controls
+              autoPlay
+              className="w-full mt-2"
+            >
+              <source src={audioBill.url} type={classifyBill(audioBill).audioMime} />
+            </audio>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
 export default function TransactionsIndex({
   transactions,
   accounts,
   categories,
   filters,
+  defaultCurrency,
   totals,
 }: Props) {
   const { t } = useTranslation()
+  const { isFeatureEnabled } = usePermission()
   const getCategoryName = useCategoryName()
   const [showForm, setShowForm] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -263,17 +426,6 @@ export default function TransactionsIndex({
     }
   }
 
-  // Pick the dominant currency among visible rows for the totals cards.
-  // Multi-currency totals are numerically meaningless anyway; this picks the most common
-  // currency so the totals display in something familiar instead of always falling back to VND.
-  const totalsCurrency = (() => {
-    const counts: Record<string, number> = {}
-    for (const tx of transactions.data) {
-      if (tx.currency_code) counts[tx.currency_code] = (counts[tx.currency_code] ?? 0) + 1
-    }
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
-    return sorted[0]?.[0] ?? 'VND'
-  })()
 
   // Selection helpers - allow selecting all except linked transfers
   const selectableTransactions = transactions.data.filter(
@@ -363,11 +515,13 @@ export default function TransactionsIndex({
                 <Upload className="mr-2 h-4 w-4" /> {t('action.import')}
               </Button>
             </a>
-            <a href={route('dashboard.finance.smart-input')}>
-              <Button variant="outline">
-                <Sparkles className="mr-2 h-4 w-4" /> {t('sidebar.smart_input')}
-              </Button>
-            </a>
+            {isFeatureEnabled('assistant') && (
+              <a href={route('dashboard.finance.assistant.index')}>
+                <Button variant="outline">
+                  <Sparkles className="mr-2 h-4 w-4" /> {t('sidebar.ai_assistant')}
+                </Button>
+              </a>
+            )}
             <Button onClick={() => setShowForm(true)}>
               <Plus className="mr-2 h-4 w-4" /> {t('page.transactions.new')}
             </Button>
@@ -511,16 +665,18 @@ export default function TransactionsIndex({
             </div>
             <div className="p-4 border rounded-lg bg-background">
               <p className="text-sm text-muted-foreground">{t('page.transactions.total_income')}</p>
-              <p className="text-2xl font-bold text-green-600">{formatMoney(totals.income, totalsCurrency)}</p>
+              <p className="text-2xl font-bold text-green-600">{formatMoney(totals.income, totals.currency_code)}</p>
+              <CurrencyBreakdown breakdown={totals.breakdown.income} />
             </div>
             <div className="p-4 border rounded-lg bg-background">
               <p className="text-sm text-muted-foreground">{t('page.transactions.total_expense')}</p>
-              <p className="text-2xl font-bold text-red-600">{formatMoney(totals.expense, totalsCurrency)}</p>
+              <p className="text-2xl font-bold text-red-600">{formatMoney(totals.expense, totals.currency_code)}</p>
+              <CurrencyBreakdown breakdown={totals.breakdown.expense} />
             </div>
             <div className="p-4 border rounded-lg bg-background">
               <p className="text-sm text-muted-foreground">{t('page.transactions.net')}</p>
               <p className={`text-2xl font-bold ${totals.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatMoney(totals.net, totalsCurrency)}
+                {formatMoney(totals.net, totals.currency_code)}
               </p>
             </div>
           </div>
@@ -584,6 +740,8 @@ export default function TransactionsIndex({
                 <TableBody>
                   {transactions.data.map((transaction) => {
                     const isTransfer = transaction.type === 'transfer' || transaction.transfer_transaction_id
+                    const isIncoming = transaction.type === 'income' || transaction.transfer_direction === 'incoming'
+                    const isOutgoing = transaction.type === 'expense' || transaction.transfer_direction === 'outgoing'
                     const isSelected = selectedIds.includes(transaction.id)
                     return (
                     <TableRow
@@ -608,9 +766,14 @@ export default function TransactionsIndex({
                       </TableCell>
                       <TableCell>
                         <div className="max-w-xl">
-                          <p className="font-medium">
-                            {transaction.description || t('common.no_description')}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">
+                              {transaction.description || t('common.no_description')}
+                            </p>
+                            {transaction.bills && transaction.bills.length > 0 && (
+                              <BillsPreviewButton bills={transaction.bills} />
+                            )}
+                          </div>
                           {transaction.notes && (
                             <p className="text-xs text-muted-foreground line-clamp-1">
                               {transaction.notes}
@@ -620,9 +783,14 @@ export default function TransactionsIndex({
                       </TableCell>
                       <TableCell>
                         {transaction.category ? (
-                          <Badge variant="secondary">
-                            {getCategoryName(transaction.category)}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <CategoryIcon
+                              icon={transaction.category.display_icon}
+                              color={transaction.category.color}
+                              size="sm"
+                            />
+                            <span className="text-sm">{getCategoryName(transaction.category)}</span>
+                          </div>
                         ) : transaction.type === 'transfer' ? (
                           <span className="text-muted-foreground">{t('filter.transfer')}</span>
                         ) : (
@@ -634,7 +802,7 @@ export default function TransactionsIndex({
                           <p>{transaction.account?.name}</p>
                           {transaction.type === 'transfer' && transaction.transfer_account && (
                             <p className="text-xs text-muted-foreground">
-                              → {transaction.transfer_account.name}
+                              {transaction.transfer_direction === 'incoming' ? '←' : '→'} {transaction.transfer_account.name}
                             </p>
                           )}
                         </div>
@@ -650,14 +818,14 @@ export default function TransactionsIndex({
                       <TableCell className="text-right">
                         <span
                           className={`font-semibold ${
-                            transaction.type === 'income'
+                            isIncoming
                               ? 'text-green-600'
-                              : transaction.type === 'expense'
+                              : isOutgoing
                                 ? 'text-red-600'
                                 : ''
                           }`}
                         >
-                          {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}
+                          {isIncoming ? '+' : isOutgoing ? '-' : ''}
                           {formatMoney(transaction.amount, transaction.currency_code)}
                         </span>
                       </TableCell>
@@ -669,14 +837,12 @@ export default function TransactionsIndex({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {!transaction.transfer_transaction_id && (
-                              <DropdownMenuItem
-                                onClick={() => handleEdit(transaction)}
-                              >
-                                <Pencil className="mr-2 h-4 w-4" />
-                                {t('action.edit')}
-                              </DropdownMenuItem>
-                            )}
+                            <DropdownMenuItem
+                              onClick={() => handleEdit(transaction)}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              {t('action.edit')}
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleDuplicate(transaction)}
                             >

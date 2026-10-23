@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ArrowLeft } from 'lucide-react'
+import { useCategoryName } from '@/hooks/use-category-name'
 import type { Budget, Category, Currency, BudgetPeriod } from '@modules/Finance/types/finance'
 
 interface Props {
@@ -70,6 +71,7 @@ function getDefaultDates(period: BudgetPeriod) {
 }
 
 export default function EditBudget({ budget, categories, currencies }: Props) {
+  const getCategoryName = useCategoryName()
   const { data, setData, put, processing, errors, transform } = useForm({
     name: budget.name || '',
     category_id: budget.category_id ? String(budget.category_id) : '',
@@ -160,7 +162,7 @@ export default function EditBudget({ budget, categories, currencies }: Props) {
                     <SelectItem value="__all__">All expenses</SelectItem>
                     {expenseCategories.map((category) => (
                       <SelectItem key={category.id} value={String(category.id)}>
-                        {category.name}
+                        {getCategoryName(category)}
                       </SelectItem>
                     ))}
                   </SelectContent>

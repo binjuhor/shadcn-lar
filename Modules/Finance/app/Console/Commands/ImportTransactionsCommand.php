@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Modules\Finance\Models\{Account, Transaction};
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\{IOFactory, Shared\Date};
 
 class ImportTransactionsCommand extends Command
@@ -135,11 +136,11 @@ class ImportTransactionsCommand extends Command
         // Find header row (row with "Ngày")
         $headerRowNum = null;
         $columns = [];
-        $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestColumn);
+        $highestColumnIndex = Coordinate::columnIndexFromString($highestColumn);
 
         for ($row = 1; $row <= min(5, $highestRow); $row++) {
             for ($colIdx = 1; $colIdx <= $highestColumnIndex; $colIdx++) {
-                $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+                $col = Coordinate::stringFromColumnIndex($colIdx);
                 $value = $sheet->getCell($col.$row)->getValue();
                 if (is_string($value) && strtolower(trim($value)) === 'ngày') {
                     $headerRowNum = $row;
@@ -156,7 +157,7 @@ class ImportTransactionsCommand extends Command
 
         // Map columns from header row
         for ($colIdx = 1; $colIdx <= $highestColumnIndex; $colIdx++) {
-            $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+            $col = Coordinate::stringFromColumnIndex($colIdx);
             $value = strtolower(trim((string) $sheet->getCell($col.$headerRowNum)->getValue()));
             if ($value === 'ngày') {
                 $columns['date'] = $col;

@@ -3,12 +3,11 @@
 namespace Modules\Finance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Carbon\Carbon;
 use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\Facades\DB;
 use Inertia\{Inertia, Response};
-use Modules\Finance\Models\{Category, Currency, FinancialPlan, PlanItem, PlanPeriod, RecurringTransaction, Transaction};
-use Modules\Finance\Services\RecurringTransactionService;
+use Modules\Finance\Models\{Category, Currency, FinancialPlan, RecurringTransaction};
+use Modules\Finance\Services\{PlanComparisonService, RecurringTransactionService};
 
 class FinancialPlanController extends Controller
 {
@@ -124,7 +123,7 @@ class FinancialPlanController extends Controller
                         $period->items()->create([
                             'name' => $itemData['name'],
                             'type' => $itemData['type'],
-                            'planned_amount' => (int) $itemData['planned_amount'],
+                            'planned_amount' => round((float) $itemData['planned_amount'], 2),
                             'recurrence' => $itemData['recurrence'],
                             'category_id' => $itemData['category_id'] ?? null,
                             'notes' => $itemData['notes'] ?? null,
@@ -192,7 +191,7 @@ class FinancialPlanController extends Controller
             $existingPeriodIds = [];
             foreach ($validated['periods'] as $periodData) {
                 if (! empty($periodData['id'])) {
-                    $period = PlanPeriod::find($periodData['id']);
+                    $period = $plan->periods()->findOrFail($periodData['id']);
                     $existingPeriodIds[] = $period->id;
                 } else {
                     $period = $plan->periods()->create([
@@ -207,11 +206,11 @@ class FinancialPlanController extends Controller
                 if (! empty($periodData['items'])) {
                     foreach ($periodData['items'] as $itemData) {
                         if (! empty($itemData['id'])) {
-                            $item = PlanItem::find($itemData['id']);
+                            $item = $period->items()->findOrFail($itemData['id']);
                             $item->update([
                                 'name' => $itemData['name'],
                                 'type' => $itemData['type'],
-                                'planned_amount' => (int) $itemData['planned_amount'],
+                                'planned_amount' => round((float) $itemData['planned_amount'], 2),
                                 'recurrence' => $itemData['recurrence'],
                                 'category_id' => $itemData['category_id'] ?? null,
                                 'notes' => $itemData['notes'] ?? null,
@@ -221,7 +220,7 @@ class FinancialPlanController extends Controller
                             $newItem = $period->items()->create([
                                 'name' => $itemData['name'],
                                 'type' => $itemData['type'],
-                                'planned_amount' => (int) $itemData['planned_amount'],
+                                'planned_amount' => round((float) $itemData['planned_amount'], 2),
                                 'recurrence' => $itemData['recurrence'],
                                 'category_id' => $itemData['category_id'] ?? null,
                                 'notes' => $itemData['notes'] ?? null,
@@ -260,7 +259,7 @@ class FinancialPlanController extends Controller
 
         $plan->load(['periods.items.category']);
 
-        $comparison = $this->calculateComparison($plan);
+        $comparison = app(PlanComparisonService::class)->compare($plan, auth()->id());
 
         return Inertia::render('Finance::plans/compare', [
             'plan' => $this->formatPlan($plan),
@@ -314,44 +313,5 @@ class FinancialPlanController extends Controller
             'created_at' => $plan->created_at,
             'updated_at' => $plan->updated_at,
         ];
-    }
-
-    protected function calculateComparison(FinancialPlan $plan): array
-    {
-        $userId = auth()->id();
-        $comparison = [];
-
-        foreach ($plan->periods as $period) {
-            $yearStart = Carbon::create($period->year, 1, 1)->startOfDay();
-            $yearEnd = Carbon::create($period->year, 12, 31)->endOfDay();
-
-            $actualIncome = Transaction::whereHas('account', fn ($q) => $q->where('user_id', $userId))
-                ->where('transaction_type', 'income')
-                ->whereBetween('transaction_date', [$yearStart, $yearEnd])
-                ->sum('amount');
-
-            $actualExpense = Transaction::whereHas('account', fn ($q) => $q->where('user_id', $userId))
-                ->where('transaction_type', 'expense')
-                ->whereBetween('transaction_date', [$yearStart, $yearEnd])
-                ->sum('amount');
-
-            $comparison[] = [
-                'year' => $period->year,
-                'planned_income' => $period->planned_income,
-                'planned_expense' => $period->planned_expense,
-                'actual_income' => (int) $actualIncome,
-                'actual_expense' => (int) $actualExpense,
-                'income_variance' => (int) $actualIncome - $period->planned_income,
-                'expense_variance' => (int) $actualExpense - $period->planned_expense,
-                'income_variance_percent' => $period->planned_income > 0
-                    ? round((($actualIncome - $period->planned_income) / $period->planned_income) * 100, 1)
-                    : 0,
-                'expense_variance_percent' => $period->planned_expense > 0
-                    ? round((($actualExpense - $period->planned_expense) / $period->planned_expense) * 100, 1)
-                    : 0,
-            ];
-        }
-
-        return $comparison;
     }
 }

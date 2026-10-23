@@ -52,7 +52,7 @@ class PlanPeriod extends Model
         return $this->hasMany(PlanItem::class, 'plan_period_id')->where('type', 'expense');
     }
 
-    public function getNetPlannedAttribute(): int
+    public function getNetPlannedAttribute(): float
     {
         return $this->planned_income - $this->planned_expense;
     }
@@ -64,13 +64,11 @@ class PlanPeriod extends Model
         $this->save();
     }
 
-    protected function calculateYearlyTotal(string $type): int
+    protected function calculateYearlyTotal(string $type): float
     {
         $items = $this->items()->where('type', $type)->get();
 
-        return (int) $items->sum(function ($item) {
-            return $this->getYearlyAmount($item->planned_amount, $item->recurrence);
-        });
+        return round($items->sum(fn ($item) => $this->getYearlyAmount($item->planned_amount, $item->recurrence)), 2);
     }
 
     protected function getYearlyAmount(float $amount, string $recurrence): float

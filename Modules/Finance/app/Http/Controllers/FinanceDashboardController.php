@@ -7,13 +7,15 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Finance\Models\{Account, Budget, Currency, RecurringTransaction, Transaction};
-use Modules\Finance\Services\{ExchangeRateService, RecurringTransactionService};
+use Modules\Finance\Services\{BorrowingPayableService, ExchangeRateService, LoanReceivableService, RecurringTransactionService};
 
 class FinanceDashboardController extends Controller
 {
     public function __construct(
         protected ExchangeRateService $exchangeRateService,
-        protected RecurringTransactionService $recurringService
+        protected RecurringTransactionService $recurringService,
+        protected LoanReceivableService $loanReceivableService,
+        protected BorrowingPayableService $borrowingPayableService
     ) {}
 
     public function index(): Response
@@ -49,6 +51,10 @@ class FinanceDashboardController extends Controller
                 return $this->convertToDefault($amountOwed, $account->currency_code, $defaultCode, $account->rate_source);
             });
 
+        $loanReceivables = $this->loanReceivableService->totalForUser($user);
+        $borrowingsPayable = $this->borrowingPayableService->totalForUser($user);
+        $totalAssets += $loanReceivables;
+        $totalLiabilities += $borrowingsPayable;
         $netWorth = $totalAssets - $totalLiabilities;
         $totalBalance = $includedAccounts->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode, $account->rate_source));
 
@@ -68,20 +74,28 @@ class FinanceDashboardController extends Controller
             ->orderBy('allocated_amount', 'desc')
             ->get();
 
-        $spendingTrend = Transaction::select(
+        $spendingTrendRaw = Transaction::select(
             DB::raw('DATE(transaction_date) as date'),
-            DB::raw('SUM(amount) as amount')
+            DB::raw('SUM(amount) as amount'),
+            'currency_code'
         )
             ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
             ->where('transaction_type', 'expense')
             ->where('transaction_date', '>=', now()->subDays(30))
-            ->groupBy('date')
+            ->groupBy('date', 'currency_code')
             ->orderBy('date', 'asc')
-            ->get()
-            ->map(fn ($item) => [
-                'date' => $item->date,
-                'amount' => $item->amount,
-            ]);
+            ->get();
+
+        $spendingTrendMap = [];
+
+        foreach ($spendingTrendRaw as $item) {
+            $amount = $this->convertToDefault((float) $item->amount, $item->currency_code, $defaultCode);
+            $spendingTrendMap[$item->date] = ($spendingTrendMap[$item->date] ?? 0) + $amount;
+        }
+
+        $spendingTrend = collect($spendingTrendMap)
+            ->map(fn ($amount, $date) => ['date' => $date, 'amount' => $amount])
+            ->values();
 
         $recurringProjection = $this->recurringService->getMonthlyProjection($userId, $defaultCode);
 
@@ -109,6 +123,8 @@ class FinanceDashboardController extends Controller
         return Inertia::render('Finance::index', [
             'summary' => [
                 'total_assets' => $totalAssets,
+                'loan_receivables' => $loanReceivables,
+                'borrowings_payable' => $borrowingsPayable,
                 'total_liabilities' => $totalLiabilities,
                 'net_worth' => $netWorth,
                 'total_balance' => $totalBalance,

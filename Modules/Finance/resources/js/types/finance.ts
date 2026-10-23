@@ -13,6 +13,12 @@ export type AccountType = 'bank' | 'credit_card' | 'investment' | 'cash' | 'loan
 
 export type RateSource = 'exchangerate_api' | 'open_exchange_rates' | 'vietcombank' | 'payoneer' | null;
 
+export interface BankIcon {
+  key: string;
+  name: string;
+  url: string;
+}
+
 export interface Account {
   id: number;
   user_id: number;
@@ -20,6 +26,8 @@ export interface Account {
   account_type: AccountType;
   has_credit_limit: boolean;
   currency_code: string;
+  account_number?: string | null;
+  institution_name?: string | null;
   rate_source?: RateSource;
   currency?: Currency;
   balance: number;
@@ -27,6 +35,7 @@ export interface Account {
   current_balance: number;
   description?: string;
   icon?: string;
+  icon_url?: string | null;
   color?: string;
   is_active: boolean;
   is_default_payment: boolean;
@@ -51,10 +60,14 @@ export interface Category {
   name: string;
   name_key?: string | null;
   type: CategoryType;
-  icon?: string;
+  /** Own icon; null on a subcategory means it inherits the parent's. */
+  icon?: string | null;
+  /** Icon to render, resolved server-side (own icon or parent's). */
+  display_icon?: string | null;
   color?: string;
   is_active: boolean;
   is_passive: boolean;
+  is_loan: boolean;
   expense_type?: ExpenseType;
   _lft?: number;
   _rgt?: number;
@@ -89,6 +102,7 @@ export interface Transaction {
   transfer_account_id?: number;
   transfer_account?: Account;
   transfer_transaction_id?: number;
+  transfer_direction?: 'outgoing' | 'incoming';
   bills?: TransactionBill[];
   created_at: string;
   updated_at: string;
@@ -117,6 +131,8 @@ export interface Budget {
 
 export interface AccountSummary {
   total_balance: number;
+  loan_receivables: number;
+  borrowings_payable: number;
   total_assets: number;
   total_liabilities: number;
   net_worth: number;
@@ -183,7 +199,7 @@ export interface ExchangeRateFilters {
 }
 
 // Report types
-export type DateRangePreset = '30d' | '6m' | '12m' | 'ytd' | 'custom';
+export type DateRangePreset = '30d' | '6m' | '7m' | '12m' | 'ytd' | 'custom';
 
 export interface ReportFilters {
   range: DateRangePreset;
@@ -539,6 +555,92 @@ export interface MonthlyProjection {
   currency_code: string;
 }
 
+// Loans
+export type LoanStatus = 'active' | 'partially_repaid' | 'repaid' | 'written_off'
+
+export interface LoanRepayment {
+  id: number
+  loan_id: number
+  amount: number
+  repaid_at: string
+  note?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LoanProof {
+  id: number
+  url: string
+  name: string
+  mime_type?: string | null
+  size: number
+}
+
+export interface Loan {
+  id: number
+  user_id: number
+  transaction_id?: number | null
+  transaction?: Pick<Transaction, 'id' | 'description' | 'amount' | 'currency_code' | 'transaction_date' | 'account'> | null
+  borrower_name: string
+  amount: number
+  amount_repaid: number
+  currency_code: string
+  currency?: Currency
+  loan_date: string
+  due_date?: string | null
+  message?: string | null
+  status: LoanStatus
+  remaining_amount: number
+  progress_percent: number
+  proofs: LoanProof[]
+  repayments?: LoanRepayment[]
+  created_at: string
+  updated_at: string
+}
+
+// Borrowings
+export type BorrowingStatus = 'active' | 'partially_repaid' | 'repaid' | 'written_off'
+
+export interface BorrowingRepayment {
+  id: number
+  borrowing_id: number
+  amount: number
+  repaid_at: string
+  note?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface BorrowingProof {
+  id: number
+  url: string
+  name: string
+  mime_type?: string | null
+  size: number
+}
+
+export interface Borrowing {
+  id: number
+  user_id: number
+  transaction_id?: number | null
+  transaction?: Pick<Transaction, 'id' | 'description' | 'amount' | 'currency_code' | 'transaction_date' | 'account'> | null
+  lender_name: string
+  amount: number
+  amount_repaid: number
+  currency_code: string
+  currency?: Currency
+  borrowed_date: string
+  due_date?: string | null
+  message?: string | null
+  status: BorrowingStatus
+  remaining_amount: number
+  progress_percent: number
+  proofs: BorrowingProof[]
+  repayments?: BorrowingRepayment[]
+  created_at: string
+  updated_at: string
+}
+
 // AI Advisor
 export interface AdvisorConversationSummary {
   id: number
@@ -554,4 +656,35 @@ export interface AdvisorMessage {
   created_at: string
   isProcessing?: boolean
   error?: string
+}
+
+// Unified AI Assistant (Smart Input + AI Advisor)
+export interface AssistantDraft extends ParsedTransaction {
+  history_id?: number | null
+  saved_transaction_id?: number | null
+  saved_currency_code?: string | null
+}
+
+export interface AssistantAction {
+  type: 'confirm_tool'
+  tool: string
+  /** Present only while the action is pending */
+  token?: string
+  preview: Record<string, unknown>
+  status: 'pending' | 'resolved'
+}
+
+export interface AssistantMessageMeta {
+  input_type?: ChatInputType
+  history_id?: number
+  media_url?: string | null
+  drafts?: AssistantDraft[]
+  actions?: AssistantAction[]
+  error?: boolean
+}
+
+export interface AssistantMessage extends AdvisorMessage {
+  meta?: AssistantMessageMeta | null
+  /** Local preview of an attachment before the server returns its URL */
+  localAttachment?: ChatAttachment
 }

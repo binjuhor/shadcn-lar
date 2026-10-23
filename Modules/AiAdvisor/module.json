@@ -1,0 +1,11 @@
+{
+    "name": "AiAdvisor",
+    "alias": "aiadvisor",
+    "description": "Provider-neutral financial advisor agent and tool runtime",
+    "keywords": ["ai", "advisor", "finance", "tools"],
+    "priority": 1,
+    "providers": [
+        "Modules\\AiAdvisor\\Providers\\AiAdvisorServiceProvider"
+    ],
+    "files": []
+}

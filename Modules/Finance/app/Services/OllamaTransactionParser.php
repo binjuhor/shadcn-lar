@@ -4,28 +4,57 @@ namespace Modules\Finance\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\{Http, Log};
+use Modules\Settings\Services\AiCredentialResolver;
 
 class OllamaTransactionParser extends DeepSeekTransactionParser
 {
-    protected string $baseUrl;
-
     protected string $visionModel;
+
+    protected string $audioModel;
 
     public function __construct()
     {
-        $this->baseUrl = rtrim(config('services.ollama.base_url', 'http://localhost:11434'), '/');
-        $this->model = config('services.ollama.model', 'llama3.2');
         $this->visionModel = config('services.ollama.vision_model', 'llama3.2-vision');
-        $this->apiKey = config('services.ollama.api_key', '');
+        $this->audioModel = config('services.ollama.audio_model', 'nemotron3');
     }
 
     public function parseVoice(UploadedFile $audioFile, string $language = 'vi'): array
     {
-        return [
-            'success' => false,
-            'error' => 'Ollama does not support voice input. Please use text input instead.',
-            'confidence' => 0,
-        ];
+        $audioBase64 = base64_encode(file_get_contents($audioFile->getRealPath()));
+        $mimeType = $audioFile->getMimeType() ?: 'audio/webm';
+
+        Log::info('Ollama voice parsing request', [
+            'mime' => $mimeType,
+            'file_size' => $audioFile->getSize(),
+            'model' => $this->audioModel,
+        ]);
+
+        $prompt = $this->getParsePrompt($language);
+
+        $response = $this->callOllamaApi([
+            'model' => $this->audioModel,
+            'messages' => [
+                [
+                    'role' => 'user',
+                    'content' => [
+                        ['type' => 'text', 'text' => $prompt],
+                        ['type' => 'image_url', 'image_url' => ['url' => "data:{$mimeType};base64,{$audioBase64}"]],
+                    ],
+                ],
+            ],
+        ]);
+
+        if (isset($response['error'])) {
+            Log::error('Ollama voice parsing failed', ['error' => $response['error']]);
+
+            return [
+                'success' => false,
+                'error' => 'Voice input is temporarily unavailable. Please type your transaction instead (e.g., "Cafe 50k").',
+                'confidence' => 0,
+            ];
+        }
+
+        return $this->parseResponse($response);
     }
 
     public function parseReceipt(UploadedFile $imageFile, string $language = 'vi'): array
@@ -55,9 +84,11 @@ class OllamaTransactionParser extends DeepSeekTransactionParser
     {
         $prompt = $this->getParsePrompt($language)."\n\nInput: {$text}";
 
+        // Use Ollama's native format parameter instead of response_format —
+        // not all models support response_format via the OpenAI-compat endpoint.
         $response = $this->callOllamaApi([
-            'model' => $this->model,
-            'response_format' => ['type' => 'json_object'],
+            'model' => app(AiCredentialResolver::class)->ollamaModel(),
+            'format' => 'json',
             'messages' => [
                 ['role' => 'user', 'content' => $prompt],
             ],
@@ -88,17 +119,19 @@ class OllamaTransactionParser extends DeepSeekTransactionParser
 
     protected function callOllamaApi(array $payload): array
     {
-        $url = "{$this->baseUrl}/v1/chat/completions";
+        $baseUrl = app(AiCredentialResolver::class)->ollamaBaseUrl();
+        $url = "{$baseUrl}/v1/chat/completions";
 
         $headers = ['Content-Type' => 'application/json'];
 
-        if ($this->apiKey !== '') {
-            $headers['Authorization'] = "Bearer {$this->apiKey}";
+        $apiKey = app(AiCredentialResolver::class)->apiKey('ollama');
+        if ($apiKey !== null) {
+            $headers['Authorization'] = "Bearer {$apiKey}";
         }
 
         try {
             $response = Http::timeout(180)
-                ->withOptions(['allow_redirects' => ['strict' => true]])
+                ->withOptions(['allow_redirects' => false])
                 ->withHeaders($headers)
                 ->post($url, $payload);
 
@@ -108,11 +141,12 @@ class OllamaTransactionParser extends DeepSeekTransactionParser
                     'body' => $response->body(),
                 ]);
 
+                $body = $response->json();
                 $errorMessage = match (true) {
-                    $response->status() >= 500 => 'Ollama service error. Please try again later.',
-                    $response->status() === 404 => 'Ollama model not found. Check OLLAMA_MODEL in your .env file.',
+                    $response->status() === 404 => "Ollama model '".($payload['model'] ?? 'unknown')."' not found at {$baseUrl}. Check your Ollama settings.",
                     $response->status() === 401 => 'Ollama authentication failed. Check OLLAMA_API_KEY in your .env file.',
-                    default => 'Ollama service error. Please try again.',
+                    $response->status() >= 500 => 'Ollama service error: '.($body['error']['message'] ?? $response->body()),
+                    default => 'Ollama error (HTTP '.$response->status().'): '.($body['error']['message'] ?? $response->body()),
                 };
 
                 return ['error' => $errorMessage, 'status' => $response->status()];
@@ -122,7 +156,7 @@ class OllamaTransactionParser extends DeepSeekTransactionParser
         } catch (\Exception $e) {
             Log::error('Ollama API exception', ['message' => $e->getMessage()]);
 
-            return ['error' => "Cannot connect to Ollama at {$this->baseUrl}. Check your OLLAMA_BASE_URL and network connection."];
+            return ['error' => "Cannot connect to Ollama at {$baseUrl}. Check your Ollama Base URL and network connection."];
         }
     }
 }

@@ -1,0 +1,14 @@
+{
+    "name": "mokey/ai-advisor",
+    "description": "Mokey AI advisor module",
+    "autoload": {
+        "psr-4": {
+            "Modules\\AiAdvisor\\": "app/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\AiAdvisor\\Tests\\": "tests/"
+        }
+    }
+}

@@ -4,6 +4,7 @@ namespace Modules\Ecommerce\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\Blog\Http\Resources\UserResource;
 
 class ProductResource extends JsonResource
 {
@@ -44,7 +45,7 @@ class ProductResource extends JsonResource
 
             'category' => $this->whenLoaded('category', fn () => ProductCategoryResource::make($this->category)->resolve()),
             'tags' => $this->whenLoaded('tags', fn () => ProductTagResource::collection($this->tags)->resolve()),
-            'user' => $this->whenLoaded('user', fn () => (new \Modules\Blog\Http\Resources\UserResource($this->user))->resolve()),
+            'user' => $this->whenLoaded('user', fn () => (new UserResource($this->user))->resolve()),
         ];
     }
 }

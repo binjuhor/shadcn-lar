@@ -19,6 +19,7 @@ interface DateRangePickerProps {
 const presets: { value: DateRangePreset; label: string }[] = [
   { value: '30d', label: '30 Days' },
   { value: '6m', label: '6 Months' },
+  { value: '7m', label: '7 Months' },
   { value: '12m', label: '12 Months' },
   { value: 'ytd', label: 'YTD' },
   { value: 'custom', label: 'Custom' },

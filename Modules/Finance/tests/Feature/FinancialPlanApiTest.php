@@ -5,7 +5,7 @@ namespace Modules\Finance\Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
-use Modules\Finance\Models\{Currency, FinancialPlan};
+use Modules\Finance\Models\{Account, Currency, ExchangeRate, FinancialPlan, Transaction};
 use Tests\TestCase;
 
 class FinancialPlanApiTest extends TestCase
@@ -189,5 +189,46 @@ class FinancialPlanApiTest extends TestCase
         $response = $this->getJson('/api/v1/finance/plans');
 
         $response->assertUnauthorized();
+    }
+
+    public function test_compare_converts_actuals_into_the_plan_currency(): void
+    {
+        Currency::create(['code' => 'VND', 'name' => 'Vietnamese Dong', 'symbol' => '₫', 'decimal_places' => 0, 'is_default' => false]);
+        ExchangeRate::create(['base_currency' => 'VND', 'target_currency' => 'USD', 'rate' => 0.00004, 'source' => 'manual', 'rate_date' => now()]);
+        $usd = Account::create(['user_id' => $this->user->id, 'name' => 'USD', 'account_type' => 'bank', 'currency_code' => 'USD', 'initial_balance' => 0, 'current_balance' => 0, 'is_active' => true]);
+        $vnd = Account::create(['user_id' => $this->user->id, 'name' => 'VND', 'account_type' => 'cash', 'currency_code' => 'VND', 'initial_balance' => 0, 'current_balance' => 0, 'is_active' => true]);
+        foreach ([[$usd, 'USD', 100.5], [$vnd, 'VND', 2500000]] as [$account, $currency, $amount]) {
+            Transaction::create(['account_id' => $account->id, 'user_id' => $this->user->id, 'transaction_type' => 'income', 'amount' => $amount, 'currency_code' => $currency, 'transaction_date' => '2026-03-01', 'description' => 'Pay']);
+        }
+        $plan = $this->createPlan();
+        $plan->periods()->create(['year' => 2026, 'planned_income' => 200, 'planned_expense' => 0]);
+
+        Sanctum::actingAs($this->user);
+
+        $this->getJson("/api/v1/finance/plans/{$plan->id}/compare")
+            ->assertOk()
+            ->assertJsonPath('data.comparison.0.actual_income', 200.5);
+    }
+
+    public function test_update_keeps_item_cents_and_rejects_items_of_other_plans(): void
+    {
+        $other = User::factory()->create();
+        $foreign = $this->createPlan(['user_id' => $other->id]);
+        $foreignItem = $foreign->periods()->create(['year' => 2026, 'planned_income' => 0, 'planned_expense' => 0])
+            ->items()->create(['name' => 'Rent', 'type' => 'expense', 'planned_amount' => 500, 'recurrence' => 'monthly']);
+        $plan = $this->createPlan();
+        $period = $plan->periods()->create(['year' => 2026, 'planned_income' => 0, 'planned_expense' => 0]);
+
+        Sanctum::actingAs($this->user);
+
+        $body = fn (array $item) => ['name' => 'Plan', 'status' => 'active', 'periods' => [['id' => $period->id, 'year' => 2026, 'items' => [$item]]]];
+
+        $this->putJson("/api/v1/finance/plans/{$plan->id}", $body(['name' => 'Gym', 'type' => 'expense', 'planned_amount' => 12.5, 'recurrence' => 'monthly']))
+            ->assertOk()
+            ->assertJsonPath('data.periods.0.planned_expense', 150);
+
+        $this->putJson("/api/v1/finance/plans/{$plan->id}", $body(['id' => $foreignItem->id, 'name' => 'Hijack', 'type' => 'expense', 'planned_amount' => 1, 'recurrence' => 'yearly']))
+            ->assertNotFound();
+        $this->assertSame('Rent', $foreignItem->fresh()->name);
     }
 }

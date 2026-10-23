@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select'
 import { ArrowLeft } from 'lucide-react'
 import type { Category } from '@modules/Finance/types/finance'
+import { CategoryIconPicker, iconForParent, initialCategoryIcon } from '@modules/Finance/components/category-icon'
 
 interface Props {
   category: Category
@@ -36,7 +37,7 @@ export default function EditCategory({ category, parentCategories }: Props) {
   const { data, setData, put, processing, errors, transform } = useForm({
     name: category.name || '',
     type: category.type || 'expense',
-    icon: category.icon || '',
+    icon: initialCategoryIcon(category),
     color: category.color || '#3b82f6',
     parent_id: category.parent_id ? String(category.parent_id) : '',
     is_active: category.is_active ?? true,
@@ -98,6 +99,7 @@ export default function EditCategory({ category, parentCategories }: Props) {
                   onValueChange={(value) => {
                     setData('type', value as 'income' | 'expense')
                     setData('parent_id', '')
+                    setData((d) => ({ ...d, icon: iconForParent(d.icon, '') }))
                   }}
                 >
                   <SelectTrigger>
@@ -117,7 +119,10 @@ export default function EditCategory({ category, parentCategories }: Props) {
                 <Label htmlFor="parent_id">Parent Category (Optional)</Label>
                 <Select
                   value={data.parent_id || '__none__'}
-                  onValueChange={(value) => setData('parent_id', value === '__none__' ? '' : value)}
+                  onValueChange={(value) => {
+                    const parentId = value === '__none__' ? '' : value
+                    setData((d) => ({ ...d, parent_id: parentId, icon: iconForParent(d.icon, parentId) }))
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="No parent (top-level)" />
@@ -137,12 +142,13 @@ export default function EditCategory({ category, parentCategories }: Props) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="icon">Icon (Optional)</Label>
-                <Input
-                  id="icon"
+                <Label>Icon</Label>
+                <CategoryIconPicker
                   value={data.icon}
-                  onChange={(e) => setData('icon', e.target.value)}
-                  placeholder="e.g., shopping-cart"
+                  color={data.color}
+                  onChange={(icon) => setData('icon', icon)}
+                  parentIcon={data.parent_id ? (parentCategories.find((c) => String(c.id) === data.parent_id)?.icon ?? null) : undefined}
+                  parentLabel="Same as parent category"
                 />
               </div>
 

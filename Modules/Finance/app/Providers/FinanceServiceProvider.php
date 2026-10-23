@@ -9,12 +9,15 @@ use Modules\Finance\Console\Commands\{
     ConvertTechcombankPdfCommand,
     FetchExchangeRatesCommand,
     ImportTransactionsCommand,
+    NormalizeTransferTransactionsCommand,
     ProcessRecurringTransactionsCommand,
     PurgeSoftDeletedRecordsCommand,
     RecalculatePlanTotalsCommand
 };
-use Modules\Finance\Models\{Account, Budget, SavingsGoal, Transaction};
-use Modules\Finance\Policies\{AccountPolicy, BudgetPolicy, SavingsGoalPolicy, TransactionPolicy};
+use Modules\Finance\Models\{Account, Borrowing, BorrowingRepayment, Budget, Loan, LoanRepayment, SavingsGoal, Transaction};
+use Modules\Finance\Observers\DashboardCacheObserver;
+use Modules\Finance\Policies\{AccountPolicy, BorrowingPolicy, BudgetPolicy, LoanPolicy, SavingsGoalPolicy, TransactionPolicy};
+use Modules\Finance\Services\UserCurrencyConversionService;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -32,6 +35,7 @@ class FinanceServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->registerObservers();
         $this->registerCommands();
         $this->registerCommandSchedules();
         $this->registerTranslations();
@@ -41,12 +45,25 @@ class FinanceServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
     }
 
+    protected function registerObservers(): void
+    {
+        Transaction::observe(DashboardCacheObserver::class);
+        Account::observe(DashboardCacheObserver::class);
+        Budget::observe(DashboardCacheObserver::class);
+        Loan::observe(DashboardCacheObserver::class);
+        LoanRepayment::observe(DashboardCacheObserver::class);
+        Borrowing::observe(DashboardCacheObserver::class);
+        BorrowingRepayment::observe(DashboardCacheObserver::class);
+    }
+
     protected function registerPolicies(): void
     {
         Gate::policy(Account::class, AccountPolicy::class);
         Gate::policy(Transaction::class, TransactionPolicy::class);
         Gate::policy(Budget::class, BudgetPolicy::class);
         Gate::policy(SavingsGoal::class, SavingsGoalPolicy::class);
+        Gate::policy(Loan::class, LoanPolicy::class);
+        Gate::policy(Borrowing::class, BorrowingPolicy::class);
     }
 
     /**
@@ -56,6 +73,7 @@ class FinanceServiceProvider extends ServiceProvider
     {
         $this->app->register(EventServiceProvider::class);
         $this->app->register(RouteServiceProvider::class);
+        $this->app->scoped(UserCurrencyConversionService::class);
     }
 
     /**
@@ -68,6 +86,7 @@ class FinanceServiceProvider extends ServiceProvider
             ConvertTechcombankPdfCommand::class,
             FetchExchangeRatesCommand::class,
             ImportTransactionsCommand::class,
+            NormalizeTransferTransactionsCommand::class,
             ProcessRecurringTransactionsCommand::class,
             PurgeSoftDeletedRecordsCommand::class,
             RecalculatePlanTotalsCommand::class,
@@ -87,8 +106,9 @@ class FinanceServiceProvider extends ServiceProvider
                 ->withoutOverlapping()
                 ->runInBackground();
 
+            // Hourly so a missed run (downtime, deploy restart) catches up quickly
             $schedule->command('finance:process-recurring')
-                ->dailyAt('00:05')
+                ->hourlyAt(5)
                 ->withoutOverlapping()
                 ->runInBackground();
         });

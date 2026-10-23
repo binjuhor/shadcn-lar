@@ -187,7 +187,14 @@ class RecurringTransactionController extends Controller
 
     public function process(): RedirectResponse
     {
-        $result = $this->recurringService->processDue();
+        $result = $this->recurringService->processDue(auth()->id());
+
+        if (! empty($result['errors'])) {
+            return Redirect::back()->with(
+                'error',
+                "Processed {$result['processed']} recurring transaction(s), ".count($result['errors']).' failed'
+            );
+        }
 
         return Redirect::back()->with('success', "Processed {$result['processed']} recurring transaction(s)");
     }

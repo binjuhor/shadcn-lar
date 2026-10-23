@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react'
+import { useCategoryName } from '@/hooks/use-category-name'
 import type { Account, Category, TransactionType } from '@modules/Finance/types/finance'
 
 interface Props {
@@ -45,6 +46,7 @@ interface ConversionPreview {
 
 export default function CreateTransaction({ accounts, categories }: Props) {
   const { t } = useTranslation()
+  const getCategoryName = useCategoryName()
   const { data, setData, post, processing, errors, transform, reset } = useForm({
     type: 'expense' as TransactionType,
     account_id: '',
@@ -308,7 +310,7 @@ export default function CreateTransaction({ accounts, categories }: Props) {
                     <SelectContent>
                       {currentCategories.map((category) => (
                         <SelectItem key={category.id} value={String(category.id)}>
-                          {category.name}
+                          {getCategoryName(category)}
                         </SelectItem>
                       ))}
                     </SelectContent>

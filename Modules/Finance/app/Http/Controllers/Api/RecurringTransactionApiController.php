@@ -188,7 +188,7 @@ class RecurringTransactionApiController extends Controller
 
     public function process(): JsonResponse
     {
-        $result = $this->recurringService->processDue();
+        $result = $this->recurringService->processDue(auth()->id());
 
         return response()->json([
             'message' => "Processed {$result['processed']} recurring transaction(s)",

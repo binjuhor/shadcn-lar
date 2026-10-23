@@ -2,6 +2,7 @@ import {
   IconBrowserCheck,
   IconCurrencyDollar,
   IconFileInvoice,
+  IconKey,
   IconNotification,
   IconPackages,
   IconPalette,
@@ -55,6 +56,12 @@ export const settingsNavItems: SettingsNavItem[] = [
     icon: <IconCurrencyDollar size={18} />,
     href: '/dashboard/settings/finance',
     requiresModule: 'Finance',
+  },
+  {
+    title: 'AI Keys',
+    titleKey: 'settings.nav.ai',
+    icon: <IconKey size={18} />,
+    href: '/dashboard/settings/ai',
   },
   {
     title: 'Invoice',

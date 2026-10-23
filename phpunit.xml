@@ -8,12 +8,14 @@
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
             <directory>Modules/Notification/tests/Unit</directory>
+            <directory>Modules/AiAdvisor/tests/Unit</directory>
         </testsuite>
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
             <directory>Modules/Notification/tests/Feature</directory>
             <directory>Modules/Settings/tests/Feature</directory>
             <directory>Modules/Finance/tests/Feature</directory>
+            <directory>Modules/AiAdvisor/tests/Feature</directory>
         </testsuite>
     </testsuites>
     <source>

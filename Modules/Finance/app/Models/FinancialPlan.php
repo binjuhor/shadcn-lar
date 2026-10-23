@@ -49,17 +49,17 @@ class FinancialPlan extends Model
         return $this->hasMany(PlanPeriod::class, 'financial_plan_id')->orderBy('year');
     }
 
-    public function getTotalPlannedIncomeAttribute(): int
+    public function getTotalPlannedIncomeAttribute(): float
     {
         return $this->periods->sum('planned_income');
     }
 
-    public function getTotalPlannedExpenseAttribute(): int
+    public function getTotalPlannedExpenseAttribute(): float
     {
         return $this->periods->sum('planned_expense');
     }
 
-    public function getNetPlannedAttribute(): int
+    public function getNetPlannedAttribute(): float
     {
         return $this->total_planned_income - $this->total_planned_expense;
     }

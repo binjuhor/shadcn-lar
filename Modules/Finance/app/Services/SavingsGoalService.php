@@ -8,6 +8,10 @@ use Modules\Finance\Models\{Account, SavingsContribution, SavingsGoal, Transacti
 
 class SavingsGoalService
 {
+    public function __construct(
+        private ExchangeRateService $exchangeRateService
+    ) {}
+
     public function createGoal(array $data): SavingsGoal
     {
         return DB::transaction(function () use ($data) {
@@ -101,6 +105,13 @@ class SavingsGoalService
 
     public function recalculateProgress(SavingsGoal $goal): void
     {
+        // When a linked account exists, the account balance is the source of truth
+        if ($goal->target_account_id) {
+            $this->syncWithLinkedAccount($goal);
+
+            return;
+        }
+
         $totalContributions = $goal->contributions()->sum('amount');
         $goal->update(['current_amount' => max($totalContributions, 0)]);
     }
@@ -151,9 +162,20 @@ class SavingsGoalService
             throw new \Exception('Transaction does not belong to user');
         }
 
+        $amount = $transaction->amount;
+
+        if ($transaction->currency_code !== $goal->currency_code) {
+            $amount = $this->exchangeRateService->convert(
+                $amount,
+                $transaction->currency_code,
+                $goal->currency_code,
+                $transaction->account?->rate_source
+            );
+        }
+
         return $this->addContribution($goal, [
             'transaction_id' => $transaction->id,
-            'amount' => $transaction->amount,
+            'amount' => $amount,
             'contribution_date' => $transaction->transaction_date,
             'notes' => "Linked from transaction: {$transaction->description}",
         ]);
@@ -166,24 +188,37 @@ class SavingsGoalService
     public function transferToGoal(SavingsGoal $goal, array $data): SavingsContribution
     {
         return DB::transaction(function () use ($goal, $data) {
-            $amount = abs($data['amount']);
+            $account = Account::findOrFail($data['from_account_id']);
+            $goalAmount = abs($data['amount']); // amount in goal currency (what user entered)
 
-            // Create expense transaction from source account
+            // Convert goal currency amount to account currency to know how much to deduct
+            $accountAmount = $goalAmount;
+            if ($account->currency_code !== $goal->currency_code) {
+                $accountAmount = $this->exchangeRateService->convert(
+                    $goalAmount,
+                    $goal->currency_code,
+                    $account->currency_code,
+                    $account->rate_source
+                );
+            }
+
+            // Transaction uses account's own currency
             $transaction = Transaction::create([
                 'user_id' => $goal->user_id,
-                'account_id' => $data['from_account_id'],
+                'account_id' => $account->id,
                 'category_id' => $data['category_id'] ?? null,
                 'transaction_type' => 'expense',
-                'amount' => -$amount,
-                'currency_code' => $goal->currency_code,
+                'amount' => $accountAmount,
+                'currency_code' => $account->currency_code,
                 'description' => $data['notes'] ?? "Transfer to savings: {$goal->name}",
                 'transaction_date' => $data['transfer_date'] ?? now()->toDateString(),
             ]);
 
-            // Link transaction to savings goal as contribution
+            $account->updateBalance(-$accountAmount);
+
             return $this->addContribution($goal, [
                 'transaction_id' => $transaction->id,
-                'amount' => $amount,
+                'amount' => $goalAmount, // contribution recorded in goal currency
                 'contribution_date' => $transaction->transaction_date,
                 'notes' => $data['notes'] ?? 'Transfer from account',
             ]);
@@ -198,12 +233,22 @@ class SavingsGoalService
 
         $account = Account::find($goal->target_account_id);
 
-        if (! $account || $account->currency_code !== $goal->currency_code) {
+        if (! $account) {
             return;
         }
 
-        $newAmount = max($account->current_balance, 0);
-        $goal->update(['current_amount' => $newAmount]);
+        $balance = max($account->current_balance, 0);
+
+        if ($account->currency_code !== $goal->currency_code) {
+            $balance = $this->exchangeRateService->convert(
+                $balance,
+                $account->currency_code,
+                $goal->currency_code,
+                $account->rate_source
+            );
+        }
+
+        $goal->update(['current_amount' => $balance]);
     }
 
     public function unlinkContribution(SavingsContribution $contribution): void

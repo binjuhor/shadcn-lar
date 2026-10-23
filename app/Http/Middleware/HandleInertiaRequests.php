@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Inertia\Middleware;
+use Modules\Finance\Services\AssistantService;
 use Nwidart\Modules\Facades\Module;
 
 class HandleInertiaRequests extends Middleware
@@ -52,6 +53,10 @@ class HandleInertiaRequests extends Middleware
             'translations' => fn () => $this->getTranslations(),
             'enabledModules' => fn () => collect(Module::allEnabled())->keys()->toArray(),
             'sidebarSettings' => fn () => $user?->sidebar_settings ?? [],
+            'features' => fn () => [
+                // Same check as the assistant routes' middleware; false when the Finance module is absent
+                'assistant' => class_exists(AssistantService::class) && AssistantService::enabled(),
+            ],
         ];
     }
 

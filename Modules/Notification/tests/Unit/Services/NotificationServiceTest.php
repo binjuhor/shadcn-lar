@@ -3,6 +3,7 @@
 namespace Modules\Notification\Tests\Unit\Services;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Modules\Notification\{
@@ -164,7 +165,7 @@ class NotificationServiceTest extends TestCase
             'is_active' => false,
         ]);
 
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
 
         $this->service->sendFromTemplateBySlug(
             slug: 'inactive-template',

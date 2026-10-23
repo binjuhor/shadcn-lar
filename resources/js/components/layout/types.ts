@@ -18,6 +18,10 @@ interface BaseNavItem {
   badge?: string
   icon?: React.ElementType
   permission?: string | string[]
+  superAdminOnly?: boolean
+  requiresModule?: string
+  /** Hide unless the server feature flag (shared `features` prop) is on */
+  requiresFeature?: string
 }
 
 type NavLink = BaseNavItem & {
@@ -38,6 +42,7 @@ interface NavGroup {
   items: NavItem[]
   collapsible?: boolean
   requiresModule?: string
+  superAdminOnly?: boolean
 }
 
 interface SidebarData {

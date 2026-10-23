@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useToast } from '@/hooks/use-toast'
 import {
   ArrowDownLeft,
   ArrowLeft,
@@ -56,7 +57,9 @@ export default function RecurringTransactionsIndex({
   categories,
 }: Props) {
   const { t } = useTranslation()
+  const { toast } = useToast()
   const [formOpen, setFormOpen] = useState(false)
+  const [processingDue, setProcessingDue] = useState(false)
   const [editingRecurring, setEditingRecurring] = useState<RecurringTransaction | null>(null)
   const [deletingRecurring, setDeletingRecurring] = useState<RecurringTransaction | null>(null)
 
@@ -87,6 +90,22 @@ export default function RecurringTransactionsIndex({
   const handleProcess = () => {
     router.post(route('dashboard.finance.recurring-transactions.process'), {}, {
       preserveScroll: true,
+      onStart: () => setProcessingDue(true),
+      onFinish: () => setProcessingDue(false),
+      onSuccess: (page) => {
+        const flash = (page.props as { flash?: { success?: string; error?: string } }).flash
+        if (flash?.error) {
+          toast({ variant: 'destructive', title: flash.error })
+        } else if (flash?.success) {
+          toast({ title: flash.success })
+        }
+      },
+      onError: (errors) => {
+        toast({
+          variant: 'destructive',
+          title: (Object.values(errors)[0] as string) || t('common.error'),
+        })
+      },
     })
   }
 
@@ -116,8 +135,8 @@ export default function RecurringTransactionsIndex({
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleProcess}>
-              <RefreshCw className="mr-2 h-4 w-4" />
+            <Button variant="outline" onClick={handleProcess} disabled={processingDue}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${processingDue ? 'animate-spin' : ''}`} />
               {t('page.recurring.process_due')}
             </Button>
             <Button onClick={() => setFormOpen(true)}>

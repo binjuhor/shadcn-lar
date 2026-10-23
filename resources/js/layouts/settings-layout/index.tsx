@@ -17,14 +17,14 @@ import { PageProps } from '@/types'
 
 export function SettingLayout({ children, title }: { children: React.ReactNode; title?: string }) {
   const { t } = useTranslation()
-  const { isSuperAdmin } = usePermission()
+  const { isSuperAdmin, isFeatureEnabled } = usePermission()
   const { url, props } = usePage<PageProps>()
   const enabledModules = props.enabledModules ?? []
 
   const navItems = [
     { title: t('nav.accounts'), href: '/dashboard/finance/accounts' },
     { title: t('nav.transactions'), href: '/dashboard/finance/transactions' },
-    { title: t('nav.smart_input'), href: '/dashboard/finance/smart-input' },
+    ...(isFeatureEnabled('assistant') ? [{ title: t('nav.ai_assistant'), href: '/dashboard/finance/assistant' }] : []),
     { title: t('nav.settings'), href: '/dashboard/settings' },
   ]
 

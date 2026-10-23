@@ -17,8 +17,8 @@ use Modules\Finance\Http\Requests\Transaction\{
     StoreTransactionRequest,
     UpdateTransactionRequest
 };
-use Modules\Finance\Models\{Account, Category, Transaction};
-use Modules\Finance\Services\{BillAttachmentService, GenericCsvImportService, PayoneerImportService, TechcombankImportService, TechcombankPdfImportService};
+use Modules\Finance\Models\{Account, Category, Currency, Transaction};
+use Modules\Finance\Services\{BillAttachmentService, BudgetService, ExchangeRateService, GenericCsvImportService, LoanService, PayoneerImportService, TechcombankImportService, TechcombankPdfImportService};
 use Modules\Finance\Services\TransactionService;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -30,6 +30,9 @@ class TransactionController extends Controller
     public function __construct(
         private TransactionService $transactionService,
         private BillAttachmentService $billAttachmentService,
+        private BudgetService $budgetService,
+        private LoanService $loanService,
+        private ExchangeRateService $exchangeRateService,
     ) {}
 
     public function index(IndexTransactionRequest $request): Response
@@ -78,12 +81,44 @@ class TransactionController extends Controller
             $query->where('amount', '<=', $request->amount_to);
         }
 
-        // Calculate totals for filtered transactions
-        $totals = (clone $query)->selectRaw("
-            SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END) as total_income,
-            SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END) as total_expense,
-            COUNT(*) as transaction_count
-        ")->first();
+        $user = auth()->user();
+        $userSettings = $user->finance_settings ?? [];
+        $defaultCode = $userSettings['default_currency'] ?? Currency::where('is_default', true)->first()?->code ?? 'VND';
+
+        // Calculate totals for filtered transactions, grouped by currency
+        $totalsRaw = (clone $query)
+            ->whereNull('transfer_account_id')
+            ->selectRaw('transaction_type, currency_code, SUM(amount) as total, COUNT(*) as cnt')
+            ->groupBy('transaction_type', 'currency_code')
+            ->get();
+
+        // If all transactions share one currency, keep that currency (e.g. USD-only filter).
+        // If mixed, convert everything to the user's default currency.
+        $currencies = $totalsRaw->pluck('currency_code')->unique()->values();
+        $totalsCurrency = $currencies->count() === 1 ? $currencies->first() : $defaultCode;
+
+        $totalIncome = 0.0;
+        $totalExpense = 0.0;
+        $transactionCount = 0;
+        $breakdown = ['income' => [], 'expense' => []];
+
+        foreach ($totalsRaw as $row) {
+            $amount = $this->convertToDefault((float) $row->total, $row->currency_code, $totalsCurrency);
+            $type = $row->transaction_type;
+
+            if ($type === 'income') {
+                $totalIncome += $amount;
+            } else {
+                $totalExpense += $amount;
+            }
+
+            $transactionCount += (int) $row->cnt;
+
+            // Track raw amounts per foreign currency for secondary display
+            if ($row->currency_code !== $totalsCurrency) {
+                $breakdown[$type][$row->currency_code] = ($breakdown[$type][$row->currency_code] ?? 0.0) + (float) $row->total;
+            }
+        }
 
         $transactions = $query->orderBy('transaction_date', 'desc')
             ->orderBy('created_at', 'desc')
@@ -105,11 +140,14 @@ class TransactionController extends Controller
             'accounts' => $accounts,
             'categories' => $categories,
             'filters' => $request->filters(),
+            'defaultCurrency' => $defaultCode,
             'totals' => [
-                'income' => (float) ($totals->total_income ?? 0),
-                'expense' => (float) ($totals->total_expense ?? 0),
-                'net' => (float) (($totals->total_income ?? 0) - ($totals->total_expense ?? 0)),
-                'count' => (int) ($totals->transaction_count ?? 0),
+                'income' => $totalIncome,
+                'expense' => $totalExpense,
+                'net' => $totalIncome - $totalExpense,
+                'count' => $transactionCount,
+                'currency_code' => $totalsCurrency,
+                'breakdown' => $breakdown,
             ],
         ]);
     }
@@ -141,6 +179,8 @@ class TransactionController extends Controller
         if ($validated['type'] === 'transfer') {
             $validated['from_account_id'] = $validated['account_id'];
             $validated['to_account_id'] = $validated['transfer_account_id'];
+            // Both accounts must belong to the signed-in user.
+            $validated['user_id'] = auth()->id();
             $result = $this->transactionService->recordTransfer($validated);
             // Attach bills to the debit transaction (the originating side of the transfer).
             $createdTransaction = $result['debit'] ?? null;
@@ -154,16 +194,39 @@ class TransactionController extends Controller
             $this->billAttachmentService->attach($createdTransaction, 'bills', $request->file('bills'));
         }
 
+        // Auto-create a loan record when the selected category is marked as a loan category
+        if ($createdTransaction && ! empty($validated['category_id'])) {
+            $category = Category::find($validated['category_id']);
+
+            if ($category?->is_loan) {
+                $account = Account::find($validated['account_id']);
+
+                $this->loanService->createLoan([
+                    'user_id' => auth()->id(),
+                    'transaction_id' => $createdTransaction->id,
+                    'borrower_name' => $validated['description'],
+                    'amount' => $validated['amount'],
+                    'currency_code' => $account?->currency_code ?? 'VND',
+                    'loan_date' => $validated['transaction_date'],
+                    'message' => $validated['notes'] ?? null,
+                ]);
+            }
+        }
+
         return Redirect::back()->with('success', 'Transaction recorded successfully');
     }
 
     public function update(UpdateTransactionRequest $request, Transaction $transaction): RedirectResponse
     {
-        if ($transaction->transfer_transaction_id || $transaction->transaction_type === 'transfer') {
-            return Redirect::back()->with('error', 'Transfer transactions cannot be edited. Please delete and create a new transfer.');
+        $validated = $request->validated();
+
+        if ($transaction->transfer_transaction_id) {
+            return $this->updateTransferPair($request, $transaction, $validated);
         }
 
-        $validated = $request->validated();
+        $oldCategoryId = $transaction->category_id;
+        $oldDate = $transaction->transaction_date->toDateString();
+        $oldType = $transaction->transaction_type;
 
         DB::transaction(function () use ($transaction, $validated) {
             $oldAmount = (float) $transaction->amount;
@@ -227,7 +290,118 @@ class TransactionController extends Controller
             $this->billAttachmentService->attach($transaction->fresh(), 'bills', $request->file('bills'));
         }
 
+        // Sync budget spending for affected categories after update
+        $transaction->refresh();
+        $newCategoryId = $transaction->category_id;
+        $newDate = $transaction->transaction_date->toDateString();
+        $newType = $transaction->transaction_type;
+
+        if ($oldType === 'expense' && $oldCategoryId) {
+            $this->budgetService->syncBudgetsForCategory($transaction->user_id, $oldCategoryId, $oldDate);
+        }
+
+        if ($newType === 'expense' && $newCategoryId && $newCategoryId !== $oldCategoryId) {
+            $this->budgetService->syncBudgetsForCategory($transaction->user_id, $newCategoryId, $newDate);
+        }
+
         return Redirect::back()->with('success', 'Transaction updated successfully');
+    }
+
+    private function updateTransferPair(Request $request, Transaction $transaction, array $validated): RedirectResponse
+    {
+        $linkedTx = Transaction::findOrFail($transaction->transfer_transaction_id);
+
+        // The outgoing side owns the source account; the incoming side owns the destination.
+        // The legacy type fallback keeps edits working before the backfill command is run.
+        if ($transaction->isOutgoingTransfer()) {
+            $debitTx = $transaction;
+            $creditTx = $linkedTx;
+        } else {
+            $debitTx = $linkedTx;
+            $creditTx = $transaction;
+        }
+
+        $newFromAccountId = (int) ($validated['account_id'] ?? $debitTx->account_id);
+        $newToAccountId = (int) ($validated['transfer_account_id'] ?? $creditTx->account_id);
+        $newAmount = (float) ($validated['amount'] ?? $debitTx->amount);
+        $newDate = $validated['transaction_date'] ?? $debitTx->transaction_date->toDateString();
+        $newDescription = array_key_exists('description', $validated) ? $validated['description'] : null;
+        $newNotes = array_key_exists('notes', $validated) ? $validated['notes'] : null;
+
+        $newFromAccount = Account::findOrFail($newFromAccountId);
+        $newToAccount = Account::findOrFail($newToAccountId);
+
+        // Convert the credit (destination) side for cross-currency transfers so the
+        // received amount reflects the exchange rate instead of the raw source amount.
+        // Mirrors the conversion done when the transfer is first created.
+        $creditAmount = $newAmount;
+
+        if ($newFromAccount->currency_code !== $newToAccount->currency_code) {
+            $exchangeRate = $this->exchangeRateService->getRate(
+                $newFromAccount->currency_code,
+                $newToAccount->currency_code,
+                $newFromAccount->rate_source
+            );
+
+            if (! $exchangeRate) {
+                return Redirect::back()->withErrors([
+                    'amount' => "Exchange rate not found for {$newFromAccount->currency_code} to {$newToAccount->currency_code}",
+                ]);
+            }
+
+            $creditAmount = (int) round($newAmount * $exchangeRate);
+        }
+
+        DB::transaction(function () use ($debitTx, $creditTx, $newFromAccount, $newToAccount, $newFromAccountId, $newToAccountId, $newAmount, $creditAmount, $newDate, $newDescription, $newNotes) {
+            // Reverse old balance impacts
+            $debitTx->account->increment('current_balance', $debitTx->amount);
+            $creditTx->account->decrement('current_balance', $creditTx->amount);
+
+            // Apply new balance impacts — destination receives the converted amount
+            $newFromAccount->decrement('current_balance', $newAmount);
+            $newToAccount->increment('current_balance', $creditAmount);
+
+            $debitTx->update([
+                'transaction_type' => 'transfer',
+                'transfer_direction' => 'outgoing',
+                'category_id' => null,
+                'account_id' => $newFromAccountId,
+                'transfer_account_id' => $newToAccountId,
+                'amount' => $newAmount,
+                'transaction_date' => $newDate,
+                'description' => $newDescription ?? "Transfer to {$newToAccount->name}",
+                'notes' => $newNotes,
+                'currency_code' => $newFromAccount->currency_code,
+            ]);
+
+            $creditTx->update([
+                'transaction_type' => 'transfer',
+                'transfer_direction' => 'incoming',
+                'category_id' => null,
+                'account_id' => $newToAccountId,
+                'transfer_account_id' => $newFromAccountId,
+                'amount' => $creditAmount,
+                'transaction_date' => $newDate,
+                'description' => $newDescription ?? "Transfer from {$newFromAccount->name}",
+                'notes' => $newNotes,
+                'currency_code' => $newToAccount->currency_code,
+            ]);
+        });
+
+        // Bill attachments — apply to whichever side the user edited
+        if (! empty($validated['removed_bill_ids'])) {
+            $allowedIds = $transaction->getMedia('bills')->pluck('id')->all();
+            $toRemove = array_intersect($validated['removed_bill_ids'], $allowedIds);
+            if (! empty($toRemove)) {
+                Media::whereIn('id', $toRemove)->each(fn (Media $m) => $m->delete());
+            }
+        }
+
+        if ($request->hasFile('bills')) {
+            $this->billAttachmentService->attach($transaction->fresh(), 'bills', $request->file('bills'));
+        }
+
+        return Redirect::back()->with('success', 'Transfer updated successfully');
     }
 
     public function bulkUpdate(BulkUpdateTransactionRequest $request): RedirectResponse
@@ -313,30 +487,36 @@ class TransactionController extends Controller
         $deletedCount = 0;
 
         DB::transaction(function () use ($transactions, &$deletedCount) {
+            $processedIds = [];
+
             foreach ($transactions as $transaction) {
+                if (in_array($transaction->id, $processedIds, true)) {
+                    continue;
+                }
+
                 // Handle linked transfer transactions
                 if ($transaction->transfer_transaction_id) {
                     $linkedTransaction = Transaction::with('account')
                         ->find($transaction->transfer_transaction_id);
 
                     if ($linkedTransaction) {
-                        if ($linkedTransaction->transaction_type === 'income') {
-                            $linkedTransaction->account->decrement('current_balance', $linkedTransaction->amount);
-                        } elseif ($linkedTransaction->transaction_type === 'expense') {
-                            $linkedTransaction->account->increment('current_balance', $linkedTransaction->amount);
+                        $reverseImpact = -$linkedTransaction->balanceImpact();
+                        if ($reverseImpact !== 0.0) {
+                            $linkedTransaction->account->increment('current_balance', $reverseImpact);
                         }
                         $linkedTransaction->delete();
+                        $processedIds[] = $linkedTransaction->id;
                     }
                 }
 
                 // Reverse balance update
-                if ($transaction->transaction_type === 'income') {
-                    $transaction->account->decrement('current_balance', $transaction->amount);
-                } elseif ($transaction->transaction_type === 'expense') {
-                    $transaction->account->increment('current_balance', $transaction->amount);
+                $reverseImpact = -$transaction->balanceImpact();
+                if ($reverseImpact !== 0.0) {
+                    $transaction->account->increment('current_balance', $reverseImpact);
                 }
 
                 $transaction->delete();
+                $processedIds[] = $transaction->id;
                 $deletedCount++;
             }
         });
@@ -366,11 +546,28 @@ class TransactionController extends Controller
             return Redirect::back()->with('error', 'One or both transactions are already linked');
         }
 
-        [$first, $second] = $transactions->values();
+        $outgoing = $transactions->firstWhere('transaction_type', 'expense');
+        $incoming = $transactions->firstWhere('transaction_type', 'income');
 
-        DB::transaction(function () use ($first, $second) {
-            $first->update(['transfer_transaction_id' => $second->id]);
-            $second->update(['transfer_transaction_id' => $first->id]);
+        if (! $outgoing || ! $incoming) {
+            return Redirect::back()->with('error', 'A transfer pair must contain one expense and one income transaction');
+        }
+
+        DB::transaction(function () use ($outgoing, $incoming) {
+            $outgoing->update([
+                'transaction_type' => 'transfer',
+                'transfer_direction' => 'outgoing',
+                'category_id' => null,
+                'transfer_account_id' => $incoming->account_id,
+                'transfer_transaction_id' => $incoming->id,
+            ]);
+            $incoming->update([
+                'transaction_type' => 'transfer',
+                'transfer_direction' => 'incoming',
+                'category_id' => null,
+                'transfer_account_id' => $outgoing->account_id,
+                'transfer_transaction_id' => $outgoing->id,
+            ]);
         });
 
         return Redirect::back()->with('success', 'Transactions linked as transfer pair');
@@ -380,29 +577,36 @@ class TransactionController extends Controller
     {
         $this->authorize('delete', $transaction);
 
+        $categoryId = $transaction->category_id;
+        $userId = $transaction->user_id;
+        $date = $transaction->transaction_date->toDateString();
+        $type = $transaction->transaction_type;
+
         DB::transaction(function () use ($transaction) {
             if ($transaction->transfer_transaction_id) {
                 $linkedTransaction = Transaction::find($transaction->transfer_transaction_id);
 
                 if ($linkedTransaction) {
-                    if ($linkedTransaction->type === 'income') {
-                        $linkedTransaction->account->decrement('current_balance', $linkedTransaction->amount);
-                    } elseif ($linkedTransaction->type === 'expense') {
-                        $linkedTransaction->account->increment('current_balance', $linkedTransaction->amount);
+                    $reverseImpact = -$linkedTransaction->balanceImpact();
+                    if ($reverseImpact !== 0.0) {
+                        $linkedTransaction->account->increment('current_balance', $reverseImpact);
                     }
 
                     $linkedTransaction->delete();
                 }
             }
 
-            if ($transaction->type === 'income') {
-                $transaction->account->decrement('current_balance', $transaction->amount);
-            } elseif ($transaction->type === 'expense') {
-                $transaction->account->increment('current_balance', $transaction->amount);
+            $reverseImpact = -$transaction->balanceImpact();
+            if ($reverseImpact !== 0.0) {
+                $transaction->account->increment('current_balance', $reverseImpact);
             }
 
             $transaction->delete();
         });
+
+        if ($type === 'expense' && $categoryId) {
+            $this->budgetService->syncBudgetsForCategory($userId, $categoryId, $date);
+        }
 
         return Redirect::back()->with('success', 'Transaction deleted successfully');
     }
@@ -432,7 +636,7 @@ class TransactionController extends Controller
         $preview = $this->transactionService->getTransferConversionPreview(
             $validated['from_account_id'],
             $validated['to_account_id'],
-            (int) $validated['amount']
+            (float) $validated['amount']
         );
 
         return response()->json($preview);
@@ -716,5 +920,18 @@ class TransactionController extends Controller
 
         return Redirect::route('dashboard.finance.transactions.index')
             ->with('success', $message);
+    }
+
+    private function convertToDefault(float $amount, string $fromCurrency, string $defaultCurrency): float
+    {
+        if ($fromCurrency === $defaultCurrency) {
+            return $amount;
+        }
+
+        try {
+            return $this->exchangeRateService->convert($amount, $fromCurrency, $defaultCurrency);
+        } catch (\Exception) {
+            return $amount;
+        }
     }
 }

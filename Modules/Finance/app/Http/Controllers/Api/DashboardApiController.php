@@ -4,15 +4,21 @@ namespace Modules\Finance\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Modules\Finance\Models\{Account, Budget, Currency, RecurringTransaction, Transaction};
-use Modules\Finance\Services\{ExchangeRateService, RecurringTransactionService};
+use Modules\Finance\Services\{BorrowingPayableService, ExchangeRateService, LoanReceivableService, RecurringTransactionService, UserCurrencyConversionService};
 
 class DashboardApiController extends Controller
 {
+    private const CACHE_TTL_SECONDS = 60;
+
     public function __construct(
         protected ExchangeRateService $exchangeRateService,
-        protected RecurringTransactionService $recurringService
+        protected RecurringTransactionService $recurringService,
+        protected UserCurrencyConversionService $userCurrencyConversionService,
+        protected LoanReceivableService $loanReceivableService,
+        protected BorrowingPayableService $borrowingPayableService
     ) {}
 
     public function index(): JsonResponse
@@ -20,6 +26,14 @@ class DashboardApiController extends Controller
         $user = auth()->user();
         $userId = $user->id;
 
+        $data = Cache::remember("dashboard.{$userId}", self::CACHE_TTL_SECONDS, fn () => $this->buildDashboard($user));
+
+        return response()->json(['data' => $data]);
+    }
+
+    protected function buildDashboard(mixed $user): array
+    {
+        $userId = $user->id;
         $userSettings = $user->finance_settings ?? [];
         $defaultCode = $userSettings['default_currency'] ?? Currency::where('is_default', true)->first()?->code ?? 'VND';
 
@@ -45,6 +59,10 @@ class DashboardApiController extends Controller
                 return $this->convertToDefault($amountOwed, $account->currency_code, $defaultCode, $account->rate_source);
             });
 
+        $loanReceivables = $this->loanReceivableService->totalForUser($user);
+        $borrowingsPayable = $this->borrowingPayableService->totalForUser($user);
+        $totalAssets += $loanReceivables;
+        $totalLiabilities += $borrowingsPayable;
         $netWorth = $totalAssets - $totalLiabilities;
         $totalBalance = $includedAccounts->sum(fn ($account) => $this->convertToDefault($account->current_balance, $account->currency_code, $defaultCode, $account->rate_source));
 
@@ -54,24 +72,34 @@ class DashboardApiController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get()
-            ->map(fn ($tx) => [
-                'id' => $tx->id,
-                'transaction_type' => $tx->transaction_type,
-                'amount' => (float) $tx->amount,
-                'currency_code' => $tx->currency_code,
-                'description' => $tx->description,
-                'transaction_date' => $tx->transaction_date->toDateString(),
-                'account' => $tx->account ? [
-                    'id' => $tx->account->id,
-                    'name' => $tx->account->name,
-                ] : null,
-                'category' => $tx->category ? [
-                    'id' => $tx->category->id,
-                    'name' => $tx->category->name,
-                    'color' => $tx->category->color,
-                    'icon' => $tx->category->icon,
-                ] : null,
-            ]);
+            ->map(function ($tx) use ($user) {
+                $conversion = $this->userCurrencyConversionService->convert(
+                    (float) $tx->amount,
+                    $tx->currency_code,
+                    $user,
+                    $tx->account?->rate_source
+                );
+
+                return [
+                    'id' => $tx->id,
+                    'transaction_type' => $tx->transaction_type,
+                    'amount' => (float) $tx->amount,
+                    'currency_code' => $tx->currency_code,
+                    ...$conversion,
+                    'description' => $tx->description,
+                    'transaction_date' => $tx->transaction_date->toDateString(),
+                    'account' => $tx->account ? [
+                        'id' => $tx->account->id,
+                        'name' => $tx->account->name,
+                    ] : null,
+                    'category' => $tx->category ? [
+                        'id' => $tx->category->id,
+                        'name' => $tx->category->name,
+                        'color' => $tx->category->color,
+                        'icon' => $tx->category->icon,
+                    ] : null,
+                ];
+            });
 
         $currentDate = now();
         $budgets = Budget::with('category')
@@ -96,20 +124,28 @@ class DashboardApiController extends Controller
                 ] : null,
             ]);
 
-        $spendingTrend = Transaction::select(
+        $spendingTrendRaw = Transaction::select(
             DB::raw('DATE(transaction_date) as date'),
-            DB::raw('SUM(amount) as amount')
+            DB::raw('SUM(amount) as amount'),
+            'currency_code'
         )
             ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
             ->where('transaction_type', 'expense')
             ->where('transaction_date', '>=', now()->subDays(30))
-            ->groupBy('date')
+            ->groupBy('date', 'currency_code')
             ->orderBy('date', 'asc')
-            ->get()
-            ->map(fn ($item) => [
-                'date' => $item->date,
-                'amount' => (float) $item->amount,
-            ]);
+            ->get();
+
+        $spendingTrendMap = [];
+
+        foreach ($spendingTrendRaw as $item) {
+            $amount = $this->convertToDefault((float) $item->amount, $item->currency_code, $defaultCode);
+            $spendingTrendMap[$item->date] = ($spendingTrendMap[$item->date] ?? 0) + $amount;
+        }
+
+        $spendingTrend = collect($spendingTrendMap)
+            ->map(fn ($amount, $date) => ['date' => $date, 'amount' => $amount])
+            ->values();
 
         $recurringProjection = $this->recurringService->getMonthlyProjection($userId, $defaultCode);
 
@@ -134,23 +170,23 @@ class DashboardApiController extends Controller
                 ] : null,
             ]);
 
-        return response()->json([
-            'data' => [
-                'summary' => [
-                    'total_assets' => $totalAssets,
-                    'total_liabilities' => $totalLiabilities,
-                    'net_worth' => $netWorth,
-                    'total_balance' => $totalBalance,
-                    'currency_code' => $defaultCode,
-                    'accounts_count' => $allAccounts->count(),
-                ],
-                'recent_transactions' => $recentTransactions,
-                'budgets' => $budgets,
-                'spending_trend' => $spendingTrend,
-                'recurring_projection' => $recurringProjection,
-                'upcoming_recurrings' => $upcomingRecurrings,
+        return [
+            'summary' => [
+                'total_assets' => $totalAssets,
+                'loan_receivables' => $loanReceivables,
+                'borrowings_payable' => $borrowingsPayable,
+                'total_liabilities' => $totalLiabilities,
+                'net_worth' => $netWorth,
+                'total_balance' => $totalBalance,
+                'currency_code' => $defaultCode,
+                'accounts_count' => $allAccounts->count(),
             ],
-        ]);
+            'recent_transactions' => $recentTransactions,
+            'budgets' => $budgets,
+            'spending_trend' => $spendingTrend,
+            'recurring_projection' => $recurringProjection,
+            'upcoming_recurrings' => $upcomingRecurrings,
+        ];
     }
 
     protected function convertToDefault(float $amount, string $fromCurrency, string $defaultCurrency, ?string $source = null): float

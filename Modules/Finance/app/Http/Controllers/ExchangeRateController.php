@@ -3,6 +3,7 @@
 namespace Modules\Finance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\Facades\Redirect;
 use Inertia\{Inertia, Response};
@@ -158,7 +159,7 @@ class ExchangeRateController extends Controller
         }
     }
 
-    public function convert(Request $request, ExchangeRateService $service): \Illuminate\Http\JsonResponse
+    public function convert(Request $request, ExchangeRateService $service): JsonResponse
     {
         $validated = $request->validate([
             'amount' => ['required', 'numeric'],

@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react'
+import { useCategoryName } from '@/hooks/use-category-name'
 import { format, formatDistanceToNow, isPast, isToday } from 'date-fns'
 import {
   ArrowDownLeft,
@@ -22,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { RecurringTransaction } from '@modules/Finance/types/finance'
+import { CategoryIcon } from '@modules/Finance/components/category-icon'
 
 interface RecurringCardProps {
   recurring: RecurringTransaction
@@ -45,6 +47,7 @@ const frequencyLabels: Record<string, string> = {
 }
 
 export function RecurringCard({ recurring, onEdit, onDelete }: RecurringCardProps) {
+  const getCategoryName = useCategoryName()
   const isIncome = recurring.transaction_type === 'income'
   const nextRunDate = new Date(recurring.next_run_date)
   const isDue = isPast(nextRunDate) || isToday(nextRunDate)
@@ -93,13 +96,14 @@ export function RecurringCard({ recurring, onEdit, onDelete }: RecurringCardProp
             </div>
 
             {recurring.category && (
-              <div className="mt-1 flex items-center gap-1">
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: recurring.category.color || '#6b7280' }}
+              <div className="mt-1 flex items-center gap-1.5">
+                <CategoryIcon
+                  icon={recurring.category.display_icon}
+                  color={recurring.category.color}
+                  size="sm"
                 />
                 <span className="text-xs text-muted-foreground">
-                  {recurring.category.name}
+                  {getCategoryName(recurring.category)}
                 </span>
               </div>
             )}

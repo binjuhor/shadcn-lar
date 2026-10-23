@@ -86,7 +86,7 @@ class CategoryApiTest extends TestCase
             'name' => 'New Category',
             'type' => 'expense',
             'color' => '#0000ff',
-            'icon' => 'cart',
+            'icon' => 'shopping-cart',
         ]);
 
         $response->assertCreated()
@@ -174,5 +174,63 @@ class CategoryApiTest extends TestCase
         $response = $this->getJson('/api/v1/finance/categories');
 
         $response->assertUnauthorized();
+    }
+
+    public function test_create_rejects_unknown_icon(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $response = $this->postJson('/api/v1/finance/categories', [
+            'name' => 'New Category',
+            'type' => 'expense',
+            'icon' => 'not-an-icon',
+        ]);
+
+        $response->assertUnprocessable()->assertJsonValidationErrors('icon');
+    }
+
+    public function test_subcategory_keeps_its_own_icon(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $parent = $this->createCategory(['icon' => 'car']);
+
+        $response = $this->postJson('/api/v1/finance/categories', [
+            'name' => 'Fuel',
+            'type' => 'expense',
+            'icon' => 'fuel',
+            'parent_id' => $parent->id,
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.icon', 'fuel')
+            ->assertJsonPath('data.display_icon', 'fuel');
+    }
+
+    public function test_subcategory_without_icon_displays_parent_icon(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $parent = $this->createCategory(['icon' => 'car']);
+        $child = $this->createCategory(['name' => 'Parking', 'icon' => null, 'parent_id' => $parent->id]);
+
+        $this->getJson("/api/v1/finance/categories/{$child->id}")
+            ->assertOk()
+            ->assertJsonPath('data.icon', null)
+            ->assertJsonPath('data.display_icon', 'car');
+
+        $parent->update(['icon' => 'bus']);
+
+        $this->getJson("/api/v1/finance/categories/{$child->id}")
+            ->assertJsonPath('data.display_icon', 'bus');
+    }
+
+    public function test_icon_list_matches_frontend_icon_map(): void
+    {
+        $source = file_get_contents(base_path('Modules/Finance/resources/js/components/category-icon.tsx'));
+        preg_match('/CATEGORY_ICONS[^{]*\{(.*?)\n\}/s', $source, $block);
+        preg_match_all("/^\s+'?([a-z0-9-]+)'?:\s+[A-Z]\w*,$/m", $block[1], $keys);
+
+        $this->assertEqualsCanonicalizing(Category::ICONS, $keys[1]);
     }
 }

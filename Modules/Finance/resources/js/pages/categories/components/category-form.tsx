@@ -21,6 +21,11 @@ import {
   SheetFooter,
 } from '@/components/ui/sheet'
 import type { Category, ExpenseType } from '@modules/Finance/types/finance'
+import {
+  CategoryIconPicker,
+  iconForParent,
+  initialCategoryIcon,
+} from '@modules/Finance/components/category-icon'
 
 interface CategoryFormProps {
   open: boolean
@@ -29,13 +34,6 @@ interface CategoryFormProps {
   parentCategories: Category[]
   onSuccess?: () => void
 }
-
-const icons = [
-  'wallet', 'briefcase', 'trending-up', 'plus-circle',
-  'utensils', 'car', 'home', 'zap', 'heart', 'film',
-  'shopping-bag', 'book', 'shield', 'more-horizontal',
-  'gift', 'plane', 'coffee', 'music', 'gamepad-2', 'dog',
-]
 
 const colors = [
   '#10b981', '#3b82f6', '#8b5cf6', '#ef4444', '#f59e0b',
@@ -57,10 +55,11 @@ export function CategoryForm({
     name: category?.name || '',
     type: (category?.type || 'expense') as 'income' | 'expense',
     parent_id: category?.parent_id ? String(category.parent_id) : '',
-    icon: category?.icon || 'more-horizontal',
+    icon: initialCategoryIcon(category),
     color: category?.color || '#6b7280',
     is_active: category?.is_active ?? true,
     is_passive: category?.is_passive ?? false,
+    is_loan: category?.is_loan ?? false,
     expense_type: category?.expense_type || '',
   })
 
@@ -88,6 +87,7 @@ export function CategoryForm({
       parent_id: data.parent_id ? parseInt(data.parent_id) : null,
       expense_type: data.type === 'expense' && data.expense_type ? data.expense_type : null,
       is_passive: data.type === 'income' ? data.is_passive : false,
+      is_loan: data.type === 'expense' ? data.is_loan : false,
     }
 
     if (isEditing && category) {
@@ -151,6 +151,7 @@ export function CategoryForm({
               onValueChange={(value: 'income' | 'expense') => {
                 setData('type', value)
                 setData('parent_id', '')
+                setData((d) => ({ ...d, icon: iconForParent(d.icon, '') }))
               }}
             >
               <SelectTrigger>
@@ -168,7 +169,10 @@ export function CategoryForm({
               <Label htmlFor="parent_id">{t('form.parent_category_optional')}</Label>
               <Select
                 value={data.parent_id || '__none__'}
-                onValueChange={(value) => setData('parent_id', value === '__none__' ? '' : value)}
+                onValueChange={(value) => {
+                  const parentId = value === '__none__' ? '' : value
+                  setData((d) => ({ ...d, parent_id: parentId, icon: iconForParent(d.icon, parentId) }))
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={t('form.no_parent')} />
@@ -187,22 +191,13 @@ export function CategoryForm({
 
           <div className="space-y-2">
             <Label>{t('form.icon')}</Label>
-            <div className="flex gap-2 flex-wrap">
-              {icons.map((icon) => (
-                <button
-                  key={icon}
-                  type="button"
-                  className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center text-sm transition-all ${
-                    data.icon === icon
-                      ? 'border-primary bg-primary/10'
-                      : 'border-transparent bg-muted hover:border-muted-foreground/30'
-                  }`}
-                  onClick={() => setData('icon', icon)}
-                >
-                  {icon.slice(0, 2)}
-                </button>
-              ))}
-            </div>
+            <CategoryIconPicker
+              value={data.icon}
+              color={data.color}
+              onChange={(icon) => setData('icon', icon)}
+              parentIcon={data.parent_id ? (parentCategories.find((c) => String(c.id) === data.parent_id)?.icon ?? null) : undefined}
+              parentLabel={t('form.icon_inherited_from_parent')}
+            />
           </div>
 
           <div className="space-y-2">
@@ -250,6 +245,22 @@ export function CategoryForm({
                 id="is_passive"
                 checked={data.is_passive}
                 onCheckedChange={(checked) => setData('is_passive', checked)}
+              />
+            </div>
+          )}
+
+          {data.type === 'expense' && (
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="is_loan">{t('form.loan_category')}</Label>
+                <p className="text-xs text-muted-foreground">
+                  {t('form.loan_category_description')}
+                </p>
+              </div>
+              <Switch
+                id="is_loan"
+                checked={data.is_loan}
+                onCheckedChange={(checked) => setData('is_loan', checked)}
               />
             </div>
           )}

@@ -10,13 +10,17 @@ use Illuminate\Database\Eloquent\{
     Relations\HasMany,
     SoftDeletes
 };
+use Modules\Finance\Database\Factories\AccountFactory;
 use Modules\Finance\Events\SavingsGoalCompleted;
 use Modules\Finance\ValueObjects\Money;
 use OwenIt\Auditing\Contracts\Auditable;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Account extends Model implements Auditable
+class Account extends Model implements Auditable, HasMedia
 {
     use HasFactory;
+    use InteractsWithMedia;
     use \OwenIt\Auditing\Auditable;
     use SoftDeletes;
 
@@ -40,7 +44,7 @@ class Account extends Model implements Auditable
         'color',
     ];
 
-    protected $appends = ['balance', 'amount_owed', 'utilization_rate'];
+    protected $appends = ['balance', 'amount_owed', 'utilization_rate', 'icon_url'];
 
     protected function casts(): array
     {
@@ -117,6 +121,24 @@ class Account extends Model implements Auditable
         return round(($this->amount_owed / $initialBalance) * 100, 1);
     }
 
+    /**
+     * Public URL of the uploaded account icon, or null when none is set.
+     */
+    public function getIconUrlAttribute(): ?string
+    {
+        return $this->getFirstMediaUrl('icon') ?: null;
+    }
+
+    public function registerMediaCollections(): void
+    {
+        // Single custom icon per account (SVG preferred, raster allowed). Stored on
+        // the project-wide media disk so the API can expose a stable public URL.
+        $this->addMediaCollection('icon')
+            ->useDisk(config('media-library.disk_name'))
+            ->singleFile()
+            ->acceptsMimeTypes(['image/svg+xml', 'image/png', 'image/jpeg', 'image/webp']);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -144,8 +166,8 @@ class Account extends Model implements Auditable
 
     public function updateBalance(float $amount): void
     {
-        $this->current_balance += $amount;
-        $this->save();
+        $this->increment('current_balance', $amount);
+        $this->refresh();
 
         $this->syncLinkedSavingsGoals();
     }
@@ -186,6 +208,6 @@ class Account extends Model implements Auditable
 
     protected static function newFactory()
     {
-        return \Modules\Finance\Database\Factories\AccountFactory::new();
+        return AccountFactory::new();
     }
 }

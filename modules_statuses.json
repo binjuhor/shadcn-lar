@@ -6,5 +6,6 @@
     "Invoice": true,
     "Settings": true,
     "Finance": true,
-    "ModuleGenerator": true
+    "ModuleGenerator": true,
+    "AiAdvisor": true
 }

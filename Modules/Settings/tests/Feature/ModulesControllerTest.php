@@ -4,6 +4,8 @@ namespace Modules\Settings\Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -40,8 +42,8 @@ class ModulesControllerTest extends TestCase
         $response->assertForbidden();
     }
 
-    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
-    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_super_admin_can_toggle_module(): void
     {
         // This test requires separate process due to container state corruption

@@ -3,7 +3,7 @@ import { PageProps } from '@/types'
 import { type NavGroup, type NavItem } from '@/components/layout/types'
 
 export function usePermission() {
-  const { auth, enabledModules, sidebarSettings } = usePage<PageProps>().props
+  const { auth, enabledModules, sidebarSettings, features } = usePage<PageProps>().props
   const moduleOrder = sidebarSettings?.module_order || []
 
   const can = (permission: string): boolean => {
@@ -43,6 +43,11 @@ export function usePermission() {
     )
   }
 
+  const isFeatureEnabled = (feature?: string): boolean => {
+    if (!feature) return true
+    return features?.[feature] === true
+  }
+
   const checkPermission = (permission?: string | string[]): boolean => {
     if (!permission) return true
     if (hasRole('Super Admin')) return true
@@ -53,14 +58,20 @@ export function usePermission() {
   }
 
   const filterNavItem = (item: NavItem): NavItem | null => {
+    if (item.superAdminOnly && !isSuperAdmin()) return null
+
     if ('items' in item && item.items) {
-      const filteredItems = item.items.filter(subItem =>
-        checkPermission(subItem.permission)
-      )
+      const filteredItems = item.items.filter(subItem => {
+        if (subItem.superAdminOnly && !isSuperAdmin()) return false
+        if (subItem.requiresModule && !isModuleEnabled(subItem.requiresModule)) return false
+        if (!isFeatureEnabled(subItem.requiresFeature)) return false
+        return checkPermission(subItem.permission)
+      })
       if (filteredItems.length === 0) return null
       return { ...item, items: filteredItems }
     }
 
+    if (!isFeatureEnabled(item.requiresFeature)) return null
     if (!checkPermission(item.permission)) return null
     return item
   }
@@ -124,7 +135,10 @@ export function usePermission() {
 
   const filterNavGroups = (groups: NavGroup[]): NavGroup[] => {
     const filtered = groups
-      .filter(group => isModuleEnabled(group.requiresModule))
+      .filter(group => {
+        if (group.superAdminOnly && !isSuperAdmin()) return false
+        return isModuleEnabled(group.requiresModule)
+      })
       .map(group => ({
         ...group,
         items: group.items
@@ -144,6 +158,7 @@ export function usePermission() {
     hasAnyRole,
     isSuperAdmin,
     isModuleEnabled,
+    isFeatureEnabled,
     checkPermission,
     filterNavGroups,
     permissions: auth.permissions || [],

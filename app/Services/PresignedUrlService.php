@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Aws\S3\S3Client;
+use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -87,7 +88,7 @@ class PresignedUrlService
 
     private function getS3Client(): S3Client
     {
-        /** @var \Illuminate\Filesystem\AwsS3V3Adapter $disk */
+        /** @var AwsS3V3Adapter $disk */
         $disk = Storage::disk('r2');
 
         return $disk->getClient();

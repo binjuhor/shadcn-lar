@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Validation\Rule;
 use Modules\Finance\Http\Resources\CategoryResource;
 use Modules\Finance\Models\Category;
 
@@ -39,11 +40,13 @@ class CategoryApiController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'in:income,expense,both'],
-            'icon' => ['nullable', 'string', 'max:50'],
+            'icon' => ['nullable', 'string', Rule::in(Category::ICONS)],
             'color' => ['nullable', 'string', 'max:7'],
             'parent_id' => ['nullable', 'exists:finance_categories,id'],
             'is_active' => ['boolean'],
             'is_passive' => ['boolean'],
+            'is_loan' => ['boolean'],
+            'expense_type' => ['nullable', 'in:essential,discretionary,savings'],
         ]);
 
         $category = Category::create([
@@ -55,6 +58,8 @@ class CategoryApiController extends Controller
             'parent_id' => $validated['parent_id'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
             'is_passive' => $validated['is_passive'] ?? false,
+            'is_loan' => $validated['is_loan'] ?? false,
+            'expense_type' => $validated['expense_type'] ?? null,
         ]);
 
         return response()->json([
@@ -89,11 +94,13 @@ class CategoryApiController extends Controller
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'type' => ['sometimes', 'in:income,expense,both'],
-            'icon' => ['nullable', 'string', 'max:50'],
+            'icon' => ['nullable', 'string', Rule::in(Category::ICONS)],
             'color' => ['nullable', 'string', 'max:7'],
             'parent_id' => ['nullable', 'exists:finance_categories,id'],
             'is_active' => ['sometimes', 'boolean'],
             'is_passive' => ['sometimes', 'boolean'],
+            'is_loan' => ['sometimes', 'boolean'],
+            'expense_type' => ['nullable', 'in:essential,discretionary,savings'],
         ]);
 
         $category->update($validated);

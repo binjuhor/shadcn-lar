@@ -11,12 +11,13 @@ use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Category;
 use Modules\Finance\Models\Currency;
 use Modules\Finance\Models\Transaction;
-use Modules\Finance\Services\ExchangeRateService;
+use Modules\Finance\Services\{CashFlowBreakdownService, ExchangeRateService};
 
 class ReportApiController extends Controller
 {
     public function __construct(
-        protected ExchangeRateService $exchangeRateService
+        protected ExchangeRateService $exchangeRateService,
+        protected CashFlowBreakdownService $cashFlowBreakdown,
     ) {}
 
     public function overview(Request $request): JsonResponse
@@ -158,7 +159,7 @@ class ReportApiController extends Controller
 
     protected function parseDateRange(Request $request, bool $includeGroupBy = false): array
     {
-        $range = $request->get('range', '6m');
+        $range = $request->get('range', '7m');
         $startDate = $request->get('start');
         $endDate = $request->get('end');
         $now = Carbon::now();
@@ -170,6 +171,11 @@ class ReportApiController extends Controller
                 $groupBy = 'day';
                 break;
             case '6m':
+                $dateFrom = $now->copy()->subMonths(5)->startOfMonth();
+                $dateTo = $now->copy()->endOfMonth();
+                $groupBy = 'month';
+                break;
+            case '7m':
                 $dateFrom = $now->copy()->subMonths(6)->startOfMonth();
                 $dateTo = $now->copy()->endOfMonth();
                 $groupBy = 'month';
@@ -212,6 +218,7 @@ class ReportApiController extends Controller
         )
             ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
             ->whereIn('transaction_type', ['income', 'expense'])
+            ->whereNull('transfer_account_id')
             ->whereBetween('transaction_date', [$dateFrom->startOfDay(), $dateTo->endOfDay()])
             ->groupBy('transaction_type', 'currency_code')
             ->get();
@@ -230,6 +237,7 @@ class ReportApiController extends Controller
         }
 
         $transactionCount = Transaction::whereHas('account', fn ($q) => $q->where('user_id', $userId))
+            ->whereNull('transfer_account_id')
             ->whereBetween('transaction_date', [$dateFrom->startOfDay(), $dateTo->endOfDay()])
             ->count();
 
@@ -255,6 +263,7 @@ class ReportApiController extends Controller
         )
             ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
             ->whereIn('transaction_type', ['income', 'expense'])
+            ->whereNull('transfer_account_id')
             ->whereBetween('transaction_date', [$dateFrom->startOfDay(), $dateTo->endOfDay()])
             ->groupBy('period', 'transaction_type', 'currency_code')
             ->get();
@@ -395,114 +404,12 @@ class ReportApiController extends Controller
     protected function getCashflowAnalysis(int $userId, string $defaultCode): array
     {
         $now = Carbon::now();
-        $startDate = $now->copy()->subMonths(11)->startOfMonth();
-        $endDate = $now->copy()->endOfMonth();
-
-        $transactions = Transaction::select(
-            DB::raw("DATE_FORMAT(transaction_date, '%Y-%m') as period"),
-            'transaction_type',
-            'category_id',
-            DB::raw('SUM(amount) as total'),
-            'currency_code'
-        )
-            ->whereHas('account', fn ($q) => $q->where('user_id', $userId))
-            ->whereIn('transaction_type', ['income', 'expense'])
-            ->whereBetween('transaction_date', [$startDate->startOfDay(), $endDate->endOfDay()])
-            ->groupBy('period', 'transaction_type', 'category_id', 'currency_code')
-            ->get();
-
-        // Get passive income categories
-        $passiveCategories = Category::where(function ($q) use ($userId) {
-            $q->whereNull('user_id')->orWhere('user_id', $userId);
-        })
-            ->where('is_passive', true)
-            ->pluck('id')
-            ->toArray();
-
-        // Get essential expense categories (needs for survival)
-        $essentialCategories = Category::where(function ($q) use ($userId) {
-            $q->whereNull('user_id')->orWhere('user_id', $userId);
-        })
-            ->where('expense_type', 'essential')
-            ->pluck('id')
-            ->toArray();
-
-        $periods = [];
-        $current = $startDate->copy();
-
-        while ($current <= $endDate) {
-            $periodKey = $current->format('Y-m');
-            $periods[$periodKey] = [
-                'period' => $periodKey,
-                'label' => $current->format('M Y'),
-                'passive_income' => 0,
-                'active_income' => 0,
-                'total_income' => 0,
-                'expense' => 0,
-                'essential_expense' => 0,
-                'surplus' => 0,
-                'passive_coverage' => 0,
-            ];
-            $current = $current->addMonth();
-        }
-
-        foreach ($transactions as $tx) {
-            if (! isset($periods[$tx->period])) {
-                continue;
-            }
-
-            $amount = $this->convertToDefault((float) $tx->total, $tx->currency_code, $defaultCode);
-
-            if ($tx->transaction_type === 'income') {
-                $periods[$tx->period]['total_income'] += $amount;
-                if (in_array($tx->category_id, $passiveCategories)) {
-                    $periods[$tx->period]['passive_income'] += $amount;
-                } else {
-                    $periods[$tx->period]['active_income'] += $amount;
-                }
-            } else {
-                $periods[$tx->period]['expense'] += $amount;
-                // Track essential expenses separately for financial freedom calculation
-                if (in_array($tx->category_id, $essentialCategories)) {
-                    $periods[$tx->period]['essential_expense'] += $amount;
-                }
-            }
-        }
-
-        foreach ($periods as &$p) {
-            $p['surplus'] = $p['passive_income'] - $p['expense'];
-            // Coverage based on essential expenses (financial freedom = covering needs)
-            $p['passive_coverage'] = $p['essential_expense'] > 0
-                ? round(($p['passive_income'] / $p['essential_expense']) * 100, 1)
-                : ($p['expense'] > 0 ? round(($p['passive_income'] / $p['expense']) * 100, 1) : 0);
-        }
-
-        $monthlyData = array_values($periods);
-
-        $avgPassiveIncome = count($monthlyData) > 0
-            ? array_sum(array_column($monthlyData, 'passive_income')) / count($monthlyData)
-            : 0;
-        $avgExpense = count($monthlyData) > 0
-            ? array_sum(array_column($monthlyData, 'expense')) / count($monthlyData)
-            : 0;
-        $avgEssentialExpense = count($monthlyData) > 0
-            ? array_sum(array_column($monthlyData, 'essential_expense')) / count($monthlyData)
-            : 0;
-
-        // Financial freedom = passive income covering essential expenses
-        $avgCoverage = $avgEssentialExpense > 0
-            ? round(($avgPassiveIncome / $avgEssentialExpense) * 100, 1)
-            : ($avgExpense > 0 ? round(($avgPassiveIncome / $avgExpense) * 100, 1) : 0);
+        $analysis = $this->cashFlowBreakdown->breakdown($userId, $now->copy()->subMonths(11), $now->copy()->endOfMonth(), $defaultCode);
 
         return [
-            'monthly_data' => $monthlyData,
-            'averages' => [
-                'passive_income' => round($avgPassiveIncome),
-                'expense' => round($avgExpense),
-                'essential_expense' => round($avgEssentialExpense),
-                'coverage' => $avgCoverage,
-            ],
-            'financial_freedom_progress' => min(100, $avgCoverage),
+            'monthly_data' => $analysis['monthly_data'],
+            'averages' => $analysis['averages'],
+            'financial_freedom_progress' => $analysis['financial_freedom_progress'],
         ];
     }
 

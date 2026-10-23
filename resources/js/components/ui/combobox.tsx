@@ -19,12 +19,14 @@ import { cn } from '@/lib/utils'
 export interface ComboboxOption {
   value: string
   label: string
+  keywords?: string // extra searchable text not shown in the label
 }
 
 interface ComboboxProps {
   options: ComboboxOption[]
   value?: string
   onChange?: (value: string) => void
+  onSearchChange?: (search: string) => void
   placeholder?: string
   searchPlaceholder?: string
   emptyText?: string
@@ -36,6 +38,7 @@ export function Combobox({
   options,
   value,
   onChange,
+  onSearchChange,
   placeholder = 'Select...',
   searchPlaceholder = 'Search...',
   emptyText = 'No results found.',
@@ -61,15 +64,20 @@ export function Combobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+        <Command filter={(itemValue, search) =>
+          itemValue.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
+        }>
+          <CommandInput placeholder={searchPlaceholder} onValueChange={onSearchChange} />
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
-                  value={option.label}
+                  value={option.keywords
+                    ? `${option.label} ${option.keywords}`
+                    : option.label
+                  }
                   onSelect={() => {
                     onChange?.(option.value)
                     setOpen(false)

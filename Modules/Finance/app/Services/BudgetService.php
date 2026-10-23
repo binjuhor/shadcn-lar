@@ -59,6 +59,15 @@ class BudgetService
         ];
     }
 
+    public function refreshActiveBudgets(int $userId): void
+    {
+        Budget::where('user_id', $userId)
+            ->where('is_active', true)
+            ->where('start_date', '<=', now()->toDateString())
+            ->where('end_date', '>=', now()->toDateString())
+            ->each(fn (Budget $budget) => $this->trackSpending($budget));
+    }
+
     public function renewExpiredBudgets(int $userId): void
     {
         $expiredBudgets = Budget::where('user_id', $userId)
@@ -113,6 +122,16 @@ class BudgetService
                 $now->copy()->endOfMonth()->toDateString(),
             ],
         };
+    }
+
+    public function syncBudgetsForCategory(int $userId, int $categoryId, string $date): void
+    {
+        Budget::where('user_id', $userId)
+            ->where('category_id', $categoryId)
+            ->where('is_active', true)
+            ->where('start_date', '<=', $date)
+            ->where('end_date', '>=', $date)
+            ->each(fn (Budget $budget) => $this->trackSpending($budget));
     }
 
     public function getAlertThreshold(Budget $budget): ?string

@@ -11,6 +11,13 @@ class SmartInputHistoryController extends Controller
 {
     public function index(Request $request): Response
     {
+        $request->validate([
+            'input_type' => ['sometimes', 'string', 'in:text,voice,image,text_image'],
+            'saved' => ['sometimes', 'string', 'in:yes,no'],
+            'date_from' => ['sometimes', 'date'],
+            'date_to' => ['sometimes', 'date'],
+        ]);
+
         $query = SmartInputHistory::forUser(auth()->id())
             ->with('transaction:id,description,amount,transaction_type,currency_code')
             ->latest();

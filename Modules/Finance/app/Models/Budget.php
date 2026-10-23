@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\{
     Model,
     Relations\BelongsTo
 };
+use Modules\Finance\Database\Factories\BudgetFactory;
 use Modules\Finance\ValueObjects\Money;
 
 class Budget extends Model
@@ -115,6 +116,6 @@ class Budget extends Model
 
     protected static function newFactory()
     {
-        return \Modules\Finance\Database\Factories\BudgetFactory::new();
+        return BudgetFactory::new();
     }
 }

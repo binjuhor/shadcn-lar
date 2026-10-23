@@ -82,13 +82,21 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-3">
           <div
-            className="rounded-lg p-2"
+            className="flex h-9 w-9 items-center justify-center rounded-lg p-2"
             style={{ backgroundColor: account.color ? `${account.color}20` : '#f3f4f6' }}
           >
-            <Icon
-              className="h-5 w-5"
-              style={{ color: account.color || '#6b7280' }}
-            />
+            {account.icon_url ? (
+              <img
+                src={account.icon_url}
+                alt=""
+                className="h-5 w-5 object-contain"
+              />
+            ) : (
+              <Icon
+                className="h-5 w-5"
+                style={{ color: account.color || '#6b7280' }}
+              />
+            )}
           </div>
           <div>
             <CardTitle className="text-base">{account.name}</CardTitle>

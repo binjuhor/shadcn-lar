@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
-import { useForm } from '@inertiajs/react'
+import { router, useForm } from '@inertiajs/react'
 import { useTranslation } from 'react-i18next'
+import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,13 +22,15 @@ import {
   SheetTitle,
   SheetFooter,
 } from '@/components/ui/sheet'
-import type { Account, Currency, AccountType, RateSource } from '@modules/Finance/types/finance'
+import { AccountIconPicker } from './account-icon-picker'
+import type { Account, BankIcon, Currency, AccountType, RateSource } from '@modules/Finance/types/finance'
 
 interface AccountFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   account?: Account | null
   currencies: Currency[]
+  bankIcons: BankIcon[]
   onSuccess?: () => void
 }
 
@@ -41,6 +44,7 @@ export function AccountForm({
   onOpenChange,
   account,
   currencies,
+  bankIcons,
   onSuccess,
 }: AccountFormProps) {
   const { t } = useTranslation()
@@ -68,16 +72,20 @@ export function AccountForm({
 
   const MAX_BALANCE = 999999999999999999
 
-  const { data, setData, post, put, processing, errors, reset, setError, clearErrors } = useForm({
+  const { data, setData, post, processing, errors, reset, setError, clearErrors, transform } = useForm({
     name: '',
     account_type: 'bank' as AccountType,
     has_credit_limit: false as boolean,
     currency_code: defaultCurrency,
+    account_number: '',
+    institution_name: '',
     rate_source: '__default__',
     initial_balance: '0',
     current_balance: '0',
     description: '',
     color: '#3b82f6',
+    icon: null as File | null,
+    bank_icon: '',
     is_active: true as boolean,
     exclude_from_total: false as boolean,
   })
@@ -90,11 +98,15 @@ export function AccountForm({
         account_type: account.account_type || 'bank',
         has_credit_limit: account.has_credit_limit ?? false,
         currency_code: account.currency_code || defaultCurrency,
+        account_number: account.account_number || '',
+        institution_name: account.institution_name || '',
         rate_source: account.rate_source || '__default__',
         initial_balance: String(account.initial_balance ?? 0),
         current_balance: String(account.current_balance ?? 0),
         description: account.description || '',
         color: account.color || '#3b82f6',
+        icon: null,
+        bank_icon: '',
         is_active: account.is_active ?? true,
         exclude_from_total: account.exclude_from_total ?? false,
       })
@@ -164,25 +176,32 @@ export function AccountForm({
       has_credit_limit: isDefaultCreditType || data.has_credit_limit,
     }
 
-    if (isEditing && account) {
-      put(route('dashboard.finance.accounts.update', account.id), {
-        ...formData,
-        onSuccess: () => {
-          reset()
-          onOpenChange(false)
-          onSuccess?.()
-        },
-      })
-    } else {
-      post(route('dashboard.finance.accounts.store'), {
-        ...formData,
-        onSuccess: () => {
-          reset()
-          onOpenChange(false)
-          onSuccess?.()
-        },
-      })
+    const handleSuccess = () => {
+      reset()
+      onOpenChange(false)
+      onSuccess?.()
     }
+
+    if (isEditing && account) {
+      // POST with a spoofed method keeps multipart file uploads working, since PHP
+      // cannot parse the body of a native PUT request.
+      transform((current) => ({ ...current, ...formData, _method: 'put' }))
+      post(route('dashboard.finance.accounts.update', account.id), { onSuccess: handleSuccess })
+    } else {
+      transform((current) => ({ ...current, ...formData }))
+      post(route('dashboard.finance.accounts.store'), { onSuccess: handleSuccess })
+    }
+  }
+
+  const handleRemoveIcon = () => {
+    if (!account) {
+      return
+    }
+
+    router.delete(route('dashboard.finance.accounts.icon.destroy', account.id), {
+      preserveScroll: true,
+      onSuccess: () => onSuccess?.(),
+    })
   }
 
   const handleClose = () => {
@@ -304,6 +323,36 @@ export function AccountForm({
             )}
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="institution_name">{t('form.institution_name')}</Label>
+            <Input
+              id="institution_name"
+              value={data.institution_name}
+              onChange={(e) => setData('institution_name', e.target.value)}
+              placeholder={t('form.institution_name_placeholder')}
+            />
+            {errors.institution_name && (
+              <p className="text-sm text-red-600">{errors.institution_name}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="account_number">{t('form.account_number')}</Label>
+            <Input
+              id="account_number"
+              value={data.account_number}
+              onChange={(e) => setData('account_number', e.target.value)}
+              placeholder={t('form.account_number_placeholder')}
+              maxLength={50}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('form.account_number_description')}
+            </p>
+            {errors.account_number && (
+              <p className="text-sm text-red-600">{errors.account_number}</p>
+            )}
+          </div>
+
           {/* For regular accounts: single balance field */}
           {!hasCreditLimit && (
             <div className="space-y-2">
@@ -416,6 +465,49 @@ export function AccountForm({
                 />
               ))}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="icon">{t('form.account_icon')}</Label>
+            <AccountIconPicker
+              bankIcons={bankIcons}
+              iconFile={data.icon}
+              bankIconKey={data.bank_icon}
+              existingIconUrl={account?.icon_url ?? null}
+              disabled={processing}
+              onFileChange={(file) => {
+                setData('icon', file)
+                if (file) {
+                  setData('bank_icon', '')
+                }
+              }}
+              onBankIconChange={(key) => {
+                setData('bank_icon', key)
+                setData('icon', null)
+              }}
+              onClear={() => {
+                setData('icon', null)
+                setData('bank_icon', '')
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('form.account_icon_description')}
+            </p>
+            {isEditing && account?.icon_url && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRemoveIcon}
+                disabled={processing}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t('form.remove_icon')}
+              </Button>
+            )}
+            {errors.icon && (
+              <p className="text-sm text-red-600">{errors.icon}</p>
+            )}
           </div>
 
           <div className="flex items-center justify-between">

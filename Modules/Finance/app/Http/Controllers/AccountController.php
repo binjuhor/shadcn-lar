@@ -5,18 +5,23 @@ namespace Modules\Finance\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\{Inertia, Response};
 use Modules\Finance\Http\Requests\Account\{StoreAccountRequest, UpdateAccountRequest};
 use Modules\Finance\Models\{Account, Currency};
-use Modules\Finance\Services\ExchangeRateService;
+use Modules\Finance\Services\{AccountIconService, BankIconLibrary, BorrowingPayableService, ExchangeRateService, LoanReceivableService};
 
 class AccountController extends Controller
 {
     use AuthorizesRequests;
 
     public function __construct(
-        protected ExchangeRateService $exchangeRateService
+        protected ExchangeRateService $exchangeRateService,
+        protected LoanReceivableService $loanReceivableService,
+        protected AccountIconService $accountIconService,
+        protected BorrowingPayableService $borrowingPayableService,
+        protected BankIconLibrary $bankIconLibrary,
     ) {}
 
     public function index(): Response
@@ -28,7 +33,7 @@ class AccountController extends Controller
         $userSettings = $user->finance_settings ?? [];
         $defaultCode = $userSettings['default_currency'] ?? Currency::where('is_default', true)->first()?->code ?? 'VND';
 
-        $accounts = Account::with('currency')
+        $accounts = Account::with(['currency', 'media'])
             ->where('user_id', $userId)
             ->orderBy('is_active', 'desc')
             ->orderBy('name')
@@ -56,6 +61,10 @@ class AccountController extends Controller
                 return $this->convertToDefault($amountOwed, $account->currency_code, $defaultCode, $account->rate_source);
             });
 
+        $loanReceivables = $this->loanReceivableService->totalForUser($user);
+        $borrowingsPayable = $this->borrowingPayableService->totalForUser($user);
+        $totalAssets += $loanReceivables;
+        $totalLiabilities += $borrowingsPayable;
         $netWorth = $totalAssets - $totalLiabilities;
 
         $currencies = Currency::orderBy('code')->get();
@@ -64,11 +73,14 @@ class AccountController extends Controller
             'accounts' => $accounts,
             'summary' => [
                 'total_assets' => $totalAssets,
+                'loan_receivables' => $loanReceivables,
+                'borrowings_payable' => $borrowingsPayable,
                 'total_liabilities' => $totalLiabilities,
                 'net_worth' => $netWorth,
                 'currency_code' => $defaultCode,
             ],
             'currencies' => $currencies,
+            'bankIcons' => $this->bankIconLibrary->list(),
         ]);
     }
 
@@ -78,6 +90,7 @@ class AccountController extends Controller
 
         return Inertia::render('Finance::accounts/create', [
             'currencies' => $currencies,
+            'bankIcons' => $this->bankIconLibrary->list(),
         ]);
     }
 
@@ -103,6 +116,8 @@ class AccountController extends Controller
         if ($validated['is_default_payment'] ?? false) {
             $account->setAsDefaultPayment();
         }
+
+        $this->storeIcon($request, $account);
 
         return Redirect::route('dashboard.finance.accounts.index')
             ->with('success', 'Account created successfully');
@@ -148,6 +163,7 @@ class AccountController extends Controller
         return Inertia::render('Finance::accounts/edit', [
             'account' => $account,
             'currencies' => $currencies,
+            'bankIcons' => $this->bankIconLibrary->list(),
         ]);
     }
 
@@ -170,7 +186,7 @@ class AccountController extends Controller
         // For regular accounts: current_balance is sent directly from frontend, no conversion needed
 
         $setAsDefault = $validated['is_default_payment'] ?? false;
-        unset($validated['is_default_payment']);
+        unset($validated['is_default_payment'], $validated['icon']);
 
         $account->update($validated);
 
@@ -180,7 +196,34 @@ class AccountController extends Controller
             $account->update(['is_default_payment' => false]);
         }
 
+        $this->storeIcon($request, $account);
+
         return Redirect::back()->with('success', 'Account updated successfully');
+    }
+
+    public function destroyIcon(Account $account): RedirectResponse
+    {
+        $this->authorize('update', $account);
+
+        $this->accountIconService->remove($account);
+
+        return Redirect::back()->with('success', 'Account icon removed successfully');
+    }
+
+    /**
+     * Serve a bank icon SVG from the built-in library for <img> previews.
+     */
+    public function showIcon(string $file): \Illuminate\Http\Response
+    {
+        $path = $this->bankIconLibrary->path($file);
+
+        abort_if($path === null, 404);
+
+        return response(file_get_contents($path), 200, [
+            'Content-Type' => 'image/svg+xml',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'public, max-age=31536000, immutable',
+        ]);
     }
 
     public function destroy(Account $account): RedirectResponse
@@ -196,6 +239,30 @@ class AccountController extends Controller
 
         return Redirect::route('dashboard.finance.accounts.index')
             ->with('success', 'Account deleted successfully');
+    }
+
+    protected function storeIcon(Request $request, Account $account): void
+    {
+        try {
+            if ($request->hasFile('icon')) {
+                $this->accountIconService->store($account, $request->file('icon'));
+
+                return;
+            }
+
+            $bankIcon = $request->input('bank_icon');
+
+            if (is_string($bankIcon) && $bankIcon !== '') {
+                $this->accountIconService->storeFromLibrary($account, $bankIcon);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+
+            logger()->warning('Failed to store account icon', [
+                'account_id' => $account->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     protected function convertToDefault(float $amount, string $fromCurrency, string $defaultCurrency, ?string $source = null): float

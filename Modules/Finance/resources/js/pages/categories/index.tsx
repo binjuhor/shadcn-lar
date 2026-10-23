@@ -32,6 +32,7 @@ import { Plus, MoreHorizontal, Pencil, Trash2, Tags } from 'lucide-react'
 import { CategoryForm } from './components/category-form'
 import { useCategoryName } from '@/hooks/use-category-name'
 import type { Category } from '@modules/Finance/types/finance'
+import { CategoryIcon } from '@modules/Finance/components/category-icon'
 
 interface Props {
   categories: Category[]
@@ -103,12 +104,7 @@ export default function CategoriesIndex({ categories }: Props) {
           }`}
         >
           <div className="flex items-center gap-3">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-medium"
-              style={{ backgroundColor: category.color || '#6b7280' }}
-            >
-              {displayName.slice(0, 2).toUpperCase()}
-            </div>
+            <CategoryIcon icon={category.display_icon} color={category.color} />
             <div>
               <p className="font-medium">{displayName}</p>
               <div className="flex gap-1">
