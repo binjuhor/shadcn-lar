@@ -31,6 +31,7 @@ import {
 import { Plus, MoreHorizontal, Pencil, Trash2, Tags } from 'lucide-react'
 import { CategoryForm } from './components/category-form'
 import { useCategoryName } from '@/hooks/use-category-name'
+import { usePermission } from '@/hooks/use-permission'
 import type { Category } from '@modules/Finance/types/finance'
 import { CategoryIcon } from '@modules/Finance/components/category-icon'
 
@@ -41,6 +42,7 @@ interface Props {
 export default function CategoriesIndex({ categories }: Props) {
   const { t } = useTranslation()
   const getCategoryName = useCategoryName()
+  const { isSuperAdmin } = usePermission()
   const [showForm, setShowForm] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
@@ -56,7 +58,10 @@ export default function CategoriesIndex({ categories }: Props) {
   const incomeCategories = filteredCategories.filter((c) => c.type === 'income')
   const expenseCategories = filteredCategories.filter((c) => c.type === 'expense')
 
-  const parentCategories = categories.filter((c) => !c.parent_id)
+  // System categories are shared, so they may only nest under other system categories
+  const parentCategories = categories.filter(
+    (c) => !c.parent_id && (selectedCategory && !selectedCategory.user_id ? !c.user_id : true)
+  )
 
   const handleEdit = (category: Category) => {
     setSelectedCategory(category)
@@ -93,6 +98,7 @@ export default function CategoriesIndex({ categories }: Props) {
 
   const renderCategory = (category: Category) => {
     const isSystem = !category.user_id
+    const canEdit = !isSystem || isSuperAdmin()
     const children = categories.filter((c) => c.parent_id === category.id)
     const displayName = getCategoryName(category)
 
@@ -121,7 +127,7 @@ export default function CategoriesIndex({ categories }: Props) {
               </div>
             </div>
           </div>
-          {!isSystem && (
+          {canEdit && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -133,14 +139,18 @@ export default function CategoriesIndex({ categories }: Props) {
                   <Pencil className="mr-2 h-4 w-4" />
                   {t('common.edit')}
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => handleDelete(category)}
-                  className="text-red-600"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {t('common.delete')}
-                </DropdownMenuItem>
+                {!isSystem && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleDelete(category)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {t('common.delete')}
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}

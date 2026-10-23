@@ -5,6 +5,7 @@ namespace Modules\Finance\Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Finance\Models\{Category, Currency};
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class CategoryControllerTest extends TestCase
@@ -101,6 +102,58 @@ class CategoryControllerTest extends TestCase
             'type' => 'income',
             'expense_type' => null,
             'is_loan' => false,
+        ]);
+    }
+
+    public function test_regular_user_cannot_edit_or_update_system_category(): void
+    {
+        $system = $this->systemCategory();
+
+        $this->get(route('dashboard.finance.categories.edit', $system->id))->assertForbidden();
+        $this->put(route('dashboard.finance.categories.update', $system->id), ['icon' => 'coffee'])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('finance_categories', ['id' => $system->id, 'icon' => 'wallet']);
+    }
+
+    public function test_super_admin_can_update_system_category_icon(): void
+    {
+        $this->user->assignRole(Role::findOrCreate('Super Admin'));
+        $system = $this->systemCategory();
+
+        $this->get(route('dashboard.finance.categories.edit', $system->id))->assertOk();
+        $this->put(route('dashboard.finance.categories.update', $system->id), ['icon' => 'coffee'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('finance_categories', ['id' => $system->id, 'icon' => 'coffee', 'user_id' => null]);
+    }
+
+    public function test_system_category_cannot_be_nested_under_a_private_category(): void
+    {
+        $this->user->assignRole(Role::findOrCreate('Super Admin'));
+        $system = $this->systemCategory();
+        $private = Category::create([
+            'user_id' => $this->user->id,
+            'name' => 'Private',
+            'type' => 'expense',
+            'is_active' => true,
+        ]);
+
+        $this->put(route('dashboard.finance.categories.update', $system->id), ['parent_id' => $private->id])
+            ->assertSessionHasErrors('parent_id');
+
+        $this->assertDatabaseHas('finance_categories', ['id' => $system->id, 'parent_id' => null]);
+    }
+
+    private function systemCategory(): Category
+    {
+        return Category::create([
+            'user_id' => null,
+            'name' => 'Food',
+            'type' => 'expense',
+            'icon' => 'wallet',
+            'is_active' => true,
         ]);
     }
 }
