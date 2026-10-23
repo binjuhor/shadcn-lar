@@ -4,6 +4,7 @@ namespace Modules\Notification\Tests\Unit\Notifications;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\Messages\MailMessage;
 use Modules\Notification\{
     Enums\NotificationCategory,
     Enums\NotificationChannel,
@@ -78,7 +79,7 @@ class GenericNotificationTest extends TestCase
         $user = User::factory()->create();
         $mail = $notification->toMail($user);
 
-        $this->assertInstanceOf(\Illuminate\Notifications\Messages\MailMessage::class, $mail);
+        $this->assertInstanceOf(MailMessage::class, $mail);
     }
 
     public function test_from_template_creates_notification(): void

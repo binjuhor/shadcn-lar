@@ -3,6 +3,7 @@
 namespace Modules\Notification\Tests\Unit\Models;
 
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Notification\{
     Enums\NotificationCategory,
@@ -129,7 +130,7 @@ class NotificationPreferenceTest extends TestCase
             'enabled' => true,
         ]);
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
 
         NotificationPreference::create([
             'user_id' => $user->id,

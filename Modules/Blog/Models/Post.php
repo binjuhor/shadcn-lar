@@ -2,6 +2,7 @@
 
 namespace Modules\Blog\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\{
     Factories\HasFactory,
     Model,
@@ -94,7 +95,7 @@ class Post extends Model implements HasMedia
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class);
+        return $this->belongsTo(User::class);
     }
 
     /**

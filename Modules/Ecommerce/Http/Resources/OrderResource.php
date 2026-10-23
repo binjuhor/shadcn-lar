@@ -4,6 +4,7 @@ namespace Modules\Ecommerce\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\Blog\Http\Resources\UserResource;
 
 class OrderResource extends JsonResource
 {
@@ -34,7 +35,7 @@ class OrderResource extends JsonResource
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
 
-            'user' => $this->whenLoaded('user', fn () => (new \Modules\Blog\Http\Resources\UserResource($this->user))->resolve()),
+            'user' => $this->whenLoaded('user', fn () => (new UserResource($this->user))->resolve()),
             'items' => $this->whenLoaded('items', fn () => OrderItemResource::collection($this->items)->resolve()),
         ];
     }
