@@ -26,7 +26,8 @@ class CategoryController extends Controller
 
     public function create(): Response
     {
-        $parentCategories = Category::userCategories(auth()->id())
+        // System categories are shared, so they may only nest under other system categories
+        $parentCategories = ($category->user_id === null ? Category::whereNull('user_id') : Category::userCategories(auth()->id()))
             ->whereNull('parent_id')
             ->orderBy('type')
             ->orderBy('name')
@@ -70,9 +71,7 @@ class CategoryController extends Controller
 
     public function edit(Category $category): Response
     {
-        if ($category->user_id !== null && $category->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorizeEdit($category);
 
         $parentCategories = Category::userCategories(auth()->id())
             ->whereNull('parent_id')
@@ -89,16 +88,19 @@ class CategoryController extends Controller
 
     public function update(Request $request, Category $category): RedirectResponse
     {
-        if ($category->user_id !== null && $category->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorizeEdit($category);
 
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:100'],
             'type' => ['sometimes', 'in:income,expense'],
             'icon' => ['nullable', 'string', Rule::in(Category::ICONS)],
             'color' => ['nullable', 'string', 'max:7'],
-            'parent_id' => ['nullable', 'exists:finance_categories,id'],
+            'parent_id' => [
+                'nullable',
+                $category->user_id === null
+                    ? Rule::exists('finance_categories', 'id')->whereNull('user_id')
+                    : 'exists:finance_categories,id',
+            ],
             'is_active' => ['sometimes', 'boolean'],
             'is_passive' => ['sometimes', 'boolean'],
             'is_loan' => ['sometimes', 'boolean'],
@@ -130,5 +132,19 @@ class CategoryController extends Controller
 
         return Redirect::route('dashboard.finance.categories.index')
             ->with('success', 'Category deleted successfully');
+    }
+
+    /**
+     * Owners edit their own categories; shared system categories (no owner) are Super Admin only.
+     */
+    private function authorizeEdit(Category $category): void
+    {
+        if ($category->user_id === null) {
+            abort_unless(auth()->user()->hasRole('Super Admin'), 403);
+
+            return;
+        }
+
+        abort_if($category->user_id !== auth()->id(), 403);
     }
 }
