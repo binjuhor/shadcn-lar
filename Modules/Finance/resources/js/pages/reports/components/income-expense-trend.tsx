@@ -112,6 +112,7 @@ export function IncomeExpenseTrend({ data, currencyCode }: IncomeExpenseTrendPro
           <BarChart
             accessibilityLayer
             data={formattedData}
+            barGap={4}
             margin={{ left: 12, right: 12, top: 12, bottom: 12 }}
           >
             <CartesianGrid vertical={false} />

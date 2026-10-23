@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Modules\Finance\Http\Resources\SavingsContributionResource;
 use Modules\Finance\Http\Resources\SavingsGoalResource;
+use Modules\Finance\Models\Account;
 use Modules\Finance\Models\SavingsContribution;
 use Modules\Finance\Models\SavingsGoal;
 use Modules\Finance\Models\Transaction;
@@ -57,6 +58,8 @@ class SavingsGoalApiController extends Controller
             'is_active' => ['boolean'],
         ]);
 
+        $this->authorizeAccount($validated['target_account_id'] ?? null);
+
         $goal = $this->savingsGoalService->createGoal([
             ...$validated,
             'user_id' => auth()->id(),
@@ -74,7 +77,7 @@ class SavingsGoalApiController extends Controller
     {
         $this->authorize('view', $savingsGoal);
 
-        $savingsGoal->load(['currency', 'targetAccount', 'contributions.transaction']);
+        $savingsGoal->load(['currency', 'targetAccount', 'contributions.transaction.account']);
 
         return response()->json([
             'data' => new SavingsGoalResource($savingsGoal),
@@ -96,6 +99,8 @@ class SavingsGoalApiController extends Controller
             'target_account_id' => ['nullable', 'exists:finance_accounts,id'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+
+        $this->authorizeAccount($validated['target_account_id'] ?? null);
 
         $goal = $this->savingsGoalService->updateGoal($savingsGoal, $validated);
         $goal->load(['currency', 'targetAccount']);
@@ -129,7 +134,7 @@ class SavingsGoalApiController extends Controller
 
         try {
             $contribution = $this->savingsGoalService->addContribution($savingsGoal, $validated);
-            $contribution->load('transaction');
+            $contribution->load('transaction.account');
 
             return response()->json([
                 'message' => 'Contribution added successfully',
@@ -155,7 +160,7 @@ class SavingsGoalApiController extends Controller
 
         try {
             $contribution = $this->savingsGoalService->withdrawContribution($savingsGoal, $validated);
-            $contribution->load('transaction');
+            $contribution->load('transaction.account');
 
             return response()->json([
                 'message' => 'Withdrawal recorded successfully',
@@ -180,9 +185,11 @@ class SavingsGoalApiController extends Controller
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
+        $this->authorizeAccount($validated['from_account_id']);
+
         try {
             $contribution = $this->savingsGoalService->transferToGoal($savingsGoal, $validated);
-            $contribution->load('transaction');
+            $contribution->load('transaction.account');
 
             return response()->json([
                 'message' => 'Transfer completed successfully',
@@ -205,10 +212,11 @@ class SavingsGoalApiController extends Controller
         ]);
 
         $transaction = Transaction::findOrFail($validated['transaction_id']);
+        abort_unless($transaction->user_id === auth()->id(), 403);
 
         try {
             $contribution = $this->savingsGoalService->linkTransaction($savingsGoal, $transaction);
-            $contribution->load('transaction');
+            $contribution->load('transaction.account');
 
             return response()->json([
                 'message' => 'Transaction linked successfully',
@@ -289,5 +297,15 @@ class SavingsGoalApiController extends Controller
                 'total_goals_count' => $goals->count(),
             ],
         ]);
+    }
+
+    /** Referenced accounts must belong to the authenticated user (403, as on other endpoints). */
+    private function authorizeAccount(int|string|null $accountId): void
+    {
+        if ($accountId === null) {
+            return;
+        }
+
+        $this->authorize('view', Account::findOrFail($accountId));
     }
 }

@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react'
 import { useTranslation } from 'react-i18next'
+import { usePermission } from '@/hooks/use-permission'
 import { formatDateDisplay } from '@/lib/date-utils'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
@@ -169,7 +170,11 @@ function RecentTransactions({ transactions }: { transactions: Transaction[] }) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {transactions.slice(0, 5).map((transaction) => (
+          {transactions.slice(0, 5).map((transaction) => {
+            const isIncoming = transaction.type === 'income' || transaction.transfer_direction === 'incoming'
+            const isOutgoing = transaction.type === 'expense' || transaction.transfer_direction === 'outgoing'
+
+            return (
             <div
               key={transaction.id}
               className="flex items-center justify-between"
@@ -177,16 +182,16 @@ function RecentTransactions({ transactions }: { transactions: Transaction[] }) {
               <div className="flex items-center gap-3">
                 <div
                   className={`rounded-full p-2 ${
-                    transaction.type === 'income'
+                    isIncoming
                       ? 'bg-green-100 text-green-600'
-                      : transaction.type === 'expense'
+                      : isOutgoing
                         ? 'bg-red-100 text-red-600'
                         : 'bg-blue-100 text-blue-600'
                   }`}
                 >
-                  {transaction.type === 'income' ? (
+                  {isIncoming ? (
                     <ArrowDownLeft className="h-4 w-4" />
-                  ) : transaction.type === 'expense' ? (
+                  ) : isOutgoing ? (
                     <ArrowUpRight className="h-4 w-4" />
                   ) : (
                     <ArrowRight className="h-4 w-4" />
@@ -203,18 +208,19 @@ function RecentTransactions({ transactions }: { transactions: Transaction[] }) {
               </div>
               <div
                 className={`font-semibold ${
-                  transaction.type === 'income'
+                  isIncoming
                     ? 'text-green-600'
-                    : transaction.type === 'expense'
+                    : isOutgoing
                       ? 'text-red-600'
                       : ''
                 }`}
               >
-                {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}
+                {isIncoming ? '+' : isOutgoing ? '-' : ''}
                 {formatMoney(transaction.amount, transaction.currency_code)}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       </CardContent>
     </Card>
@@ -407,6 +413,7 @@ export default function FinanceDashboard({
   upcomingRecurrings,
 }: Props) {
   const { t } = useTranslation()
+  const { isFeatureEnabled } = usePermission()
   const hasData =
     recentTransactions?.length > 0 ||
     budgets?.length > 0 ||
@@ -435,12 +442,14 @@ export default function FinanceDashboard({
                 {t('page.finance_dashboard.add_transaction')}
               </Button>
             </Link>
-            <Link className="md:hidden" href={route('dashboard.finance.smart-input')}>
-              <Button>
-                <IconSparkles className="mr-2 h-4 w-4" />
-                {t('page.finance_dashboard.smart-input')}
-              </Button>
-            </Link>
+            {isFeatureEnabled('assistant') && (
+              <Link className="md:hidden" href={route('dashboard.finance.assistant.index')}>
+                <Button>
+                  <IconSparkles className="mr-2 h-4 w-4" />
+                  {t('sidebar.ai_assistant')}
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 

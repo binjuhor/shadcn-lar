@@ -4,8 +4,11 @@ namespace Modules\Finance\Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
-use Modules\Finance\Models\{Account, Category, Currency, Transaction};
+use Modules\Finance\Models\{Account, Category, Currency, ExchangeRate, Transaction};
 use Tests\TestCase;
 
 class TransactionApiTest extends TestCase
@@ -28,6 +31,14 @@ class TransactionApiTest extends TestCase
             'symbol' => '$',
             'decimal_places' => 2,
             'is_default' => true,
+        ]);
+
+        Currency::create([
+            'code' => 'VND',
+            'name' => 'Vietnamese Dong',
+            'symbol' => '₫',
+            'decimal_places' => 0,
+            'is_default' => false,
         ]);
 
         $this->account = Account::create([
@@ -73,6 +84,100 @@ class TransactionApiTest extends TestCase
         // Balance should be adjusted: 9900 - 50 (extra expense) = 9850
         $this->account->refresh();
         $this->assertEquals(9850, $this->account->current_balance);
+    }
+
+    public function test_transaction_response_includes_amount_converted_to_user_default_currency(): void
+    {
+        $this->user->update([
+            'finance_settings' => ['default_currency' => 'VND'],
+        ]);
+
+        ExchangeRate::create([
+            'base_currency' => 'USD',
+            'target_currency' => 'VND',
+            'rate' => 25000,
+            'source' => 'manual',
+            'rate_date' => now(),
+        ]);
+
+        Sanctum::actingAs($this->user);
+
+        $this->createTransaction(['amount' => 100]);
+
+        $response = $this->getJson('/api/v1/finance/transactions');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.amount', 100)
+            ->assertJsonPath('data.0.currency_code', 'USD')
+            ->assertJsonPath('data.0.converted_amount', 2500000)
+            ->assertJsonPath('data.0.converted_currency_code', 'VND')
+            ->assertJsonPath('data.0.exchange_rate', 25000)
+            ->assertJsonPath('data.0.conversion_available', true);
+    }
+
+    public function test_transaction_response_reports_unavailable_default_currency_conversion(): void
+    {
+        $this->user->update([
+            'finance_settings' => ['default_currency' => 'VND'],
+        ]);
+
+        Sanctum::actingAs($this->user);
+
+        $this->createTransaction(['amount' => 100]);
+
+        $response = $this->getJson('/api/v1/finance/transactions');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.converted_amount', null)
+            ->assertJsonPath('data.0.converted_currency_code', 'VND')
+            ->assertJsonPath('data.0.exchange_rate', null)
+            ->assertJsonPath('data.0.conversion_available', false);
+    }
+
+    public function test_transaction_response_uses_identity_conversion_for_default_currency(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->createTransaction(['amount' => 100]);
+
+        $response = $this->getJson('/api/v1/finance/transactions');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.converted_amount', 100)
+            ->assertJsonPath('data.0.converted_currency_code', 'USD')
+            ->assertJsonPath('data.0.exchange_rate', 1)
+            ->assertJsonPath('data.0.conversion_available', true);
+    }
+
+    public function test_transaction_list_reuses_exchange_rate_lookup_for_the_same_currency_pair(): void
+    {
+        $this->user->update([
+            'finance_settings' => ['default_currency' => 'VND'],
+        ]);
+
+        ExchangeRate::create([
+            'base_currency' => 'USD',
+            'target_currency' => 'VND',
+            'rate' => 25000,
+            'source' => 'manual',
+            'rate_date' => now(),
+        ]);
+
+        Sanctum::actingAs($this->user);
+
+        $this->createTransaction(['amount' => 100]);
+        $this->createTransaction(['amount' => 200]);
+        $this->createTransaction(['amount' => 300]);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $this->getJson('/api/v1/finance/transactions')->assertOk();
+
+        $rateQueries = collect(DB::getQueryLog())
+            ->filter(fn (array $query) => str_contains($query['query'], 'finance_exchange_rates'));
+
+        $this->assertCount(1, $rateQueries);
     }
 
     public function test_user_can_update_transaction_date(): void
@@ -320,5 +425,190 @@ class TransactionApiTest extends TestCase
         $response->assertOk();
         // Matches: amount=150, description contains "150", notes contains "150"
         $this->assertCount(3, $response->json('data'));
+    }
+
+    public function test_user_can_attach_bills_when_creating_transaction(): void
+    {
+        Storage::fake('public');
+        config(['media-library.disk_name' => 'public']);
+        Sanctum::actingAs($this->user);
+
+        $response = $this->post('/api/v1/finance/transactions', [
+            'type' => 'expense',
+            'account_id' => $this->account->id,
+            'amount' => 120,
+            'description' => 'Pasted receipt',
+            'transaction_date' => now()->toDateString(),
+            'bills' => [UploadedFile::fake()->image('receipt.png')],
+        ], ['Accept' => 'application/json']);
+
+        $response->assertCreated();
+        $this->assertCount(1, $response->json('data.bills'));
+    }
+
+    public function test_creating_transaction_rejects_unsupported_bill_files(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->post('/api/v1/finance/transactions', [
+            'type' => 'expense',
+            'account_id' => $this->account->id,
+            'amount' => 120,
+            'description' => 'Bad file',
+            'transaction_date' => now()->toDateString(),
+            'bills' => [UploadedFile::fake()->create('script.exe', 10)],
+        ], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('bills.0');
+
+        $this->assertDatabaseMissing('finance_transactions', ['description' => 'Bad file']);
+    }
+
+    public function test_user_can_attach_and_remove_bills_when_updating_transaction(): void
+    {
+        Storage::fake('public');
+        config(['media-library.disk_name' => 'public']);
+        Sanctum::actingAs($this->user);
+
+        $transaction = $this->createTransaction();
+        $existing = $transaction->addMedia(UploadedFile::fake()->image('old.jpg'))->toMediaCollection('bills');
+
+        // Multipart edits arrive as POST with method spoofing, as the PWA sends them.
+        $response = $this->post("/api/v1/finance/transactions/{$transaction->id}", [
+            '_method' => 'PATCH',
+            'description' => 'With receipt',
+            'bills' => [UploadedFile::fake()->image('new.png')],
+            'removed_bill_ids' => [$existing->id],
+        ], ['Accept' => 'application/json']);
+
+        $response->assertOk();
+        $this->assertSame('With receipt', $response->json('data.description'));
+        $bills = $response->json('data.bills');
+        $this->assertCount(1, $bills);
+        $this->assertNotSame($existing->id, $bills[0]['id']);
+    }
+
+    public function test_updating_transaction_ignores_bill_ids_from_other_transactions(): void
+    {
+        Storage::fake('public');
+        config(['media-library.disk_name' => 'public']);
+        Sanctum::actingAs($this->user);
+
+        $transaction = $this->createTransaction();
+        $other = $this->createTransaction(['description' => 'Other']);
+        $foreign = $other->addMedia(UploadedFile::fake()->image('foreign.jpg'))->toMediaCollection('bills');
+
+        $this->patchJson("/api/v1/finance/transactions/{$transaction->id}", [
+            'removed_bill_ids' => [$foreign->id],
+        ])->assertOk();
+
+        $this->assertCount(1, $other->fresh()->getMedia('bills'));
+    }
+
+    public function test_user_can_clear_transaction_notes(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $transaction = $this->createTransaction(['notes' => 'Old note']);
+
+        $this->patchJson("/api/v1/finance/transactions/{$transaction->id}", ['notes' => null])->assertOk();
+
+        $this->assertNull($transaction->fresh()->notes);
+    }
+
+    public function test_cross_currency_transfer_keeps_cents_of_target_currency_and_notes(): void
+    {
+        ExchangeRate::create([
+            'base_currency' => 'VND',
+            'target_currency' => 'USD',
+            'rate' => 0.0000394,
+            'source' => 'manual',
+            'rate_date' => now(),
+        ]);
+        $wallet = Account::create([
+            'user_id' => $this->user->id,
+            'name' => 'VND Wallet',
+            'account_type' => 'cash',
+            'currency_code' => 'VND',
+            'initial_balance' => 5000000,
+            'current_balance' => 5000000,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($this->user);
+
+        $this->postJson('/api/v1/finance/transactions/conversion-preview', [
+            'from_account_id' => $wallet->id,
+            'to_account_id' => $this->account->id,
+            'amount' => 1000000,
+        ])->assertOk()->assertJsonPath('data.converted_amount', 39.4);
+
+        $this->postJson('/api/v1/finance/transactions', [
+            'type' => 'transfer',
+            'account_id' => $wallet->id,
+            'transfer_account_id' => $this->account->id,
+            'amount' => 1000000,
+            'notes' => 'Top up',
+            'transaction_date' => now()->toDateString(),
+        ])->assertCreated()->assertJsonPath('data.notes', 'Top up');
+
+        $this->assertEquals(10039.4, (float) $this->account->refresh()->current_balance);
+    }
+
+    public function test_conversion_preview_accepts_decimal_amounts(): void
+    {
+        ExchangeRate::create([
+            'base_currency' => 'USD',
+            'target_currency' => 'VND',
+            'rate' => 25000,
+            'source' => 'manual',
+            'rate_date' => now(),
+        ]);
+        $wallet = Account::create([
+            'user_id' => $this->user->id,
+            'name' => 'VND Wallet',
+            'account_type' => 'cash',
+            'currency_code' => 'VND',
+            'initial_balance' => 0,
+            'current_balance' => 0,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($this->user);
+
+        $this->postJson('/api/v1/finance/transactions/conversion-preview', [
+            'from_account_id' => $this->account->id,
+            'to_account_id' => $wallet->id,
+            'amount' => 0.5,
+        ])->assertOk()->assertJsonPath('data.converted_amount', 12500);
+    }
+
+    public function test_transfer_to_another_users_account_is_rejected(): void
+    {
+        $stranger = User::factory()->create();
+        $foreign = Account::create(['user_id' => $stranger->id, 'name' => 'Theirs', 'account_type' => 'bank', 'currency_code' => 'USD', 'initial_balance' => 0, 'current_balance' => 0, 'is_active' => true]);
+
+        Sanctum::actingAs($this->user);
+
+        $this->postJson('/api/v1/finance/transactions', [
+            'type' => 'transfer',
+            'account_id' => $this->account->id,
+            'transfer_account_id' => $foreign->id,
+            'amount' => 50,
+            'transaction_date' => now()->toDateString(),
+        ])->assertStatus(422);
+
+        $this->assertEquals(0, (float) $foreign->refresh()->current_balance);
+        $this->assertEquals(10000, (float) $this->account->refresh()->current_balance);
+    }
+
+    public function test_bulk_update_rejects_another_users_category(): void
+    {
+        $stranger = User::factory()->create();
+        $category = Category::create(['user_id' => $stranger->id, 'name' => 'Private', 'type' => 'expense']);
+        $transaction = $this->createTransaction();
+
+        Sanctum::actingAs($this->user);
+
+        $this->postJson('/api/v1/finance/transactions/bulk-update', ['ids' => [$transaction->id], 'category_id' => $category->id])
+            ->assertStatus(422);
     }
 }

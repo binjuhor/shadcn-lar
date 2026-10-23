@@ -4,12 +4,13 @@ namespace Modules\Finance\Services;
 
 use InvalidArgumentException;
 use Modules\Finance\Contracts\TransactionParserInterface;
+use Modules\Settings\Services\AiCredentialResolver;
 
 class TransactionParserFactory
 {
     public static function make(?string $provider = null): TransactionParserInterface
     {
-        $provider = $provider ?? config('services.smart_input.provider', 'claude');
+        $provider = $provider ?? app(AiCredentialResolver::class)->provider();
 
         return match ($provider) {
             'claude' => new ClaudeTransactionParser,

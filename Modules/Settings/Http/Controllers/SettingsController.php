@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\{Inertia, Response};
+use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Currency;
 use Modules\Settings\Http\Requests\{
     UpdateAccountRequest,
+    UpdateAiSettingsRequest,
     UpdateAppearanceRequest,
     UpdateDisplayRequest,
     UpdateFinanceSettingsRequest,
@@ -16,10 +18,61 @@ use Modules\Settings\Http\Requests\{
     UpdateNotificationsRequest,
     UpdateProfileRequest
 };
+use Modules\Settings\Services\AiCredentialResolver;
 use Nwidart\Modules\Facades\Module;
 
 class SettingsController extends Controller
 {
+    public function ai(AiCredentialResolver $credentials): Response
+    {
+        return Inertia::render('settings/ai/index', [
+            'providers' => $credentials->statuses(auth()->user()),
+            'selectedProvider' => $credentials->provider(auth()->user()),
+            'ollama' => [
+                'baseUrl' => auth()->user()->ai_settings['ollama_base_url'] ?? '',
+                'model' => auth()->user()->ai_settings['ollama_model'] ?? '',
+            ],
+        ]);
+    }
+
+    public function updateAi(UpdateAiSettingsRequest $request): RedirectResponse
+    {
+        $settings = $request->user()->ai_settings ?? [];
+        $validated = $request->validated();
+
+        if (isset($validated['provider'])) {
+            $settings['provider'] = $validated['provider'];
+        }
+
+        if (($validated['provider'] ?? null) === 'ollama') {
+            foreach (['ollama_base_url', 'ollama_model'] as $key) {
+                $value = $validated[$key] ?? null;
+
+                if (is_string($value) && $value !== '') {
+                    $settings[$key] = $value;
+                } else {
+                    unset($settings[$key]);
+                }
+            }
+        }
+
+        foreach ($validated['keys'] ?? [] as $provider => $key) {
+            if (in_array($provider, AiCredentialResolver::PROVIDERS, true) && is_string($key) && $key !== '') {
+                $settings[$provider] = $key;
+            }
+        }
+
+        foreach ($validated['clear'] ?? [] as $provider) {
+            unset($settings[$provider]);
+        }
+
+        $request->user()->update([
+            'ai_settings' => $settings === [] ? null : $settings,
+        ]);
+
+        return Redirect::back()->with('success', 'AI keys updated successfully.');
+    }
+
     public function profile(): Response
     {
         $user = auth()->user();
@@ -138,8 +191,8 @@ class SettingsController extends Controller
 
         // Get user's accounts for default smart input account selection
         $accounts = [];
-        if (class_exists(\Modules\Finance\Models\Account::class)) {
-            $accounts = \Modules\Finance\Models\Account::where('user_id', $user->id)
+        if (class_exists(Account::class)) {
+            $accounts = Account::where('user_id', $user->id)
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name', 'account_type', 'currency_code']);

@@ -72,4 +72,6 @@ export type PageProps<
     sidebarSettings: {
         module_order?: string[];
     };
+    /** Server-side feature flags, e.g. `assistant` (unified AI chat) */
+    features?: Record<string, boolean>;
 };

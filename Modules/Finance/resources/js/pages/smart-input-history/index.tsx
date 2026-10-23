@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { router } from '@inertiajs/react'
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
+import { usePermission } from '@/hooks/use-permission'
 import { AuthenticatedLayout } from '@/layouts'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   History, Trash2, ArrowLeft, Type, Mic, ImageIcon, MessageSquare, Check, X, Inbox,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import type { PaginatedData, SmartInputHistory } from '@modules/Finance/types/finance'
 
@@ -48,6 +50,7 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
 
 export default function SmartInputHistoryIndex({ histories, filters }: Props) {
   const { t } = useTranslation()
+  const { isFeatureEnabled } = usePermission()
   const [deleteId, setDeleteId] = useState<number | null>(null)
 
   const applyFilter = (key: string, value: string) => {
@@ -71,6 +74,20 @@ export default function SmartInputHistoryIndex({ histories, filters }: Props) {
     }, { preserveState: true, preserveScroll: true })
   }
 
+  // Build pagination page list with ellipsis: first, last, and a window around the current page
+  const buildPageList = (current: number, last: number): (number | string)[] => {
+    const pages: (number | string)[] = []
+    const delta = 1
+    pages.push(1)
+    if (current - delta > 2) pages.push('...')
+    for (let i = Math.max(2, current - delta); i <= Math.min(last - 1, current + delta); i++) {
+      pages.push(i)
+    }
+    if (current + delta < last - 1) pages.push('...')
+    if (last > 1) pages.push(last)
+    return pages
+  }
+
   return (
     <AuthenticatedLayout title={t('page.smart_input_history.title')}>
       <Main>
@@ -83,10 +100,12 @@ export default function SmartInputHistoryIndex({ histories, filters }: Props) {
               <p className="text-sm text-muted-foreground">{t('page.smart_input_history.description')}</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => router.visit(route('dashboard.finance.smart-input'))}>
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            {t('page.smart_input_history.back_to_smart_input')}
-          </Button>
+          {isFeatureEnabled('assistant') && (
+            <Button variant="outline" size="sm" onClick={() => router.visit(route('dashboard.finance.assistant.index'))}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              {t('page.smart_input_history.back_to_assistant')}
+            </Button>
+          )}
         </div>
 
         {/* Filters */}
@@ -222,17 +241,43 @@ export default function SmartInputHistoryIndex({ histories, filters }: Props) {
                     total: histories.total,
                   })}
                 </p>
-                <div className="flex gap-1">
-                  {Array.from({ length: histories.last_page }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={page === histories.current_page ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => goToPage(page)}
-                    >
-                      {page}
-                    </Button>
-                  ))}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline" size="icon" className="h-8 w-8"
+                    disabled={histories.current_page === 1}
+                    onClick={() => goToPage(histories.current_page - 1)}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+
+                  {/* Compact indicator on mobile, windowed page list with ellipsis on larger screens */}
+                  <span className="sm:hidden px-2 text-sm text-muted-foreground whitespace-nowrap">
+                    {histories.current_page} / {histories.last_page}
+                  </span>
+                  <div className="hidden sm:flex items-center gap-1">
+                    {buildPageList(histories.current_page, histories.last_page).map((page, idx) =>
+                      page === '...' ? (
+                        <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+                      ) : (
+                        <Button
+                          key={page}
+                          variant={page === histories.current_page ? 'default' : 'outline'}
+                          size="sm" className="h-8 w-8"
+                          onClick={() => goToPage(page as number)}
+                        >
+                          {page}
+                        </Button>
+                      )
+                    )}
+                  </div>
+
+                  <Button
+                    variant="outline" size="icon" className="h-8 w-8"
+                    disabled={histories.current_page === histories.last_page}
+                    onClick={() => goToPage(histories.current_page + 1)}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             )}

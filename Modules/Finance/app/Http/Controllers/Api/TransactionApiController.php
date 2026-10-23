@@ -8,21 +8,103 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Modules\Finance\Http\Resources\TransactionResource;
 use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Transaction;
+use Modules\Finance\Services\BillAttachmentService;
 use Modules\Finance\Services\TransactionService;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TransactionApiController extends Controller
 {
     use AuthorizesRequests;
 
     public function __construct(
-        protected TransactionService $transactionService
+        protected TransactionService $transactionService,
+        protected BillAttachmentService $billAttachmentService,
     ) {}
+
+    /**
+     * Export the authenticated user's transactions as CSV.
+     *
+     * @queryParam from date Optional start date (Y-m-d). Example: 2026-01-01
+     * @queryParam to date Optional end date (Y-m-d). Example: 2026-12-31
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $validated = $request->validate([
+            'from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+        ]);
+
+        $userId = auth()->id();
+
+        $query = Transaction::without('media')
+            ->with(['account', 'category'])
+            ->whereHas('account', fn ($q) => $q->where('user_id', $userId));
+
+        if (! empty($validated['from'])) {
+            $query->whereDate('transaction_date', '>=', $validated['from']);
+        }
+
+        if (! empty($validated['to'])) {
+            $query->whereDate('transaction_date', '<=', $validated['to']);
+        }
+
+        $filename = 'transactions';
+        if (! empty($validated['from']) || ! empty($validated['to'])) {
+            $filename .= '_'.($validated['from'] ?? 'start').'_to_'.($validated['to'] ?? 'now');
+        }
+
+        $query->orderBy('transaction_date')->orderBy('id');
+
+        return response()->streamDownload(function () use ($query) {
+            $handle = fopen('php://output', 'w');
+
+            // UTF-8 BOM so Excel renders non-ASCII text correctly (matches the web export).
+            fwrite($handle, "\xEF\xBB\xBF");
+
+            fputcsv($handle, ['date', 'type', 'amount', 'currency', 'account', 'category', 'description']);
+
+            foreach ($query->lazy(500) as $transaction) {
+                fputcsv($handle, array_map([$this, 'csvSafe'], [
+                    $transaction->transaction_date->format('Y-m-d'),
+                    $transaction->transaction_type,
+                    $transaction->amount,
+                    $transaction->currency_code,
+                    $transaction->account?->name ?? '',
+                    $transaction->category?->name ?? '',
+                    $transaction->description ?? '',
+                ]));
+            }
+
+            fclose($handle);
+        }, "{$filename}.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /** Neutralise spreadsheet formula injection in user-controlled text. */
+    private function csvSafe(mixed $value): mixed
+    {
+        if (is_string($value) && $value !== '' && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+            return "'".$value;
+        }
+
+        return $value;
+    }
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        $request->validate([
+            'type' => ['sometimes', 'string', 'in:income,expense,transfer'],
+            'account_id' => ['sometimes', 'integer'],
+            'category_id' => ['sometimes', 'integer'],
+            'date_from' => ['sometimes', 'date'],
+            'date_to' => ['sometimes', 'date'],
+            'search' => ['sometimes', 'string', 'max:255'],
+        ]);
+
         $userId = auth()->id();
 
         $query = Transaction::with(['account', 'category', 'transferAccount'])
@@ -69,9 +151,11 @@ class TransactionApiController extends Controller
 
         $perPage = min($request->integer('per_page', 50), 100);
 
-        $transactions = $query->orderBy('transaction_date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+        $orderedQuery = $query->orderBy('transaction_date', 'desc')
+            ->orderBy('id', 'desc'); // stable secondary sort for cursor pagination
+
+        // Always cursor-paginate so mobile clients get consistent meta (next_cursor / prev_cursor).
+        $transactions = $orderedQuery->cursorPaginate($perPage);
 
         return TransactionResource::collection($transactions);
     }
@@ -87,24 +171,30 @@ class TransactionApiController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
             'transaction_date' => ['required', 'date'],
             'transfer_account_id' => ['nullable', 'exists:finance_accounts,id', 'different:account_id'],
+            'bills' => ['nullable', 'array', 'max:10'],
+            'bills.*' => ['file', 'extensions:jpg,jpeg,png,webp,heic,heif,pdf', 'max:10240'],
         ]);
+        unset($validated['bills']);
 
         $account = Account::findOrFail($validated['account_id']);
         $this->authorize('view', $account);
 
         try {
             if ($validated['type'] === 'transfer') {
-                if (! $validated['transfer_account_id']) {
+                if (! ($validated['transfer_account_id'] ?? null)) {
                     return response()->json([
                         'message' => 'Transfer account is required for transfer transactions',
                     ], 422);
                 }
 
                 $result = $this->transactionService->recordTransfer([
+                    // Both accounts must belong to the signed-in user.
+                    'user_id' => auth()->id(),
                     'from_account_id' => $validated['account_id'],
                     'to_account_id' => $validated['transfer_account_id'],
                     'amount' => $validated['amount'],
                     'description' => $validated['description'] ?? null,
+                    'notes' => $validated['notes'] ?? null,
                     'transaction_date' => $validated['transaction_date'],
                 ]);
 
@@ -118,13 +208,20 @@ class TransactionApiController extends Controller
                 ], 201);
             }
 
-            if ($validated['type'] === 'income') {
-                $transaction = $this->transactionService->recordIncome($validated);
-            } else {
-                $transaction = $this->transactionService->recordExpense($validated);
-            }
+            // One unit: a failed receipt upload rolls the entry back, so a client retry cannot create a duplicate.
+            $transaction = DB::transaction(function () use ($validated, $request) {
+                $transaction = $validated['type'] === 'income'
+                    ? $this->transactionService->recordIncome($validated)
+                    : $this->transactionService->recordExpense($validated);
 
-            $transaction->load(['account', 'category']);
+                if ($request->hasFile('bills')) {
+                    $this->billAttachmentService->attach($transaction, 'bills', $request->file('bills'));
+                }
+
+                return $transaction;
+            });
+
+            $transaction->load(['account', 'category', 'media']);
 
             return response()->json([
                 'message' => 'Transaction recorded successfully',
@@ -152,7 +249,7 @@ class TransactionApiController extends Controller
     {
         $this->authorize('update', $transaction);
 
-        // Transfer transactions cannot be edited - delete and recreate instead
+        // Transfer transactions cannot be edited — delete and recreate instead
         if ($transaction->transfer_transaction_id) {
             return response()->json([
                 'message' => 'Transfer transactions cannot be edited. Please delete and create a new transfer.',
@@ -160,33 +257,83 @@ class TransactionApiController extends Controller
         }
 
         $validated = $request->validate([
+            'type' => ['sometimes', 'in:income,expense'],
+            'account_id' => ['sometimes', 'exists:finance_accounts,id'],
             'category_id' => ['nullable', 'exists:finance_categories,id'],
             'amount' => ['sometimes', 'numeric', 'min:0.01'],
             'description' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'transaction_date' => ['sometimes', 'date'],
+            'bills' => ['nullable', 'array', 'max:10'],
+            // extensions: is more reliable than mimes: for HEIC, which servers often report as octet-stream.
+            'bills.*' => ['file', 'extensions:jpg,jpeg,png,webp,heic,heif,pdf', 'max:10240'],
+            'removed_bill_ids' => ['nullable', 'array'],
+            'removed_bill_ids.*' => ['integer'],
         ]);
 
         DB::transaction(function () use ($transaction, $validated) {
             $oldAmount = (float) $transaction->amount;
+            $oldType = $transaction->transaction_type;
+            $oldAccountId = $transaction->account_id;
+
             $newAmount = isset($validated['amount']) ? (float) $validated['amount'] : $oldAmount;
+            $newType = isset($validated['type']) ? $validated['type'] : $oldType;
+            $newAccountId = isset($validated['account_id']) ? (int) $validated['account_id'] : $oldAccountId;
 
-            // Adjust account balance if amount changed
-            if ($oldAmount !== $newAmount) {
-                $difference = $newAmount - $oldAmount;
-
-                if ($transaction->transaction_type === 'income') {
-                    $transaction->account->updateBalance($difference);
-                } elseif ($transaction->transaction_type === 'expense') {
-                    $transaction->account->updateBalance(-$difference);
-                }
+            // Reverse the old balance impact (updateBalance also syncs savings goals)
+            if ($oldType === 'income') {
+                $transaction->account->updateBalance(-$oldAmount);
+            } elseif ($oldType === 'expense') {
+                $transaction->account->updateBalance($oldAmount);
             }
 
-            $transaction->update($validated);
+            // Apply the new impact on the target account (may differ from old)
+            $targetAccount = ($newAccountId !== $oldAccountId)
+                ? Account::findOrFail($newAccountId)
+                : $transaction->account->fresh();
+
+            if ($newType === 'income') {
+                $targetAccount->updateBalance($newAmount);
+            } elseif ($newType === 'expense') {
+                $targetAccount->updateBalance(-$newAmount);
+            }
+
+            $updateData = [
+                'transaction_type' => $newType,
+                'account_id' => $newAccountId,
+                'amount' => $newAmount,
+                'description' => $validated['description'] ?? $transaction->description,
+                // array_key_exists so an explicit null clears the note.
+                'notes' => array_key_exists('notes', $validated) ? $validated['notes'] : $transaction->notes,
+                'transaction_date' => $validated['transaction_date'] ?? $transaction->transaction_date,
+            ];
+
+            // Clear category when type changes (income/expense categories differ)
+            if ($oldType !== $newType) {
+                $updateData['category_id'] = null;
+            } elseif (array_key_exists('category_id', $validated)) {
+                $updateData['category_id'] = $validated['category_id'];
+            }
+
+            $transaction->update($updateData);
         });
 
+        // Attachments run outside the DB transaction: a remote-storage hiccup must not roll back the saved edit.
+        if (! empty($validated['removed_bill_ids'])) {
+            // Only media in this transaction's own collection may be removed.
+            $allowedIds = $transaction->getMedia('bills')->pluck('id')->all();
+            $toRemove = array_intersect($validated['removed_bill_ids'], $allowedIds);
+            if (! empty($toRemove)) {
+                Media::whereIn('id', $toRemove)->each(fn (Media $media) => $media->delete());
+            }
+        }
+
+        if ($request->hasFile('bills')) {
+            $this->billAttachmentService->attach($transaction->fresh(), 'bills', $request->file('bills'));
+        }
+
         $transaction->refresh();
-        $transaction->load(['account', 'category']);
+        $transaction->load(['account', 'category', 'media']);
 
         return response()->json([
             'message' => 'Transaction updated successfully',
@@ -203,20 +350,18 @@ class TransactionApiController extends Controller
                 $linkedTransaction = Transaction::find($transaction->transfer_transaction_id);
 
                 if ($linkedTransaction) {
-                    if ($linkedTransaction->transaction_type === 'income') {
-                        $linkedTransaction->account->updateBalance(-$linkedTransaction->amount);
-                    } elseif ($linkedTransaction->transaction_type === 'expense') {
-                        $linkedTransaction->account->updateBalance($linkedTransaction->amount);
+                    $reverseImpact = -$linkedTransaction->balanceImpact();
+                    if ($reverseImpact !== 0.0) {
+                        $linkedTransaction->account->updateBalance($reverseImpact);
                     }
 
                     $linkedTransaction->delete();
                 }
             }
 
-            if ($transaction->transaction_type === 'income') {
-                $transaction->account->updateBalance(-$transaction->amount);
-            } elseif ($transaction->transaction_type === 'expense') {
-                $transaction->account->updateBalance($transaction->amount);
+            $reverseImpact = -$transaction->balanceImpact();
+            if ($reverseImpact !== 0.0) {
+                $transaction->account->updateBalance($reverseImpact);
             }
 
             $transaction->delete();
@@ -297,9 +442,10 @@ class TransactionApiController extends Controller
     public function bulkUpdate(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'ids' => ['required', 'array', 'min:1'],
+            'ids' => ['required', 'array', 'min:1', 'max:100'],
             'ids.*' => ['required', 'exists:finance_transactions,id'],
-            'category_id' => ['nullable', 'exists:finance_categories,id'],
+            // Own or built-in categories only.
+            'category_id' => ['nullable', Rule::exists('finance_categories', 'id')->where(fn ($q) => $q->whereNull('user_id')->orWhere('user_id', auth()->id()))],
         ]);
 
         $userId = auth()->id();
@@ -332,7 +478,7 @@ class TransactionApiController extends Controller
     public function bulkDestroy(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'ids' => ['required', 'array', 'min:1'],
+            'ids' => ['required', 'array', 'min:1', 'max:100'],
             'ids.*' => ['required', 'exists:finance_transactions,id'],
         ]);
 
@@ -351,28 +497,34 @@ class TransactionApiController extends Controller
         $deletedCount = 0;
 
         DB::transaction(function () use ($transactions, &$deletedCount) {
+            $processedIds = [];
+
             foreach ($transactions as $transaction) {
+                if (in_array($transaction->id, $processedIds, true)) {
+                    continue;
+                }
+
                 if ($transaction->transfer_transaction_id) {
                     $linkedTransaction = Transaction::find($transaction->transfer_transaction_id);
 
                     if ($linkedTransaction) {
-                        if ($linkedTransaction->transaction_type === 'income') {
-                            $linkedTransaction->account->updateBalance(-$linkedTransaction->amount);
-                        } elseif ($linkedTransaction->transaction_type === 'expense') {
-                            $linkedTransaction->account->updateBalance($linkedTransaction->amount);
+                        $reverseImpact = -$linkedTransaction->balanceImpact();
+                        if ($reverseImpact !== 0.0) {
+                            $linkedTransaction->account->updateBalance($reverseImpact);
                         }
 
                         $linkedTransaction->delete();
+                        $processedIds[] = $linkedTransaction->id;
                     }
                 }
 
-                if ($transaction->transaction_type === 'income') {
-                    $transaction->account->updateBalance(-$transaction->amount);
-                } elseif ($transaction->transaction_type === 'expense') {
-                    $transaction->account->updateBalance($transaction->amount);
+                $reverseImpact = -$transaction->balanceImpact();
+                if ($reverseImpact !== 0.0) {
+                    $transaction->account->updateBalance($reverseImpact);
                 }
 
                 $transaction->delete();
+                $processedIds[] = $transaction->id;
                 $deletedCount++;
             }
         });
@@ -388,7 +540,7 @@ class TransactionApiController extends Controller
         $validated = $request->validate([
             'from_account_id' => ['required', 'exists:finance_accounts,id'],
             'to_account_id' => ['required', 'exists:finance_accounts,id', 'different:from_account_id'],
-            'amount' => ['required', 'numeric', 'min:1'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
         ]);
 
         $userId = auth()->id();
@@ -405,7 +557,7 @@ class TransactionApiController extends Controller
         $result = $this->transactionService->getTransferConversionPreview(
             $validated['from_account_id'],
             $validated['to_account_id'],
-            (int) $validated['amount']
+            (float) $validated['amount']
         );
 
         return response()->json([

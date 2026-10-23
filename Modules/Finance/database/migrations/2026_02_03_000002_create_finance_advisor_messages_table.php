@@ -15,6 +15,7 @@ return new class extends Migration
                 ->cascadeOnDelete();
             $table->enum('role', ['user', 'assistant']);
             $table->text('content');
+            $table->json('meta')->nullable();
             $table->string('ai_provider', 50)->nullable();
             $table->unsignedInteger('prompt_tokens')->nullable();
             $table->unsignedInteger('completion_tokens')->nullable();

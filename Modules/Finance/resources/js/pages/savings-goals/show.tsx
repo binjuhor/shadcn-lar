@@ -231,23 +231,21 @@ export default function ShowSavingsGoal({ goal, availableTransactions, accounts 
                   <div className="flex items-center gap-2">
                     <RefreshCw className="h-4 w-4 text-blue-500" />
                     <span>
-                      Auto-synced with <span className="font-medium">{goal.target_account.name}</span>
-                      {goal.target_account.currency_code === goal.currency_code
-                        ? ' — progress updates automatically with account balance'
-                        : ` — auto-sync disabled (currency mismatch: ${goal.currency_code} vs ${goal.target_account.currency_code})`
+                      Linked to <span className="font-medium">{goal.target_account.name}</span>
+                      {goal.target_account.currency_code !== goal.currency_code
+                        ? ` (${goal.target_account.currency_code} → ${goal.currency_code}, auto-converted)`
+                        : ' — syncs with account balance'
                       }
                     </span>
                   </div>
-                  {goal.target_account.currency_code === goal.currency_code && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => router.post(route('dashboard.finance.savings-goals.sync', goal.id))}
-                    >
-                      <RefreshCw className="mr-1 h-3 w-3" />
-                      Sync Now
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.post(route('dashboard.finance.savings-goals.sync', goal.id))}
+                  >
+                    <RefreshCw className="mr-1 h-3 w-3" />
+                    Sync Now
+                  </Button>
                 </div>
               )}
 

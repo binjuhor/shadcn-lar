@@ -16,7 +16,6 @@ import {
   IconPalette,
   IconServerOff,
   IconSettings,
-  IconSparkles,
   IconTool,
   IconUserCog,
   IconUserOff,
@@ -40,6 +39,10 @@ import {
   IconCurrencyDollar,
   IconTarget,
   IconRepeat,
+  IconMessageChatbot,
+  IconHistory,
+  IconCoins,
+  IconTransferIn,
 } from '@tabler/icons-react'
 import {
   AudioWaveform,
@@ -173,10 +176,17 @@ export const sidebarData: SidebarData = {
           icon: IconArrowsExchange,
         },
         {
-          title: 'Smart Input',
-          titleKey: 'nav.smart_input',
-          url: '/dashboard/finance/smart-input',
-          icon: IconSparkles,
+          title: 'AI Assistant',
+          titleKey: 'nav.ai_assistant',
+          url: '/dashboard/finance/assistant',
+          icon: IconMessageChatbot,
+          requiresFeature: 'assistant',
+        },
+        {
+          title: 'Input History',
+          titleKey: 'nav.smart_input_history',
+          url: '/dashboard/finance/smart-input-history',
+          icon: IconHistory,
         },
         {
           title: 'Budgets',
@@ -213,6 +223,18 @@ export const sidebarData: SidebarData = {
           titleKey: 'nav.exchange_rates',
           url: '/dashboard/finance/exchange-rates',
           icon: IconCurrencyDollar,
+        },
+        {
+          title: 'Loans',
+          titleKey: 'nav.loans',
+          url: '/dashboard/finance/loans',
+          icon: IconCoins,
+        },
+        {
+          title: 'Borrowed',
+          titleKey: 'nav.borrowed',
+          url: '/dashboard/finance/borrowings',
+          icon: IconTransferIn,
         },
       ],
     },
@@ -444,6 +466,12 @@ export const sidebarData: SidebarData = {
               titleKey: 'nav.finance',
               url: '/dashboard/settings/finance',
               icon: IconCurrencyDollar,
+            },
+            {
+              title: 'AI Keys',
+              titleKey: 'nav.ai_keys',
+              url: '/dashboard/settings/ai',
+              icon: IconKey,
             },
             {
               title: 'Modules',

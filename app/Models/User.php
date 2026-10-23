@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -15,7 +16,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     /**
@@ -39,6 +40,7 @@ class User extends Authenticatable
         'finance_settings',
         'invoice_settings',
         'sidebar_settings',
+        'ai_settings',
     ];
 
     /**
@@ -49,6 +51,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'ai_settings',
     ];
 
     /**
@@ -69,6 +72,7 @@ class User extends Authenticatable
             'finance_settings' => 'array',
             'invoice_settings' => 'array',
             'sidebar_settings' => 'array',
+            'ai_settings' => 'encrypted:array',
         ];
     }
 

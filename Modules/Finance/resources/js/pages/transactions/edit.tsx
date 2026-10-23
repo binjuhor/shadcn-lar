@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowLeft } from 'lucide-react'
+import { useCategoryName } from '@/hooks/use-category-name'
 import type { Account, Category, Transaction, TransactionType } from '@modules/Finance/types/finance'
 
 interface Props {
@@ -32,6 +33,7 @@ interface Props {
 }
 
 export default function EditTransaction({ transaction, accounts, categories }: Props) {
+  const getCategoryName = useCategoryName()
   const { data, setData, put, processing, errors, transform } = useForm({
     type: (transaction.type || 'expense') as TransactionType,
     account_id: transaction.account_id ? String(transaction.account_id) : '',
@@ -185,7 +187,7 @@ export default function EditTransaction({ transaction, accounts, categories }: P
                     <SelectContent>
                       {currentCategories.map((category) => (
                         <SelectItem key={category.id} value={String(category.id)}>
-                          {category.name}
+                          {getCategoryName(category)}
                         </SelectItem>
                       ))}
                     </SelectContent>

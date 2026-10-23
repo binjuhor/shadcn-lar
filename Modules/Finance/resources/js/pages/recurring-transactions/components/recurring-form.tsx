@@ -1,4 +1,5 @@
 import { useForm, router } from '@inertiajs/react'
+import { useCategoryName } from '@/hooks/use-category-name'
 import { format } from 'date-fns'
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
@@ -75,6 +76,7 @@ export function RecurringForm({
   onSuccess,
 }: RecurringFormProps) {
   const isEditing = !!recurring
+  const getCategoryName = useCategoryName()
 
   const { data, setData, processing, errors, reset } = useForm({
     name: '',
@@ -259,7 +261,7 @@ export function RecurringForm({
                 <SelectItem value="__none__">No category</SelectItem>
                 {currentCategories.map((category) => (
                   <SelectItem key={category.id} value={String(category.id)}>
-                    {category.name}
+                    {getCategoryName(category)}
                   </SelectItem>
                 ))}
               </SelectContent>

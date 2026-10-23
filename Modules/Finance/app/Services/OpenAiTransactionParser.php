@@ -4,6 +4,7 @@ namespace Modules\Finance\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\{Http, Log};
+use Modules\Settings\Services\AiCredentialResolver;
 
 class OpenAiTransactionParser extends DeepSeekTransactionParser
 {
@@ -11,7 +12,6 @@ class OpenAiTransactionParser extends DeepSeekTransactionParser
 
     public function __construct()
     {
-        $this->apiKey = config('services.openai.api_key');
         $this->model = config('services.openai.model', 'gpt-4o-mini');
         $this->visionModel = config('services.openai.vision_model', 'gpt-4o');
     }
@@ -81,7 +81,7 @@ class OpenAiTransactionParser extends DeepSeekTransactionParser
         try {
             $response = Http::timeout(60)
                 ->withHeaders([
-                    'Authorization' => "Bearer {$this->apiKey}",
+                    'Authorization' => 'Bearer '.app(AiCredentialResolver::class)->apiKey('openai'),
                     'Content-Type' => 'application/json',
                 ])
                 ->post('https://api.openai.com/v1/chat/completions', $payload);

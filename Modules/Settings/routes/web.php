@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Modules\Settings\Http\Controllers\{
     ModulesController,
@@ -10,7 +11,7 @@ use Nwidart\Modules\Facades\Module;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Language switch route
-    Route::patch('/language', function (\Illuminate\Http\Request $request) {
+    Route::patch('/language', function (Request $request) {
         $validated = $request->validate([
             'language' => ['required', 'string', 'in:en,vi'],
         ]);
@@ -36,6 +37,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('/display', [SettingsController::class, 'display'])->name('display');
         Route::patch('/display', [SettingsController::class, 'updateDisplay'])->name('display.update');
+
+        Route::get('/ai', [SettingsController::class, 'ai'])->name('ai');
+        Route::patch('/ai', [SettingsController::class, 'updateAi'])->name('ai.update');
 
         if (Module::isEnabled('Finance')) {
             Route::get('/finance', [SettingsController::class, 'finance'])->name('finance');

@@ -12,6 +12,7 @@ class AdvisorMessage extends Model
         'conversation_id',
         'role',
         'content',
+        'meta',
         'ai_provider',
         'prompt_tokens',
         'completion_tokens',
@@ -22,6 +23,7 @@ class AdvisorMessage extends Model
         return [
             'prompt_tokens' => 'integer',
             'completion_tokens' => 'integer',
+            'meta' => 'array',
         ];
     }
 

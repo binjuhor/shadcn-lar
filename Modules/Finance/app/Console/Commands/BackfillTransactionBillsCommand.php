@@ -45,12 +45,14 @@ class BackfillTransactionBillsCommand extends Command
 
             if (! $transaction) {
                 $skipped++;
+
                 continue;
             }
 
             if ($transaction->getMedia('bills')->isNotEmpty()) {
                 $this->line("Skipping history #{$history->id} → tx #{$transaction->id} (already has bills)");
                 $skipped++;
+
                 continue;
             }
 
@@ -59,6 +61,7 @@ class BackfillTransactionBillsCommand extends Command
 
             if ($dryRun) {
                 $copied += $attachmentCount;
+
                 continue;
             }
 

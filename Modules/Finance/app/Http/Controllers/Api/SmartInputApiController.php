@@ -5,20 +5,26 @@ namespace Modules\Finance\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Modules\Finance\Contracts\TransactionParserInterface;
+use Modules\Finance\Exceptions\SmartInputException;
 use Modules\Finance\Models\Account;
 use Modules\Finance\Models\Category;
+use Modules\Finance\Models\SmartInputHistory;
 use Modules\Finance\Models\Transaction;
-use Modules\Finance\Services\TransactionParserFactory;
+use Modules\Finance\Services\SmartInputParsingService;
+use Modules\Finance\Services\SmartInputTransactionService;
+use Modules\Finance\Services\TransactionService;
 
+/**
+ * @deprecated Use the AI Assistant API (`/api/v1/finance/assistant/*`), which handles text,
+ *             voice, and receipt input in one chat. Kept only for older mobile app versions.
+ */
 class SmartInputApiController extends Controller
 {
-    protected TransactionParserInterface $parser;
-
-    public function __construct()
-    {
-        $this->parser = TransactionParserFactory::make();
-    }
+    public function __construct(
+        private TransactionService $transactionService,
+        private SmartInputParsingService $parsing,
+        private SmartInputTransactionService $transactions,
+    ) {}
 
     /**
      * Parse voice audio to extract transaction details
@@ -26,23 +32,15 @@ class SmartInputApiController extends Controller
     public function parseVoice(Request $request): JsonResponse
     {
         $request->validate([
-            'audio' => ['required', 'file', 'max:10240'], // 10MB max
+            'audio' => ['required', 'file', 'max:10240', 'mimes:webm,ogg,mp3,wav,aac,flac,aiff,mp4,m4a'],
             'language' => ['nullable', 'string', 'in:vi,en'],
         ]);
 
-        $result = $this->parser->parseVoice(
+        return $this->respond(fn () => $this->parsing->parseVoice(
+            $request->user(),
             $request->file('audio'),
-            $request->input('language', 'vi')
-        );
-
-        if (! $result['success']) {
-            return response()->json([
-                'success' => false,
-                'error' => $result['error'] ?? 'Failed to parse audio',
-            ], 422);
-        }
-
-        return $this->enrichResult($result);
+            $request->input('language', 'vi'),
+        ));
     }
 
     /**
@@ -51,23 +49,16 @@ class SmartInputApiController extends Controller
     public function parseReceipt(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => ['required', 'file', 'image', 'max:10240'], // 10MB max
+            // 'image' rule rejects HEIC (image/heic or application/octet-stream on servers without libheif)
+            'image' => ['required', 'file', 'extensions:jpg,jpeg,png,gif,bmp,webp,heic,heif', 'max:10240'],
             'language' => ['nullable', 'string', 'in:vi,en'],
         ]);
 
-        $result = $this->parser->parseReceipt(
+        return $this->respond(fn () => $this->parsing->parseReceipt(
+            $request->user(),
             $request->file('image'),
-            $request->input('language', 'vi')
-        );
-
-        if (! $result['success']) {
-            return response()->json([
-                'success' => false,
-                'error' => $result['error'] ?? 'Failed to parse receipt',
-            ], 422);
-        }
-
-        return $this->enrichResult($result);
+            $request->input('language', 'vi'),
+        ));
     }
 
     /**
@@ -80,19 +71,27 @@ class SmartInputApiController extends Controller
             'language' => ['nullable', 'string', 'in:vi,en'],
         ]);
 
-        $result = $this->parser->parseText(
+        return $this->respond(fn () => $this->parsing->parseText(
+            $request->user(),
             $request->input('text'),
-            $request->input('language', 'vi')
-        );
+            $request->input('language', 'vi'),
+        ));
+    }
 
-        if (! $result['success']) {
-            return response()->json([
-                'success' => false,
-                'error' => $result['error'] ?? 'Failed to parse text',
-            ], 422);
-        }
+    public function parseTextWithImage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'text' => ['required', 'string', 'max:1000'],
+            'image' => ['required', 'file', 'extensions:jpg,jpeg,png,gif,bmp,webp,heic,heif', 'max:10240'],
+            'language' => ['nullable', 'string', 'in:vi,en'],
+        ]);
 
-        return $this->enrichResult($result);
+        return $this->respond(fn () => $this->parsing->parseReceipt(
+            $request->user(),
+            $request->file('image'),
+            $request->input('language', 'vi'),
+            $request->input('text'),
+        ));
     }
 
     /**
@@ -100,42 +99,83 @@ class SmartInputApiController extends Controller
      */
     public function storeTransaction(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'type' => ['required', 'in:income,expense,transfer'],
-            'amount' => ['required', 'numeric', 'min:1'],
-            'description' => ['required', 'string', 'max:255'],
-            'account_id' => ['required', 'exists:finance_accounts,id'],
-            'category_id' => ['nullable', 'exists:finance_categories,id'],
-            'transaction_date' => ['required', 'date'],
-            'notes' => ['nullable', 'string'],
-            'transfer_account_id' => ['nullable', 'exists:finance_accounts,id'],
-        ]);
+        $validated = $request->validate(SmartInputTransactionService::rules());
 
-        // Verify account belongs to user
-        $account = Account::where('id', $validated['account_id'])
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
-
-        $transaction = Transaction::create([
-            'account_id' => $validated['account_id'],
-            'transaction_type' => $validated['type'],
-            'amount' => $validated['amount'],
-            'description' => $validated['description'],
-            'category_id' => $validated['category_id'],
-            'transaction_date' => $validated['transaction_date'],
-            'notes' => $validated['notes'] ?? null,
-            'currency_code' => $account->currency_code,
-            'is_reconciled' => false,
-            'transfer_account_id' => $validated['transfer_account_id'] ?? null,
-        ]);
+        try {
+            $transaction = $this->transactions->save($request->user(), $validated);
+        } catch (SmartInputException $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+        }
 
         return response()->json([
             'success' => true,
             'data' => [
                 'id' => $transaction->id,
                 'message' => 'Transaction created successfully',
+                'history_id' => $validated['history_id'] ?? null,
             ],
         ], 201);
+    }
+
+    public function history(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'input_type' => ['nullable', 'string', 'in:text,voice,image,text_image'],
+            'saved' => ['nullable', 'string', 'in:yes,no'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
+            'before_id' => ['nullable', 'integer', 'min:1'],
+            'limit' => ['nullable', 'integer', 'between:1,50'],
+        ]);
+
+        $limit = (int) ($validated['limit'] ?? 20);
+        $query = SmartInputHistory::forUser(auth()->id())
+            ->with(['media', 'transaction:id,description,amount,transaction_type,currency_code'])
+            ->latest();
+
+        if (! empty($validated['input_type'])) {
+            $query->where('input_type', $validated['input_type']);
+        }
+
+        if (! empty($validated['saved'])) {
+            $query->where('transaction_saved', $validated['saved'] === 'yes');
+        }
+
+        if (! empty($validated['date_from'])) {
+            $query->whereDate('created_at', '>=', $validated['date_from']);
+        }
+
+        if (! empty($validated['date_to'])) {
+            $query->whereDate('created_at', '<=', $validated['date_to']);
+        }
+
+        if (! empty($validated['before_id'])) {
+            $query->where('id', '<', $validated['before_id']);
+        }
+
+        $items = $query->take($limit + 1)->get();
+        $hasMore = $items->count() > $limit;
+        $items = $items->take($limit)->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'items' => $items->map(fn (SmartInputHistory $history) => $this->historyData($history)),
+                'has_more' => $hasMore,
+                'next_before_id' => $hasMore ? $items->last()?->id : null,
+            ],
+        ]);
+    }
+
+    public function destroyHistory(int $history): JsonResponse
+    {
+        $historyRecord = SmartInputHistory::forUser(auth()->id())->findOrFail($history);
+        $historyRecord->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'History entry deleted.',
+        ]);
     }
 
     /**
@@ -187,7 +227,7 @@ class SmartInputApiController extends Controller
         $validated = $request->validate([
             'transactions' => ['required', 'array', 'min:1', 'max:100'],
             'transactions.*.type' => ['required', 'in:income,expense,transfer'],
-            'transactions.*.amount' => ['required', 'numeric', 'min:1'],
+            'transactions.*.amount' => ['required', 'numeric', 'min:0.01'],
             'transactions.*.description' => ['required', 'string', 'max:255'],
             'transactions.*.account_id' => ['required', 'exists:finance_accounts,id'],
             'transactions.*.category_id' => ['nullable', 'exists:finance_categories,id'],
@@ -217,18 +257,33 @@ class SmartInputApiController extends Controller
             }
 
             try {
-                $transaction = Transaction::create([
-                    'account_id' => $txData['account_id'],
-                    'transaction_type' => $txData['type'],
-                    'amount' => $txData['amount'],
-                    'description' => $txData['description'],
-                    'category_id' => $txData['category_id'] ?? null,
-                    'transaction_date' => $txData['transaction_date'],
-                    'notes' => $txData['notes'] ?? null,
-                    'currency_code' => $account->currency_code,
-                    'is_reconciled' => false,
-                    'transfer_account_id' => $txData['transfer_account_id'] ?? null,
-                ]);
+                if ($txData['type'] === 'transfer') {
+                    $destination = Account::where('id', $txData['transfer_account_id'] ?? null)
+                        ->where('user_id', $userId)
+                        ->whereKeyNot($account->id)
+                        ->firstOrFail();
+
+                    $transaction = $this->transactionService->recordTransfer([
+                        'from_account_id' => $account->id,
+                        'to_account_id' => $destination->id,
+                        'amount' => $txData['amount'],
+                        'description' => $txData['description'],
+                        'transaction_date' => $txData['transaction_date'],
+                        'notes' => $txData['notes'] ?? null,
+                    ])['debit'];
+                } else {
+                    $transaction = Transaction::create([
+                        'account_id' => $txData['account_id'],
+                        'transaction_type' => $txData['type'],
+                        'amount' => $txData['amount'],
+                        'description' => $txData['description'],
+                        'category_id' => $txData['category_id'] ?? null,
+                        'transaction_date' => $txData['transaction_date'],
+                        'notes' => $txData['notes'] ?? null,
+                        'currency_code' => $account->currency_code,
+                        'is_reconciled' => false,
+                    ]);
+                }
 
                 $results[] = [
                     'index' => $index,
@@ -267,7 +322,7 @@ class SmartInputApiController extends Controller
     {
         $validated = $request->validate([
             'type' => ['required', 'in:income,expense'],
-            'amount' => ['required', 'numeric', 'min:1'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
             'description' => ['required', 'string', 'max:255'],
             'account_id' => ['nullable', 'exists:finance_accounts,id'],
         ]);
@@ -294,13 +349,14 @@ class SmartInputApiController extends Controller
             ], 422);
         }
 
-        $suggestedCategory = $this->parser->matchCategory(
+        $suggestedCategory = $this->parsing->parser($request->user())->matchCategory(
             $validated['description'],
             $userId,
             $validated['type']
         );
 
         $transaction = Transaction::create([
+            'user_id' => $userId,
             'account_id' => $account->id,
             'transaction_type' => $validated['type'],
             'amount' => $validated['amount'],
@@ -328,51 +384,30 @@ class SmartInputApiController extends Controller
         ], 201);
     }
 
-    /**
-     * Enrich parsed result with matched category/account
-     */
-    protected function enrichResult(array $result): JsonResponse
+    protected function historyData(SmartInputHistory $history): array
     {
-        $userId = auth()->id();
+        return [
+            'id' => $history->id,
+            'input_type' => $history->input_type,
+            'raw_text' => $history->raw_text,
+            'parsed_result' => $history->parsed_result,
+            'confidence' => $history->confidence,
+            'transaction_saved' => $history->transaction_saved,
+            'created_at' => $history->created_at->toISOString(),
+            'media_url' => $history->getFirstMediaUrl('input_attachments') ?: null,
+            'currency_code' => $history->transaction?->currency_code,
+        ];
+    }
 
-        // Match category if hint provided
-        $suggestedCategory = null;
-        if (! empty($result['category_hint'])) {
-            $suggestedCategory = $this->parser->matchCategory(
-                $result['category_hint'],
-                $userId,
-                $result['type'] ?? 'expense'
-            );
+    /**
+     * @param  callable(): array{drafts: array, history_id: int, multiple: bool}  $parse
+     */
+    protected function respond(callable $parse): JsonResponse
+    {
+        try {
+            return response()->json($this->parsing->payload($parse()));
+        } catch (SmartInputException $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
         }
-
-        // Match account if hint provided
-        $suggestedAccount = null;
-        if (! empty($result['account_hint'])) {
-            $suggestedAccount = $this->parser->matchAccount($result['account_hint'], $userId);
-        }
-
-        // Fallback to first active account
-        if (! $suggestedAccount) {
-            $firstAccount = Account::where('user_id', $userId)
-                ->where('is_active', true)
-                ->first();
-            if ($firstAccount) {
-                $suggestedAccount = ['id' => $firstAccount->id, 'name' => $firstAccount->name];
-            }
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'type' => $result['type'] ?? 'expense',
-                'amount' => $result['amount'] ?? 0,
-                'description' => $result['description'] ?? '',
-                'suggested_category' => $suggestedCategory,
-                'suggested_account' => $suggestedAccount,
-                'transaction_date' => $result['transaction_date'] ?? now()->format('Y-m-d'),
-                'confidence' => $result['confidence'] ?? 0.8,
-                'raw_text' => $result['raw_text'] ?? null,
-            ],
-        ]);
     }
 }

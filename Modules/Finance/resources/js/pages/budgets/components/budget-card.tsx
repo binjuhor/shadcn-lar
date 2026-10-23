@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { useCategoryName } from '@/hooks/use-category-name'
 import { formatDateDisplay } from '@/lib/date-utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -44,6 +45,7 @@ export function BudgetCard({
   compact = false,
 }: BudgetCardProps) {
   const { t } = useTranslation()
+  const getCategoryName = useCategoryName()
   const spentPercent = budget.amount > 0
     ? Math.min((budget.spent / budget.amount) * 100, 100)
     : 0
@@ -134,7 +136,7 @@ export function BudgetCard({
         {budget.category && (
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">{t('page.budgets.category')}</span>
-            <Badge variant="secondary">{budget.category.name}</Badge>
+            <Badge variant="secondary">{getCategoryName(budget.category)}</Badge>
           </div>
         )}
       </CardContent>

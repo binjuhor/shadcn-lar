@@ -4,6 +4,7 @@ namespace Modules\Finance\Console\Commands;
 
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Smalot\PdfParser\Parser;
 
 class ConvertTechcombankPdfCommand extends Command
@@ -75,7 +76,7 @@ class ConvertTechcombankPdfCommand extends Command
         }
     }
 
-    protected function parsePageTransactions(string $text, int $pageNum): \Illuminate\Support\Collection
+    protected function parsePageTransactions(string $text, int $pageNum): Collection
     {
         $transactions = collect();
 
@@ -214,7 +215,7 @@ class ConvertTechcombankPdfCommand extends Command
         return false;
     }
 
-    protected function writeCsv(string $path, \Illuminate\Support\Collection $transactions): void
+    protected function writeCsv(string $path, Collection $transactions): void
     {
         $handle = fopen($path, 'w');
 

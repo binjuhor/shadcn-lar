@@ -17,12 +17,13 @@ import {
 import { Plus, Wallet } from 'lucide-react'
 import { AccountCard } from './components/account-card'
 import { AccountForm } from './components/account-form'
-import type { Account, AccountSummary, Currency } from '@modules/Finance/types/finance'
+import type { Account, AccountSummary, BankIcon, Currency } from '@modules/Finance/types/finance'
 
 interface Props {
   accounts: Account[]
   summary: AccountSummary
   currencies: Currency[]
+  bankIcons: BankIcon[]
 }
 
 function formatMoney(amount: number, currencyCode = 'VND'): string {
@@ -32,7 +33,7 @@ function formatMoney(amount: number, currencyCode = 'VND'): string {
   }).format(amount)
 }
 
-export default function AccountsIndex({ accounts, summary, currencies }: Props) {
+export default function AccountsIndex({ accounts, summary, currencies, bankIcons }: Props) {
   const { t } = useTranslation()
   const [showForm, setShowForm] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -196,6 +197,7 @@ export default function AccountsIndex({ accounts, summary, currencies }: Props) 
           onOpenChange={handleFormClose}
           account={selectedAccount}
           currencies={currencies}
+          bankIcons={bankIcons}
           onSuccess={handleSuccess}
         />
 

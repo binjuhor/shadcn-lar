@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\{
     Relations\HasMany,
     SoftDeletes
 };
+use Modules\Finance\Database\Factories\SavingsGoalFactory;
 use Modules\Finance\ValueObjects\Money;
 use OwenIt\Auditing\Contracts\Auditable;
 
@@ -126,6 +127,6 @@ class SavingsGoal extends Model implements Auditable
 
     protected static function newFactory()
     {
-        return \Modules\Finance\Database\Factories\SavingsGoalFactory::new();
+        return SavingsGoalFactory::new();
     }
 }

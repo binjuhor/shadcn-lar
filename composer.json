@@ -12,6 +12,9 @@
         "php": "^8.3",
         "barryvdh/laravel-dompdf": "^3.1",
         "brick/money": "^0.10.3",
+        "enshrined/svg-sanitize": "^1.0",
+        "google/auth": "^1.50",
+        "google/cloud-ai-platform": "^1.58",
         "inertiajs/inertia-laravel": "^3.0",
         "kalnoy/nestedset": "^7.0",
         "laravel/framework": "^13.0",
@@ -21,6 +24,7 @@
         "nwidart/laravel-modules": "^13.0",
         "owen-it/laravel-auditing": "^14.0",
         "phpoffice/phpspreadsheet": "^5.3",
+        "smalot/pdfparser": "^2.12",
         "spatie/laravel-medialibrary": "^11.15",
         "spatie/laravel-permission": "^7.0",
         "tightenco/ziggy": "^2.0"
@@ -57,7 +61,8 @@
             "Modules\\Settings\\Database\\Seeders\\": "Modules/Settings/database/seeders/",
             "Modules\\ModuleGenerator\\": "Modules/ModuleGenerator/app/",
             "Modules\\Invoice\\Database\\Factories\\": "Modules/Invoice/database/factories/",
-            "Modules\\Invoice\\Database\\Seeders\\": "Modules/Invoice/database/seeders/"
+            "Modules\\Invoice\\Database\\Seeders\\": "Modules/Invoice/database/seeders/",
+            "Modules\\AiAdvisor\\": "Modules/AiAdvisor/app/"
         }
     },
     "autoload-dev": {
@@ -65,7 +70,8 @@
             "Tests\\": "tests/",
             "Modules\\Notification\\Tests\\": "Modules/Notification/tests/",
             "Modules\\Settings\\Tests\\": "Modules/Settings/tests/",
-            "Modules\\Finance\\Tests\\": "Modules/Finance/tests/"
+            "Modules\\Finance\\Tests\\": "Modules/Finance/tests/",
+            "Modules\\AiAdvisor\\Tests\\": "Modules/AiAdvisor/tests/"
         }
     },
     "scripts": {

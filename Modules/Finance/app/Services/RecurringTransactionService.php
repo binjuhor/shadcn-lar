@@ -4,7 +4,7 @@ namespace Modules\Finance\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\{Collection, Facades\DB};
-use Modules\Finance\Models\{Currency, RecurringTransaction};
+use Modules\Finance\Models\{Account, Currency, RecurringTransaction};
 
 class RecurringTransactionService
 {
@@ -44,6 +44,19 @@ class RecurringTransactionService
     public function update(RecurringTransaction $recurring, array $data): RecurringTransaction
     {
         $updateData = [];
+
+        // Keep the stored currency in sync with the effective account so the
+        // amount is always interpreted in the account's currency. Without this,
+        // switching to an account with a different currency keeps the old code
+        // and projections convert the amount a second time.
+        $effectiveAccountId = $data['account_id'] ?? $recurring->account_id;
+
+        if ($effectiveAccountId !== null) {
+            $account = Account::where('user_id', $recurring->user_id)
+                ->findOrFail($effectiveAccountId);
+
+            $data['currency_code'] = $account->currency_code;
+        }
 
         // Handle simple fields
         $simpleFields = ['account_id', 'name', 'transaction_type', 'amount', 'currency_code', 'is_active', 'auto_create'];
@@ -100,20 +113,23 @@ class RecurringTransactionService
         return $recurring->fresh();
     }
 
-    public function processDue(): array
+    public function processDue(?int $userId = null): array
     {
-        $dueRecurrings = RecurringTransaction::due()
-            ->with(['account', 'category'])
-            ->get();
+        $query = RecurringTransaction::due()
+            ->with(['account', 'category']);
+
+        if ($userId !== null) {
+            $query->forUser($userId);
+        }
+
+        $dueRecurrings = $query->get();
 
         $processed = [];
         $errors = [];
 
         foreach ($dueRecurrings as $recurring) {
             try {
-                if ($recurring->auto_create) {
-                    $this->generateTransaction($recurring);
-                }
+                $this->catchUp($recurring);
                 $processed[] = $recurring->id;
             } catch (\Exception $e) {
                 $errors[$recurring->id] = $e->getMessage();
@@ -126,6 +142,32 @@ class RecurringTransactionService
         ];
     }
 
+    /**
+     * Run every missed occurrence until next_run_date is in the future (or past end_date),
+     * so a skipped scheduler run never leaves the schedule behind. Non auto-create
+     * recurrings are only advanced, without generating transactions.
+     */
+    protected function catchUp(RecurringTransaction $recurring): void
+    {
+        $today = now()->startOfDay();
+
+        while ($recurring->next_run_date <= $today
+            && (! $recurring->end_date || $recurring->next_run_date <= $recurring->end_date)) {
+            $previous = $recurring->next_run_date->copy();
+
+            if ($recurring->auto_create) {
+                $this->generateTransaction($recurring);
+            } else {
+                $recurring->update(['next_run_date' => $recurring->calculateNextRunDate()]);
+            }
+
+            // Guard against a schedule that fails to move forward
+            if ($recurring->next_run_date <= $previous) {
+                break;
+            }
+        }
+    }
+
     public function generateTransaction(RecurringTransaction $recurring): void
     {
         DB::transaction(function () use ($recurring) {
@@ -135,6 +177,7 @@ class RecurringTransactionService
                 'amount' => $recurring->amount,
                 'description' => $recurring->name,
                 'transaction_date' => $recurring->next_run_date->format('Y-m-d'),
+                'recurring_transaction_id' => $recurring->id,
             ];
 
             if ($recurring->transaction_type === 'income') {
@@ -264,38 +307,57 @@ class RecurringTransactionService
         }
     }
 
+    /**
+     * First occurrence matching the schedule settings (day of week / day of month / month of year), on or after the
+     * start date and after today. The start date only bounds the schedule; it is not itself an occurrence unless it
+     * matches the settings.
+     */
     protected function calculateInitialNextRun(array $data, Carbon $startDate): Carbon
     {
-        $frequency = $data['frequency'];
-        $today = now()->startOfDay();
+        $tomorrow = now()->startOfDay()->addDay();
+        $from = $startDate->copy()->startOfDay()->max($tomorrow);
 
-        // If start date is in the future, use it
-        if ($startDate > $today) {
-            return $startDate;
-        }
-
-        // Calculate next occurrence from today
-        $nextRun = $startDate->copy();
-
-        while ($nextRun <= $today) {
-            $nextRun = match ($frequency) {
-                'daily' => $nextRun->addDay(),
-                'weekly' => $nextRun->addWeek(),
-                'monthly' => $this->addMonth($nextRun, $data['day_of_month'] ?? $startDate->day),
-                'yearly' => $nextRun->addYear(),
-                default => $nextRun->addMonth(),
-            };
-        }
-
-        return $nextRun;
+        return match ($data['frequency']) {
+            'weekly' => $this->firstWeekday($from, (int) ($data['day_of_week'] ?? $startDate->dayOfWeek)),
+            'monthly' => $this->firstMonthDay($from, (int) ($data['day_of_month'] ?? $startDate->day)),
+            'yearly' => $this->firstYearDay(
+                $from,
+                (int) ($data['month_of_year'] ?? $startDate->month),
+                (int) ($data['day_of_month'] ?? $startDate->day),
+            ),
+            default => $from,
+        };
     }
 
-    protected function addMonth(Carbon $date, int $dayOfMonth): Carbon
+    protected function firstWeekday(Carbon $from, int $dayOfWeek): Carbon
     {
-        $next = $date->copy()->addMonth();
-        $maxDay = $next->daysInMonth;
-        $targetDay = min($dayOfMonth, $maxDay);
+        return $from->copy()->addDays(($dayOfWeek - $from->dayOfWeek + 7) % 7);
+    }
 
-        return $next->setDay($targetDay);
+    protected function firstMonthDay(Carbon $from, int $dayOfMonth): Carbon
+    {
+        $candidate = $this->clampedDate($from->year, $from->month, $dayOfMonth);
+
+        if ($candidate->lt($from)) {
+            $next = $from->copy()->startOfMonth()->addMonth();
+            $candidate = $this->clampedDate($next->year, $next->month, $dayOfMonth);
+        }
+
+        return $candidate;
+    }
+
+    protected function firstYearDay(Carbon $from, int $month, int $dayOfMonth): Carbon
+    {
+        $candidate = $this->clampedDate($from->year, $month, $dayOfMonth);
+
+        return $candidate->lt($from) ? $this->clampedDate($from->year + 1, $month, $dayOfMonth) : $candidate;
+    }
+
+    /** The given day, moved back to the month's last day when the month is shorter (e.g. day 31 in April). */
+    protected function clampedDate(int $year, int $month, int $day): Carbon
+    {
+        $first = Carbon::create($year, $month, 1)->startOfDay();
+
+        return $first->setDay(min($day, $first->daysInMonth));
     }
 }

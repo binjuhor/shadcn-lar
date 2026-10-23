@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useForm } from '@inertiajs/react'
 import { useTranslation } from 'react-i18next'
+import { useCategoryName } from '@/hooks/use-category-name'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -81,6 +82,7 @@ export function BudgetForm({
   onSuccess,
 }: BudgetFormProps) {
   const { t } = useTranslation()
+  const getCategoryName = useCategoryName()
   const isEditing = !!budget
 
   const periodTypes = periodTypeValues.map(value => ({
@@ -219,7 +221,7 @@ export function BudgetForm({
                 <SelectItem value="__all__">{t('form.all_expenses')}</SelectItem>
                 {expenseCategories.map((category) => (
                   <SelectItem key={category.id} value={String(category.id)}>
-                    {category.name}
+                    {getCategoryName(category)}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -161,14 +161,8 @@ class ReportApiTest extends TestCase
             ]);
     }
 
-    #[Group('mysql')]
     public function test_user_can_get_cashflow_analysis(): void
     {
-        // Skip on SQLite - DATE_FORMAT is MySQL specific
-        if (config('database.default') === 'sqlite') {
-            $this->markTestSkipped('This test requires MySQL (DATE_FORMAT function)');
-        }
-
         Sanctum::actingAs($this->user);
 
         $this->createTransaction(['amount' => 500, 'transaction_type' => 'expense']);

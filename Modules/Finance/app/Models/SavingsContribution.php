@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\{
     Relations\BelongsTo,
     SoftDeletes
 };
+use Modules\Finance\Database\Factories\SavingsContributionFactory;
 use Modules\Finance\ValueObjects\Money;
 use OwenIt\Auditing\Contracts\Auditable;
 
@@ -69,6 +70,6 @@ class SavingsContribution extends Model implements Auditable
 
     protected static function newFactory()
     {
-        return \Modules\Finance\Database\Factories\SavingsContributionFactory::new();
+        return SavingsContributionFactory::new();
     }
 }

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\{
     Relations\BelongsTo,
     SoftDeletes
 };
+use Modules\Finance\Database\Factories\TransactionFactory;
 use Modules\Finance\ValueObjects\Money;
 use OwenIt\Auditing\Contracts\Auditable;
 use Spatie\MediaLibrary\HasMedia;
@@ -36,6 +37,7 @@ class Transaction extends Model implements Auditable, HasMedia
         'reconciled_at',
         'transfer_account_id',
         'transfer_transaction_id',
+        'transfer_direction',
     ];
 
     // Eager-load media so the `bills` accessor doesn't trigger N+1 in list views.
@@ -54,7 +56,7 @@ class Transaction extends Model implements Auditable, HasMedia
 
     public function getTypeAttribute(): string
     {
-        return $this->transaction_type;
+        return $this->transaction_type ?? '';
     }
 
     /**
@@ -114,7 +116,41 @@ class Transaction extends Model implements Auditable, HasMedia
 
     public function isTransfer(): bool
     {
-        return $this->transfer_transaction_id !== null;
+        return $this->transaction_type === 'transfer' || $this->transfer_transaction_id !== null;
+    }
+
+    public function isOutgoingTransfer(): bool
+    {
+        return $this->isTransfer() && (
+            $this->transfer_direction === 'outgoing'
+            || ($this->transfer_direction === null && $this->transaction_type === 'expense')
+        );
+    }
+
+    public function isIncomingTransfer(): bool
+    {
+        return $this->isTransfer() && (
+            $this->transfer_direction === 'incoming'
+            || ($this->transfer_direction === null && $this->transaction_type === 'income')
+        );
+    }
+
+    /**
+     * Signed impact this row has on its account balance.
+     */
+    public function balanceImpact(?float $amount = null): float
+    {
+        $amount ??= (float) $this->amount;
+
+        if ($this->transaction_type === 'income' || $this->isIncomingTransfer()) {
+            return $amount;
+        }
+
+        if ($this->transaction_type === 'expense' || $this->isOutgoingTransfer()) {
+            return -$amount;
+        }
+
+        return 0.0;
     }
 
     public function getAmountMoney(): Money
@@ -129,6 +165,6 @@ class Transaction extends Model implements Auditable, HasMedia
 
     protected static function newFactory()
     {
-        return \Modules\Finance\Database\Factories\TransactionFactory::new();
+        return TransactionFactory::new();
     }
 }

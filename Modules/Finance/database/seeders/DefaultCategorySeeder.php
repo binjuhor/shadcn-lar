@@ -31,6 +31,7 @@ class DefaultCategorySeeder extends Seeder
             ['name' => 'Gifts & Donations', 'name_key' => 'category.gifts_donations', 'type' => 'expense', 'icon' => 'more-horizontal', 'color' => '#6b7280', 'expense_type' => 'discretionary'],
 
             // Expense categories - Other
+            ['name' => 'Business Expense', 'name_key' => 'category.business_expense', 'type' => 'expense', 'icon' => 'briefcase', 'color' => '#3b82f6', 'expense_type' => null],
             ['name' => 'Education', 'name_key' => 'category.education', 'type' => 'expense', 'icon' => 'book', 'color' => '#0ea5e9', 'expense_type' => null],
             ['name' => 'Other Expenses', 'name_key' => 'category.other_expenses', 'type' => 'expense', 'icon' => 'more-horizontal', 'color' => '#6b7280', 'expense_type' => null],
             ['name' => 'Investment Expenses', 'name_key' => 'category.investment_expenses', 'type' => 'expense', 'icon' => 'more-horizontal', 'color' => '#6b7280', 'expense_type' => null],

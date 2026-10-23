@@ -4,6 +4,7 @@ namespace Modules\Finance\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\{Http, Log};
+use Modules\Settings\Services\AiCredentialResolver;
 
 class OpenRouterTransactionParser extends DeepSeekTransactionParser
 {
@@ -11,7 +12,6 @@ class OpenRouterTransactionParser extends DeepSeekTransactionParser
 
     public function __construct()
     {
-        $this->apiKey = config('services.openrouter.api_key');
         $this->model = config('services.openrouter.model', 'openrouter/auto');
         $this->visionModel = config('services.openrouter.vision_model', 'openrouter/auto');
     }
@@ -81,7 +81,7 @@ class OpenRouterTransactionParser extends DeepSeekTransactionParser
         try {
             $response = Http::timeout(60)
                 ->withHeaders([
-                    'Authorization' => "Bearer {$this->apiKey}",
+                    'Authorization' => 'Bearer '.app(AiCredentialResolver::class)->apiKey('openrouter'),
                     'Content-Type' => 'application/json',
                     'HTTP-Referer' => config('app.url', 'http://localhost'),
                     'X-Title' => config('app.name', 'Mokey'),

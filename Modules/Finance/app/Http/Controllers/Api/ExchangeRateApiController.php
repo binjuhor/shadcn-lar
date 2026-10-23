@@ -80,6 +80,27 @@ class ExchangeRateApiController extends Controller
         ], 201);
     }
 
+    /**
+     * Corrects a stored rate in place; the currency pair is fixed (a different pair is a new rate).
+     */
+    public function update(Request $request, ExchangeRate $exchangeRate): JsonResponse
+    {
+        $validated = $request->validate([
+            'rate' => ['sometimes', 'numeric', 'gt:0'],
+            'bid_rate' => ['nullable', 'numeric', 'gt:0'],
+            'ask_rate' => ['nullable', 'numeric', 'gt:0'],
+            'rate_date' => ['sometimes', 'date'],
+        ]);
+
+        $exchangeRate->update($validated);
+        $exchangeRate->load(['baseCurrencyInfo', 'targetCurrencyInfo']);
+
+        return response()->json([
+            'message' => 'Exchange rate updated successfully',
+            'data' => new ExchangeRateResource($exchangeRate),
+        ]);
+    }
+
     public function destroy(ExchangeRate $exchangeRate): JsonResponse
     {
         $exchangeRate->delete();

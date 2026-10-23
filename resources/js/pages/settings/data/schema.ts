@@ -158,3 +158,25 @@ export const paymentTermsOptions = [
   { label: 'Net 60', value: 60 },
   { label: 'Net 90', value: 90 },
 ] as const
+
+// AI provider constants
+export const aiProviderNames = {
+  claude: 'Claude',
+  gemini: 'Gemini',
+  deepseek: 'DeepSeek',
+  openai: 'OpenAI',
+  openrouter: 'OpenRouter',
+  ollama: 'Ollama',
+} as const
+
+export type AiProvider = keyof typeof aiProviderNames
+
+// AI Settings Schema
+export const aiSettingsFormSchema = z.object({
+  provider: z.enum(['claude', 'gemini', 'deepseek', 'openai', 'openrouter', 'ollama']),
+  ollama_base_url: z.string().url({ message: 'Please enter a valid URL.' }).or(z.literal('')),
+  ollama_model: z.string().max(255),
+  keys: z.record(z.string()),
+  clear: z.array(z.string()),
+})
+export type AiSettingsFormValues = z.infer<typeof aiSettingsFormSchema>

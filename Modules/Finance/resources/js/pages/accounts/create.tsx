@@ -22,10 +22,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ArrowLeft } from 'lucide-react'
-import type { Currency, AccountType } from '@modules/Finance/types/finance'
+import { AccountIconPicker } from './components/account-icon-picker'
+import type { BankIcon, Currency, AccountType } from '@modules/Finance/types/finance'
 
 interface Props {
   currencies: Currency[]
+  bankIcons: BankIcon[]
 }
 
 const accountTypes: { value: AccountType; label: string }[] = [
@@ -51,7 +53,7 @@ const rateSources: { value: string; label: string }[] = [
   { value: 'open_exchange_rates', label: 'Open Exchange Rates' },
 ]
 
-export default function CreateAccount({ currencies }: Props) {
+export default function CreateAccount({ currencies, bankIcons }: Props) {
   const defaultCurrency = currencies.find(c => c.is_default)?.code || 'VND'
 
   const { data, setData, post, processing, errors, transform, reset } = useForm({
@@ -62,6 +64,8 @@ export default function CreateAccount({ currencies }: Props) {
     initial_balance: '0',
     description: '',
     color: '#3b82f6',
+    icon: null as File | null,
+    bank_icon: '',
     is_active: true as boolean,
     is_default_payment: false as boolean,
     exclude_from_total: false as boolean,
@@ -226,6 +230,34 @@ export default function CreateAccount({ currencies }: Props) {
                     />
                   ))}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Account Icon</Label>
+                <AccountIconPicker
+                  bankIcons={bankIcons}
+                  iconFile={data.icon}
+                  bankIconKey={data.bank_icon}
+                  existingIconUrl={null}
+                  disabled={processing}
+                  onFileChange={(file) => {
+                    setData('icon', file)
+                    if (file) {
+                      setData('bank_icon', '')
+                    }
+                  }}
+                  onBankIconChange={(key) => {
+                    setData('bank_icon', key)
+                    setData('icon', null)
+                  }}
+                  onClear={() => {
+                    setData('icon', null)
+                    setData('bank_icon', '')
+                  }}
+                />
+                {errors.icon && (
+                  <p className="text-sm text-red-600">{errors.icon}</p>
+                )}
               </div>
 
               <div className="flex items-center justify-between">

@@ -7,6 +7,7 @@ use Google\Cloud\AIPlatform\V1\Blob;
 use Google\Cloud\AIPlatform\V1\Client\PredictionServiceClient;
 use Google\Cloud\AIPlatform\V1\Content;
 use Google\Cloud\AIPlatform\V1\GenerateContentRequest;
+use Google\Cloud\AIPlatform\V1\GenerateContentResponse;
 use Google\Cloud\AIPlatform\V1\GenerationConfig;
 use Google\Cloud\AIPlatform\V1\Part;
 use Illuminate\Support\Facades\Log;
@@ -45,7 +46,7 @@ class VertexGeminiClient
         try {
             $client = $this->getClient();
 
-            $request = (new GenerateContentRequest())
+            $request = (new GenerateContentRequest)
                 ->setModel($this->buildModelPath())
                 ->setContents($this->buildContents($payload['contents'] ?? []));
 
@@ -121,7 +122,7 @@ class VertexGeminiClient
     {
         $out = [];
         foreach ($contents as $entry) {
-            $content = new Content();
+            $content = new Content;
             $content->setRole($entry['role'] ?? 'user');
             $content->setParts($this->buildParts($entry['parts'] ?? []));
             $out[] = $content;
@@ -138,12 +139,12 @@ class VertexGeminiClient
     {
         $out = [];
         foreach ($parts as $part) {
-            $p = new Part();
+            $p = new Part;
 
             if (isset($part['text'])) {
                 $p->setText($part['text']);
             } elseif (isset($part['inline_data'])) {
-                $blob = new Blob();
+                $blob = new Blob;
                 $blob->setMimeType($part['inline_data']['mime_type'] ?? 'application/octet-stream');
                 // SDK expects raw bytes; our payload uses base64 (REST format), so decode.
                 $blob->setData(base64_decode($part['inline_data']['data'] ?? '', true) ?: '');
@@ -158,7 +159,7 @@ class VertexGeminiClient
 
     protected function buildGenerationConfig(array $cfg): GenerationConfig
     {
-        $gc = new GenerationConfig();
+        $gc = new GenerationConfig;
         if (isset($cfg['temperature'])) {
             $gc->setTemperature((float) $cfg['temperature']);
         }
@@ -176,7 +177,7 @@ class VertexGeminiClient
      * Convert the protobuf response back to the same array shape the bare-REST path returns,
      * so the parser's parseResponse() keeps working unchanged.
      */
-    protected function responseToArray(\Google\Cloud\AIPlatform\V1\GenerateContentResponse $response): array
+    protected function responseToArray(GenerateContentResponse $response): array
     {
         $candidates = [];
         foreach ($response->getCandidates() as $candidate) {

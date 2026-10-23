@@ -3,6 +3,9 @@
 namespace Modules\Finance\Providers;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use Modules\Finance\Events\TransactionCreated;
+use Modules\Finance\Listeners\SyncRecurringTransactionFromTransactionListener;
+use Modules\Finance\Listeners\UpdateBudgetSpendingListener;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -11,7 +14,12 @@ class EventServiceProvider extends ServiceProvider
      *
      * @var array<string, array<int, string>>
      */
-    protected $listen = [];
+    protected $listen = [
+        TransactionCreated::class => [
+            UpdateBudgetSpendingListener::class,
+            SyncRecurringTransactionFromTransactionListener::class,
+        ],
+    ];
 
     /**
      * Indicates if events should be discovered.

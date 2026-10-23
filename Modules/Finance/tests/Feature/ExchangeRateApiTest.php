@@ -110,6 +110,33 @@ class ExchangeRateApiTest extends TestCase
         $this->assertEquals(24500, $response->json('data.rate'));
     }
 
+    public function test_user_can_update_exchange_rate(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $exchangeRate = $this->createExchangeRate();
+
+        $response = $this->patchJson("/api/v1/finance/exchange-rates/{$exchangeRate->id}", [
+            'rate' => 25100.5,
+            'base_currency' => 'EUR',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.base_currency', 'USD');
+        $this->assertEquals(25100.5, (float) $exchangeRate->fresh()->rate);
+    }
+
+    public function test_user_cannot_update_exchange_rate_to_zero(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $exchangeRate = $this->createExchangeRate();
+
+        $this->patchJson("/api/v1/finance/exchange-rates/{$exchangeRate->id}", ['rate' => 0])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['rate']);
+    }
+
     public function test_user_can_delete_exchange_rate(): void
     {
         Sanctum::actingAs($this->user);

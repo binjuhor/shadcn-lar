@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { router } from '@inertiajs/react'
 import { useTranslation } from 'react-i18next'
+import { useCategoryName } from '@/hooks/use-category-name'
 import { format } from 'date-fns'
 import { Paperclip, X } from 'lucide-react'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
@@ -33,6 +34,7 @@ import type {
   TransactionBill,
   TransactionType,
 } from '@modules/Finance/types/finance'
+import { CategoryIcon } from '@modules/Finance/components/category-icon'
 
 const MAX_BILLS = 10
 const ACCEPTED_MIME = 'image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf'
@@ -79,7 +81,10 @@ export function TransactionForm({
   onSuccess,
 }: TransactionFormProps) {
   const { t } = useTranslation()
+  const getCategoryName = useCategoryName()
   const isEditing = !!transaction
+  // A transfer pair has a linked transaction — use this (not type) to detect transfers
+  const isTransferPair = !!transaction?.transfer_transaction_id
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [data, setForm] = useState<FormState>(emptyForm)
@@ -101,16 +106,36 @@ export function TransactionForm({
   // Populate form when editing or duplicating
   useEffect(() => {
     if (transaction && open) {
-      setForm({
-        type: transaction.type,
-        account_id: String(transaction.account_id),
-        category_id: transaction.category_id ? String(transaction.category_id) : '',
-        amount: String(transaction.amount),
-        description: transaction.description || '',
-        notes: transaction.notes || '',
-        transaction_date: transaction.transaction_date,
-        transfer_account_id: transaction.transfer_account_id ? String(transaction.transfer_account_id) : '',
-      })
+      if (transaction.transfer_transaction_id) {
+        // Transfer pair: normalize so account_id=from and transfer_account_id=to.
+        // Fall back to the legacy expense type until the normalization command has run.
+        const isDebitSide = transaction.transfer_direction === 'outgoing' || transaction.type === 'expense'
+        setForm({
+          type: 'transfer',
+          account_id: isDebitSide
+            ? String(transaction.account_id)
+            : String(transaction.transfer_account_id ?? ''),
+          transfer_account_id: isDebitSide
+            ? String(transaction.transfer_account_id ?? '')
+            : String(transaction.account_id),
+          amount: String(transaction.amount),
+          description: transaction.description || '',
+          notes: transaction.notes || '',
+          transaction_date: transaction.transaction_date,
+          category_id: '',
+        })
+      } else {
+        setForm({
+          type: transaction.type,
+          account_id: String(transaction.account_id),
+          category_id: transaction.category_id ? String(transaction.category_id) : '',
+          amount: String(transaction.amount),
+          description: transaction.description || '',
+          notes: transaction.notes || '',
+          transaction_date: transaction.transaction_date,
+          transfer_account_id: '',
+        })
+      }
     } else if (duplicateFrom && open) {
       setForm({
         type: duplicateFrom.type === 'transfer' ? 'expense' : duplicateFrom.type,
@@ -228,7 +253,10 @@ export function TransactionForm({
     const fd = new FormData()
     if (isEditing) {
       fd.append('_method', 'put')
-      fd.append('transaction_type', data.type)
+      // Don't send transaction_type for transfer pairs — backend handles both sides
+      if (!isTransferPair) {
+        fd.append('transaction_type', data.type)
+      }
     } else {
       fd.append('type', data.type)
     }
@@ -238,7 +266,8 @@ export function TransactionForm({
     fd.append('description', data.description ?? '')
     fd.append('notes', data.notes ?? '')
     fd.append('transaction_date', data.transaction_date)
-    if (!isEditing && data.transfer_account_id) {
+    // Send transfer_account_id for new transfers AND when editing a transfer pair
+    if (data.transfer_account_id && (data.type === 'transfer' || isTransferPair)) {
       fd.append('transfer_account_id', data.transfer_account_id)
     }
     newBills.forEach((file) => fd.append('bills[]', file))
@@ -306,8 +335,8 @@ export function TransactionForm({
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          {/* Transaction Type Tabs - disabled for transfer transactions when editing */}
-          {(!isEditing || (isEditing && transaction?.type !== 'transfer')) && (
+          {/* Transaction Type Tabs - hidden when editing a transfer pair */}
+          {(!isEditing || !isTransferPair) && (
             <Tabs value={data.type} onValueChange={(v) => handleTypeChange(v as TransactionType)}>
               <TabsList className={`grid w-full ${isEditing ? 'grid-cols-2' : 'grid-cols-3'}`}>
                 <TabsTrigger value="expense" className="text-red-600 dark:text-red-400 data-[state=active]:bg-red-100 dark:data-[state=active]:bg-red-900/50 data-[state=active]:text-red-700 dark:data-[state=active]:text-red-300">
@@ -344,7 +373,7 @@ export function TransactionForm({
 
           <div className="space-y-2">
             <Label htmlFor="account_id">
-              {data.type === 'transfer' ? t('form.from_account') : t('form.account')}
+              {(data.type === 'transfer' || isTransferPair) ? t('form.from_account') : t('form.account')}
             </Label>
             <Select
               value={data.account_id}
@@ -366,7 +395,7 @@ export function TransactionForm({
             )}
           </div>
 
-          {data.type === 'transfer' && (
+          {(data.type === 'transfer' || isTransferPair) && (
             <div className="space-y-2">
               <Label htmlFor="transfer_account_id">{t('form.to_account')}</Label>
               <Select
@@ -392,7 +421,7 @@ export function TransactionForm({
             </div>
           )}
 
-          {data.type !== 'transfer' && (
+          {data.type !== 'transfer' && !isTransferPair && (
             <div className="space-y-2">
               <Label htmlFor="category_id">{t('form.category')}</Label>
               <Select
@@ -405,7 +434,10 @@ export function TransactionForm({
                 <SelectContent>
                   {currentCategories.map((category) => (
                     <SelectItem key={category.id} value={String(category.id)}>
-                      {category.name}
+                      <span className="flex items-center gap-2">
+                        <CategoryIcon icon={category.display_icon} color={category.color} size="sm" />
+                        {getCategoryName(category)}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

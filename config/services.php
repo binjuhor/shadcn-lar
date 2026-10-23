@@ -48,6 +48,16 @@ return [
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
         'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
+        // Backend selector: "vertex" routes through Vertex AI (higher quota, OAuth auth),
+        // "ai_studio" uses the AI Studio API key endpoint. Default ai_studio for back-compat.
+        'backend' => env('GEMINI_BACKEND', 'ai_studio'),
+        'vertex' => [
+            'project_id' => env('GOOGLE_CLOUD_PROJECT'),
+            'region' => env('GOOGLE_CLOUD_REGION', 'asia-southeast1'),
+            // Path to service account JSON. Absolute, or relative to base_path().
+            // When set, the parser exports it as GOOGLE_APPLICATION_CREDENTIALS for google/auth.
+            'credentials_path' => env('GOOGLE_APPLICATION_CREDENTIALS'),
+        ],
     ],
 
     'claude' => [
@@ -61,9 +71,15 @@ return [
     ],
 
     'ollama' => [
-        'base_url' => env('OLLAMA_BASE_URL', 'http://localhost:11434'),
+        'base_url' => env('OLLAMA_BASE_URL', 'https://ollama.com'),
+        'allowed_origins' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', env('OLLAMA_ALLOWED_ORIGINS', 'http://127.0.0.1:11434,http://localhost:11434,http://host.docker.internal:11434,https://ollama.com')),
+        ))),
         'model' => env('OLLAMA_MODEL', 'llama3.2'),
         'vision_model' => env('OLLAMA_VISION_MODEL', 'llama3.2-vision'),
+        'audio_model' => env('OLLAMA_AUDIO_MODEL', 'nemotron3'),
+        'api_key' => env('OLLAMA_API_KEY'),
     ],
 
     'openrouter' => [

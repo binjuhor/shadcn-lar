@@ -25,6 +25,7 @@ return new class extends Migration
             $table->foreignId('transfer_account_id')->nullable()
                 ->constrained('finance_accounts')->nullOnDelete();
             $table->foreignId('transfer_transaction_id')->nullable();
+            $table->enum('transfer_direction', ['outgoing', 'incoming'])->nullable();
 
             $table->softDeletes();
             $table->timestamps();

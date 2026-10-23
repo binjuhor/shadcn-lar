@@ -5,7 +5,7 @@ namespace Modules\Finance\Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
-use Modules\Finance\Models\{Account, Currency, SavingsGoal};
+use Modules\Finance\Models\{Account, Currency, ExchangeRate, SavingsContribution, SavingsGoal, Transaction};
 use Tests\TestCase;
 
 class SavingsGoalApiTest extends TestCase
@@ -92,6 +92,72 @@ class SavingsGoalApiTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('data.id', $goal->id);
+    }
+
+    public function test_nested_transaction_conversion_uses_account_rate_source(): void
+    {
+        Currency::create([
+            'code' => 'VND',
+            'name' => 'Vietnamese Dong',
+            'symbol' => '₫',
+            'decimal_places' => 0,
+            'is_default' => false,
+        ]);
+
+        $this->user->update([
+            'finance_settings' => [
+                'default_currency' => 'VND',
+                'default_exchange_rate_source' => 'manual',
+            ],
+        ]);
+
+        $this->account->update(['rate_source' => 'payoneer']);
+
+        ExchangeRate::create([
+            'base_currency' => 'USD',
+            'target_currency' => 'VND',
+            'rate' => 25000,
+            'source' => 'manual',
+            'rate_date' => now(),
+        ]);
+
+        ExchangeRate::create([
+            'base_currency' => 'USD',
+            'target_currency' => 'VND',
+            'rate' => 24000,
+            'source' => 'payoneer',
+            'rate_date' => now(),
+        ]);
+
+        $goal = $this->createSavingsGoal();
+        $transaction = Transaction::create([
+            'user_id' => $this->user->id,
+            'account_id' => $this->account->id,
+            'transaction_type' => 'expense',
+            'amount' => 100,
+            'currency_code' => 'USD',
+            'transaction_date' => now(),
+            'description' => 'Linked transaction',
+        ]);
+
+        SavingsContribution::create([
+            'savings_goal_id' => $goal->id,
+            'transaction_id' => $transaction->id,
+            'amount' => 100,
+            'currency_code' => 'USD',
+            'contribution_date' => now(),
+            'type' => 'linked',
+        ]);
+
+        Sanctum::actingAs($this->user);
+
+        $response = $this->getJson("/api/v1/finance/savings-goals/{$goal->id}");
+
+        $response->assertOk()
+            ->assertJsonPath('data.contributions.0.transaction.converted_amount', 2400000)
+            ->assertJsonPath('data.contributions.0.transaction.converted_currency_code', 'VND')
+            ->assertJsonPath('data.contributions.0.transaction.exchange_rate', 24000)
+            ->assertJsonPath('data.contributions.0.transaction.conversion_available', true);
     }
 
     public function test_user_can_update_savings_goal(): void

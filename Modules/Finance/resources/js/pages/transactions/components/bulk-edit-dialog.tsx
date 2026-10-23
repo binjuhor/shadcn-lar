@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { router } from '@inertiajs/react'
 import { useTranslation } from 'react-i18next'
+import { useCategoryName } from '@/hooks/use-category-name'
 import { format } from 'date-fns'
 import {
   Dialog,
@@ -41,6 +42,7 @@ export function BulkEditDialog({
   onSuccess,
 }: BulkEditDialogProps) {
   const { t } = useTranslation()
+  const getCategoryName = useCategoryName()
   const [transactionType, setTransactionType] = useState<string>('')
   const [accountId, setAccountId] = useState<string>('')
   const [categoryId, setCategoryId] = useState<string>('')
@@ -161,7 +163,7 @@ export function BulkEditDialog({
                 <SelectItem value="none">{t('bulk.keep_current_category')}</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={String(category.id)}>
-                    {category.name}
+                    {getCategoryName(category)}
                   </SelectItem>
                 ))}
               </SelectContent>

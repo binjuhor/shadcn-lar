@@ -2,14 +2,18 @@
 
 namespace Modules\Finance\Services;
 
+use Carbon\Carbon;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\{Http, Log};
 use Modules\Finance\Contracts\TransactionParserInterface;
-use Modules\Finance\Models\{Account, Category};
+use Modules\Finance\Traits\ParsesTransactionEntities;
+use Modules\Settings\Services\AiCredentialResolver;
 
 class GeminiTransactionParser implements TransactionParserInterface
 {
-    protected string $apiKey;
+    use ParsesTransactionEntities;
 
     protected string $aiStudioBaseUrl = 'https://generativelanguage.googleapis.com/v1beta';
 
@@ -24,7 +28,6 @@ class GeminiTransactionParser implements TransactionParserInterface
 
     public function __construct()
     {
-        $this->apiKey = config('services.gemini.api_key');
         $this->model = config('services.gemini.model', 'gemini-2.0-flash');
         $this->backend = config('services.gemini.backend', 'ai_studio');
         $this->vertexProject = config('services.gemini.vertex.project_id');
@@ -110,7 +113,7 @@ class GeminiTransactionParser implements TransactionParserInterface
         // All formats failed - suggest using text input instead
         return [
             'success' => false,
-            'error' => 'Voice input is temporarily unavailable. Please use the Text tab to enter your transaction (e.g., "Cafe 50k").',
+            'error' => 'Voice input is temporarily unavailable. Please type your transaction instead (e.g., "Cafe 50k").',
             'confidence' => 0,
         ];
     }
@@ -234,109 +237,6 @@ class GeminiTransactionParser implements TransactionParserInterface
         return $this->parseResponse($response);
     }
 
-    /**
-     * Match category hint to user's categories
-     */
-    public function matchCategory(string $hint, int $userId, string $type = 'expense'): ?array
-    {
-        $categories = Category::where(function ($q) use ($userId) {
-            $q->where('user_id', $userId)->orWhereNull('user_id');
-        })
-            ->where('is_active', true)
-            ->where(function ($q) use ($type) {
-                $q->where('type', $type)->orWhere('type', 'both');
-            })
-            ->get();
-
-        $hintLower = mb_strtolower($hint);
-
-        // Direct name match
-        foreach ($categories as $category) {
-            if (mb_strtolower($category->name) === $hintLower) {
-                return ['id' => $category->id, 'name' => $category->name];
-            }
-        }
-
-        // Partial match
-        foreach ($categories as $category) {
-            if (str_contains(mb_strtolower($category->name), $hintLower) ||
-                str_contains($hintLower, mb_strtolower($category->name))) {
-                return ['id' => $category->id, 'name' => $category->name];
-            }
-        }
-
-        // Common Vietnamese mappings
-        $mappings = [
-            'ăn' => ['food', 'ăn uống', 'thực phẩm'],
-            'cafe' => ['food', 'ăn uống', 'coffee'],
-            'xăng' => ['transport', 'di chuyển', 'transportation'],
-            'điện' => ['utilities', 'tiện ích', 'điện nước'],
-            'nước' => ['utilities', 'tiện ích', 'điện nước'],
-            'lương' => ['salary', 'thu nhập', 'income'],
-            'thuê' => ['rent', 'nhà ở', 'housing'],
-            'mua sắm' => ['shopping', 'mua sắm'],
-            'giải trí' => ['entertainment', 'giải trí'],
-        ];
-
-        foreach ($mappings as $keyword => $relatedTerms) {
-            if (str_contains($hintLower, $keyword)) {
-                foreach ($categories as $category) {
-                    $catLower = mb_strtolower($category->name);
-                    foreach ($relatedTerms as $term) {
-                        if (str_contains($catLower, $term)) {
-                            return ['id' => $category->id, 'name' => $category->name];
-                        }
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Match account hint to user's accounts
-     */
-    public function matchAccount(string $hint, int $userId): ?array
-    {
-        $accounts = Account::where('user_id', $userId)
-            ->where('is_active', true)
-            ->get();
-
-        $hintLower = mb_strtolower($hint);
-
-        // Direct name match
-        foreach ($accounts as $account) {
-            if (mb_strtolower($account->name) === $hintLower) {
-                return ['id' => $account->id, 'name' => $account->name];
-            }
-        }
-
-        // Type-based match
-        $typeMap = [
-            'tiền mặt' => 'cash',
-            'cash' => 'cash',
-            'thẻ' => 'credit_card',
-            'card' => 'credit_card',
-            'ngân hàng' => 'bank',
-            'bank' => 'bank',
-        ];
-
-        foreach ($typeMap as $keyword => $type) {
-            if (str_contains($hintLower, $keyword)) {
-                $match = $accounts->firstWhere('account_type', $type);
-                if ($match) {
-                    return ['id' => $match->id, 'name' => $match->name];
-                }
-            }
-        }
-
-        // Return first active account as fallback
-        $first = $accounts->first();
-
-        return $first ? ['id' => $first->id, 'name' => $first->name] : null;
-    }
-
     protected function callGeminiApi(array $payload): array
     {
         // Vertex uses the official SDK which sends canonical Google client headers
@@ -375,11 +275,11 @@ class GeminiTransactionParser implements TransactionParserInterface
                 // with exponential backoff. throw:false keeps the response object on failure
                 // so we can inspect status and surface a useful error.
                 ->retry(2, 1000, function (\Throwable $exception, $request) {
-                    if ($exception instanceof \Illuminate\Http\Client\ConnectionException) {
+                    if ($exception instanceof ConnectionException) {
                         return true;
                     }
 
-                    if ($exception instanceof \Illuminate\Http\Client\RequestException) {
+                    if ($exception instanceof RequestException) {
                         $status = $exception->response->status();
 
                         return in_array($status, [417, 429, 500, 502, 503, 504], true);
@@ -446,7 +346,7 @@ class GeminiTransactionParser implements TransactionParserInterface
     protected function buildAiStudioHeaders(): array
     {
         return [
-            'x-goog-api-key' => $this->apiKey,
+            'x-goog-api-key' => app(AiCredentialResolver::class)->apiKey('gemini'),
             'Content-Type' => 'application/json',
             // Identifying User-Agent prevents Google's edge anti-abuse filter
             // from returning the 417 "Sorry..." HTML page on datacenter IPs.
@@ -505,29 +405,9 @@ class GeminiTransactionParser implements TransactionParserInterface
         return null;
     }
 
-    protected function normalizeAmount($amount): int
+    protected function normalizeAmount($amount): float
     {
-        if (is_numeric($amount)) {
-            return (int) $amount;
-        }
-
-        // Handle Vietnamese number shortcuts
-        $amount = str_replace([',', '.', ' '], '', (string) $amount);
-        $amount = mb_strtolower($amount);
-
-        if (preg_match('/(\d+)\s*(k|nghìn|nghin)/i', $amount, $m)) {
-            return (int) $m[1] * 1000;
-        }
-
-        if (preg_match('/(\d+)\s*(tr|triệu|trieu)/i', $amount, $m)) {
-            return (int) $m[1] * 1000000;
-        }
-
-        if (preg_match('/(\d+)\s*(tỷ|ty)/i', $amount, $m)) {
-            return (int) $m[1] * 1000000000;
-        }
-
-        return (int) preg_replace('/\D/', '', $amount);
+        return $this->normalizeTransactionAmount($amount);
     }
 
     protected function normalizeDate(?string $dateHint): string
@@ -557,96 +437,9 @@ class GeminiTransactionParser implements TransactionParserInterface
 
         // Try to parse as date
         try {
-            return \Carbon\Carbon::parse($dateHint)->format('Y-m-d');
+            return Carbon::parse($dateHint)->format('Y-m-d');
         } catch (\Exception $e) {
             return now()->format('Y-m-d');
         }
-    }
-
-    protected function getParsePrompt(string $language): string
-    {
-        $langInstructions = $language === 'vi'
-            ? 'Input is in Vietnamese. Handle Vietnamese number shortcuts: k/nghìn=×1000, tr/triệu=×1000000.'
-            : 'Input is in English.';
-
-        return <<<PROMPT
-You are a financial transaction parser. Extract transaction details from voice/text input.
-
-{$langInstructions}
-
-Extract:
-- type: "income", "expense", or "transfer" (default: expense). Use "transfer" when money moves between accounts (chuyển khoản, chuyển tiền, transfer, gửi tiền, nạp tiền vào tài khoản)
-- amount: number in VND (convert shortcuts to full numbers)
-- description: brief description of transaction
-- category_hint: suggested category (food, transport, utilities, salary, shopping, entertainment, etc.) — omit for transfers
-- account_hint: source payment method if mentioned (cash, card, bank)
-- transfer_account_hint: destination account/bank if mentioned for transfers (e.g. "Vietcombank", "MoMo", "tiết kiệm", "savings")
-- date_hint: relative date if mentioned (hôm nay, hôm qua, today, yesterday)
-- confidence: 0.0 to 1.0 based on clarity of input
-
-Vietnamese examples:
-- "Ăn sáng 35 nghìn" → expense, 35000, breakfast, food
-- "Lương tháng 15 triệu" → income, 15000000, monthly salary, salary
-- "Đổ xăng 200k hôm qua" → expense, 200000, gas, transport, yesterday
-- "Cafe 50k" → expense, 50000, coffee, food
-- "Chuyển 5tr sang Vietcombank" → transfer, 5000000, transfer to Vietcombank, transfer_account_hint: "Vietcombank"
-- "Chuyển khoản 2tr MoMo" → transfer, 2000000, transfer to MoMo, transfer_account_hint: "MoMo"
-
-Return ONLY valid JSON, no explanation:
-{"type":"expense","amount":50000,"description":"Coffee","category_hint":"food","date_hint":"today","confidence":0.95}
-PROMPT;
-    }
-
-    protected function getReceiptPrompt(string $language): string
-    {
-        $langInstructions = $language === 'vi'
-            ? 'Receipt is likely in Vietnamese. Look for: Tổng cộng, Thành tiền, Total for amount. Ngày for date.'
-            : 'Receipt is in English. Look for Total, Amount, Date fields.';
-
-        return <<<PROMPT
-You are a receipt/bill OCR parser. Extract transaction details from the image.
-
-{$langInstructions}
-
-Extract:
-- type: "expense" (receipts are typically expenses)
-- amount: total amount in the local currency
-- description: store/vendor name or main item
-- category_hint: category based on vendor type (restaurant=food, gas station=transport, etc.)
-- date_hint: transaction date if visible
-- confidence: 0.0 to 1.0 based on image clarity and extraction certainty
-- raw_text: key text extracted from receipt
-
-Return ONLY valid JSON, no explanation:
-{"type":"expense","amount":150000,"description":"Highland Coffee","category_hint":"food","date_hint":"2026-01-04","confidence":0.92,"raw_text":"Highland Coffee - Total: 150,000 VND"}
-PROMPT;
-    }
-
-    protected function getTextWithImagePrompt(string $language, string $userText): string
-    {
-        $langInstructions = $language === 'vi'
-            ? 'Input is in Vietnamese. Handle Vietnamese number shortcuts: k/nghìn=×1000, tr/triệu=×1000000. Receipt may be in Vietnamese.'
-            : 'Input is in English.';
-
-        return <<<PROMPT
-You are a financial transaction parser. The user provides text context AND an image (receipt/bill). Use both to extract transaction details.
-
-User says: "{$userText}"
-
-{$langInstructions}
-
-Extract:
-- type: "income" or "expense" (default: expense)
-- amount: number in local currency (convert shortcuts to full numbers)
-- description: brief description combining text and image context
-- category_hint: suggested category (food, transport, utilities, salary, shopping, entertainment, etc.)
-- account_hint: payment method if mentioned (cash, card, bank)
-- date_hint: date if visible or mentioned
-- confidence: 0.0 to 1.0 based on clarity of input
-- raw_text: key text extracted from the image
-
-Return ONLY valid JSON, no explanation:
-{"type":"expense","amount":150000,"description":"Highland Coffee","category_hint":"food","date_hint":"2026-01-04","confidence":0.92,"raw_text":"Highland Coffee - Total: 150,000 VND"}
-PROMPT;
     }
 }
